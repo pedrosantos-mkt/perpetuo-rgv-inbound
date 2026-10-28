@@ -1,0 +1,540 @@
+<title>Perpétuo RGV — Funil Inbound</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Rethink+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: cabeçalho do ciclo → resumo → funil com metas → ritmo e cenário → faturamento → público, páginas, criativos → dia a dia → campanhas */
+:root{
+  --bg:#0d0d0d; --panel:#1a1a1a; --panel-2:#202020; --line:rgba(254,0,38,.35); --line-soft:rgba(255,255,255,.09);
+  --fg:#ffffff; --muted:rgba(255,255,255,.64); --faint:rgba(255,255,255,.42);
+  --red:#fe0026; --red-2:#ff3352; --red-deep:#b8001c; --red-soft:rgba(254,0,38,.12); --on-red:#ffffff;
+  --ok:#3ec46d; --warn:#ff8a1f; --bad:#ff4d5e;
+  --ink-rgb:255,255,255; --shade-rgb:0,0,0; --red-rgb:254,0,38; --ok-rgb:62,196,109;
+  --f-body:"Rethink Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-display:"Bricolage Grotesque","Rethink Sans",system-ui,sans-serif;
+  color-scheme:dark;
+}
+:root[data-theme="light"]{
+  --bg:#f2f2f2; --panel:#ffffff; --panel-2:#f7f7f7; --line:rgba(184,0,28,.32); --line-soft:rgba(20,20,20,.1);
+  --fg:#141414; --muted:#5c5c5c; --faint:#808080;
+  --red:#d1001f; --red-2:#fe0026; --red-deep:#b8001c; --red-soft:rgba(209,0,31,.08); --on-red:#ffffff;
+  --ok:#1d8a46; --warn:#b85c00; --bad:#c8102e;
+  --ink-rgb:20,20,20; --shade-rgb:20,20,20; --red-rgb:209,0,31; --ok-rgb:29,138,70;
+  color-scheme:light;
+}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:1240px;margin:0 auto;padding-block:0 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.num{font-variant-numeric:tabular-nums}
+.cap{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);display:inline-flex;align-items:center;gap:10px}
+.eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--red)}
+h1 span,h2 span{color:var(--red)}
+
+/* topo */
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding-block:28px 22px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+.top h1{margin:10px 0 0;font-family:var(--f-display);font-size:clamp(30px,4.6vw,48px);font-weight:400;letter-spacing:-.03em;line-height:1.08;text-wrap:balance}
+.top p{margin:8px 0 0;color:var(--muted);font-size:14px}
+.stamp{font-size:12px;color:var(--faint);text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.tema{appearance:none;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-soft);background:var(--panel);color:var(--muted);font:600 12px/1 var(--f-body);padding:8px 12px;border-radius:999px;cursor:pointer}
+.tema:hover{color:var(--fg);border-color:var(--line)}
+.tema:focus-visible,.ver:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+@media (max-width:640px){.stamp{align-items:flex-start;text-align:left}}
+.refresh{appearance:none;border:1px solid var(--red);background:transparent;color:var(--red);font:700 12px/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;padding:10px 14px;border-radius:4px;cursor:pointer}
+.refresh:hover{background:var(--red-soft)}
+.refresh:disabled{opacity:.55;cursor:wait}
+.refresh:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.refresh-msg{max-width:260px;line-height:1.4}
+.tema-ico{width:12px;height:12px;border-radius:50%;background:linear-gradient(90deg,var(--fg) 50%,transparent 50%);border:1.5px solid var(--fg)}
+
+/* resumo */
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line-soft);border:1px solid var(--line-soft);border-radius:14px;overflow:hidden;margin-block:24px}
+.sum > div{background:var(--panel);padding:16px 18px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.sum b{font-family:var(--f-display);font-size:clamp(20px,2.2vw,26px);white-space:nowrap;font-weight:700;letter-spacing:-.02em}
+.sum small{color:var(--muted);font-size:12px}
+.ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+
+/* blocos */
+.detail{border:1px solid var(--line-soft);border-radius:18px;background:linear-gradient(180deg,var(--panel),var(--bg) 70%);padding:24px clamp(16px,3vw,32px);display:flex;flex-direction:column;gap:34px}
+.sec-t{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.sec-t h4{margin:0;font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--red)}
+.sec-t small{color:var(--faint);font-size:12px}
+.note{font-size:12px;color:var(--faint);line-height:1.5;max-width:80ch;margin:10px 0 0}
+
+/* funil */
+.funnel{display:grid;grid-template-columns:repeat(5,minmax(0,1fr) 78px) minmax(0,1fr);align-items:stretch}
+.stage{min-width:0;background:var(--panel-2);border:1px solid var(--line-soft);border-radius:12px;padding:12px 10px;display:flex;flex-direction:column;gap:5px}
+.stage.key{border-color:var(--red);background:linear-gradient(180deg,rgba(var(--red-rgb),.14),var(--panel-2))}
+.stage span{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);line-height:1.25}
+.stage b{font-family:var(--f-display);font-size:clamp(17px,1.8vw,22px);font-weight:700;letter-spacing:-.02em;white-space:nowrap}
+.stage small{font-size:11px;color:var(--faint)}
+.rate{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;padding-inline:2px}
+.rate b{font-size:13px;font-weight:800;white-space:nowrap}
+.rate span{font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);line-height:1.2}
+.rate::before{content:"→";color:var(--faint);font-size:14px}
+.meta-f{font-size:10px;color:var(--faint);line-height:1.3}
+.stage .meta-f.ok{color:var(--ok)} .stage .meta-f.warn{color:var(--warn)} .stage .meta-f.bad{color:var(--bad)}
+@media (max-width:820px){
+  .funnel{grid-template-columns:1fr}
+  .stage{flex-direction:row;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px 12px}
+  .stage span{flex:1 1 auto}
+  .rate{flex-direction:row;justify-content:center;gap:8px;padding-block:6px}
+  .rate::before{content:"↓"}
+}
+
+/* kpis */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:820px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{border:1px solid var(--line-soft);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:4px;background:rgba(var(--shade-rgb),.14);min-width:0}
+.kpi.hl{border-color:var(--red);background:var(--red-soft)}
+.kpi b{font-family:var(--f-display);font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.kpi span{font-size:13px;font-weight:600}
+.kpi small{font-size:12px;color:var(--muted)}
+
+/* ritmo */
+.ritmo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:900px){.ritmo-grid{grid-template-columns:1fr}}
+.ritmo-card{border:1px solid var(--line-soft);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;background:rgba(var(--shade-rgb),.12)}
+.ritmo-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ritmo-nums{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ritmo-nums div{display:flex;flex-direction:column;gap:2px}
+.ritmo-nums b{font-family:var(--f-display);font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.ritmo-nums span{font-size:12px;color:var(--muted)}
+.ritmo-bar{position:relative;height:8px;border-radius:99px;background:var(--line-soft);overflow:hidden}
+.ritmo-bar i{position:absolute;top:0;bottom:0;display:block}
+.ritmo-bar .real{left:0;background:var(--red);border-radius:99px}
+.ritmo-bar .proj{background:repeating-linear-gradient(90deg,rgba(var(--red-rgb),.5) 0 4px,transparent 4px 7px)}
+.ritmo-txt{margin:0;font-size:12.5px;color:var(--muted);line-height:1.5}
+.ritmo-txt b{color:var(--fg)}
+.cenario{margin-top:12px;border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--red-soft);display:flex;flex-direction:column;gap:12px}
+.cenario-t{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.cenario-t .cap{color:var(--red)}
+.cenario-t small{font-size:12px;color:var(--muted)}
+.cenario-k{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:820px){.cenario-k{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.cenario-k div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.cenario-k span{font-size:12px;font-weight:600}
+.cenario-k b{font-family:var(--f-display);font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.cenario-k small{font-size:12px;color:var(--muted)}
+
+/* gráficos */
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:auto}
+.tip{position:absolute;pointer-events:none;background:var(--panel-2);color:var(--fg);box-shadow:0 6px 18px rgba(var(--shade-rgb),.25);border:1px solid var(--line-soft);border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.55;white-space:pre;font-variant-numeric:tabular-nums;transform:translate(-50%,-108%);z-index:2}
+.tip[hidden]{display:none}
+.lg{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--muted)}
+.lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.hbars{display:flex;flex-direction:column;gap:9px}
+.hrow{display:grid;grid-template-columns:170px minmax(0,1fr) 110px;align-items:center;gap:14px}
+.hlab{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.htrack{height:20px;border-radius:5px;background:var(--line-soft);overflow:hidden}
+.htrack i{display:block;height:100%;border-radius:5px}
+.hval{font-size:13px;color:var(--muted);text-align:right}
+.hval b{color:var(--fg)}
+@media (max-width:640px){.hrow{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}.htrack{grid-column:1/-1;order:3}}
+
+/* tabelas: cabem na largura; no celular cada linha vira um cartão */
+.tw{border:1px solid var(--line-soft);border-radius:12px;overflow:hidden}
+.tw.scroll{max-height:460px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:9px 7px;text-align:right;border-bottom:1px solid var(--line-soft);font-variant-numeric:tabular-nums}
+td{white-space:nowrap}
+td:first-child{white-space:normal}
+th{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--panel-2);vertical-align:bottom;line-height:1.25}
+.tw.scroll thead th{position:sticky;top:0;z-index:1}
+th:first-child,td:first-child{text-align:left;padding-left:12px}
+td:first-child{color:var(--fg);overflow-wrap:anywhere}
+tbody tr:last-child td{border-bottom:0}
+tfoot td{font-weight:800;border-top:1px solid var(--line);background:rgba(var(--shade-rgb),.18)}
+th.grp{text-align:center;color:var(--faint);font-size:9.5px}
+.sep{border-right:1px solid var(--line-soft)}
+td.pg{font-size:12px}
+.st{font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:3px 6px;border-radius:4px;margin-right:8px;white-space:nowrap}
+.st.on{background:rgba(var(--ok-rgb),.15);color:var(--ok)} .st.off{background:var(--line-soft);color:var(--faint)}
+tr.extra td{color:var(--muted)}
+.cre-nome{display:flex;align-items:center;gap:10px;min-width:0}
+.cre-nome img{width:36px;height:36px;border-radius:6px;object-fit:cover;flex:0 0 36px;background:var(--line-soft)}
+.cre-nome span{min-width:0;overflow-wrap:anywhere}
+.ver{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:7px;border:1px solid var(--line);color:var(--red)}
+.ver:hover{background:var(--red-soft)}
+.ver svg{width:15px;height:15px}
+.cre-grid{display:grid;grid-template-columns:1fr;gap:18px}
+.cre-box h5{margin:0 0 8px;font-size:12px;font-weight:800;letter-spacing:.06em}
+.cre-box.bom h5{color:var(--ok)} .cre-box.ruim h5{color:var(--bad)}
+@media (max-width:980px){
+  .tw{border:0;overflow:visible} .tw.scroll{max-height:none}
+  table,thead,tbody,tfoot,tr,td{display:block}
+  thead{display:none}
+  tr{border:1px solid var(--line-soft);border-radius:12px;margin-bottom:10px;padding:6px 0;background:var(--panel)}
+  tfoot tr{border-color:var(--line)}
+  td{display:flex;justify-content:space-between;gap:12px;border:0;padding:5px 12px;text-align:right}
+  td::before{content:attr(data-l);color:var(--faint);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;text-align:left}
+  td:first-child{font-weight:700;font-size:13px;padding-bottom:8px;border-bottom:1px solid var(--line-soft);margin-bottom:4px;text-align:left}
+  td:first-child::before{content:none}
+  .sep{border-right:0}
+  tfoot td{background:transparent;border-top:0}
+}
+footer{margin-top:28px;font-size:12px;color:var(--faint);line-height:1.6;max-width:95ch}
+footer p{margin:0 0 8px}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <span class="eyebrow">Método RGV · Perpétuo</span>
+      <h1>Funil <span>inbound</span> do ciclo</h1>
+      <p id="sub"></p>
+    </div>
+    <div class="stamp"><button class="tema" id="tema" type="button" aria-pressed="false"><span class="tema-ico" aria-hidden="true"></span><span id="tema-txt">Tema claro</span></button><span id="stamp"></span><button class="refresh" id="refresh" type="button" hidden>Atualizar agora</button><span class="refresh-msg" id="refresh-msg" aria-live="polite"></span></div>
+  </header>
+  <section class="sum" id="sum"></section>
+  <section class="detail" id="detail" aria-live="polite"></section>
+  <footer id="foot"></footer>
+</div>
+
+<script>
+const DATA = __DATA__;
+const B = DATA.base;
+// metas de cada etapa: mídia pela base dos 30 dias antes do ciclo; lead e SQL pela rampa "Operação 3.000 leads"
+const META = {
+  cpm: Math.round(B.cpm), ctr: Math.round(B.ctr_link*1e4)/1e4, connect: Math.round(B.connect*100)/100,
+  cpl: 330, sqlTx: .15, custoSql: 2200,
+};
+META.conv = META.cpm/(1000*META.ctr*META.connect*META.cpl);   // visita → lead +100k que fecha o CPL da meta com a mídia da meta
+
+const brl = (v,d=0) => v==null||!isFinite(v) ? "—" : "R$ " + v.toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d});
+const int = v => v==null||!isFinite(v) ? "—" : Math.round(v).toLocaleString("pt-BR");
+const pct = (v,d=1) => v==null||!isFinite(v) ? "—" : (v*100).toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d}) + "%";
+const dec = (v,d=1) => v==null||!isFinite(v) ? "—" : v.toLocaleString("pt-BR",{maximumFractionDigits:d});
+const kfmt = v => v>=1e6 ? (v/1e6).toLocaleString("pt-BR",{maximumFractionDigits:2})+" mi" : v>=1e3 ? (v/1e3).toLocaleString("pt-BR",{maximumFractionDigits:1})+" mil" : int(v);
+const dBR = iso => iso.slice(8,10)+"/"+iso.slice(5,7);
+const div = (a,b) => b ? a/b : null;
+const el = (tag, attrs={}, ...kids) => { const e=document.createElement(tag); for(const [k,v] of Object.entries(attrs)){ if(k==="class") e.className=v; else if(k==="text") e.textContent=v; else e.setAttribute(k,v);} kids.flat().forEach(k=>k!=null&&e.append(k)); return e; };
+// tom em relação à meta: "menor é melhor" por padrão
+const tone = (v,meta,menor=true) => v==null||!isFinite(v) ? "" : (menor ? (v<=meta?"ok":v<=meta*1.15?"warn":"bad") : (v>=meta?"ok":v>=meta*.85?"warn":"bad"));
+const tlabel = t => t==="ok"?"dentro da meta":t==="warn"?"perto da meta":t==="bad"?"fora da meta":"";
+
+const C = DATA.ciclo, K = DATA.k, BM = DATA.bm, D = DATA.daily;
+const ATE = new Date(DATA.ate+"T12:00:00"), FIM = new Date(C.fim+"T12:00:00"), INI = new Date(C.ini+"T12:00:00");
+const diasCorr = D.length, diasRest = Math.max(0, Math.round((FIM-ATE)/864e5));
+const metaAte = D.reduce((a,r)=>a+r[11],0);           // meta de leads +100k acumulada até o último dia fechado
+const visitas = K.pg.lpv||0, cliquesPag = K.pg.clk||0;
+const conv = div(K.lead_pag, visitas), connect = div(visitas, cliquesPag);
+const cpl = div(K.spend, K.lead), custoSql = div(K.spend, K.sql), txSql = div(K.sql, K.lead);
+
+function stage(lab,val,sub,key,meta,t){ return el("div",{class:"stage"+(key?" key":"")},el("span",{text:lab}),el("b",{class:"num",text:val}),el("small",{text:sub||""}),meta?el("small",{class:"meta-f "+(t||""),text:meta}):null); }
+function rate(v,lab,meta,t){ return el("div",{class:"rate"},el("b",{class:"num "+(t||""),text:v}),el("span",{text:lab}),meta?el("small",{class:"meta-f",text:meta}):null); }
+function kpi(lab,val,sub,cls){ return el("div",{class:"kpi"+(cls?" hl":"")},el("b",{class:"num",text:val}),el("span",{text:lab}),el("small",{text:sub})); }
+const sec = (titulo, nota, ...kids) => el("div",{},el("div",{class:"sec-t"},el("h4",{text:titulo}),nota?(typeof nota==="string"?el("small",{text:nota}):nota):null),...kids);
+const td = (t,l,cls) => el("td",{class:(cls||""),"data-l":l||"",text:t});
+
+function renderTop(){
+  document.getElementById("sub").textContent=`Ciclo ${C.nome} · ${dBR(C.ini)} a ${dBR(C.fim)} · campanhas [FF] de captação no Meta · dados até ${dBR(DATA.ate)} (${diasCorr} de ${C.dias} dias)`;
+  carimbo();
+  const s=document.getElementById("sum");
+  const it=[["Investimento",brl(K.spend),brl(K.spend/diasCorr)+" por dia",""],
+    ["Leads +100k",int(K.lead),`meta até ${dBR(DATA.ate)}: ${int(metaAte)} · ${pct(K.lead/metaAte,0)}`,tone(K.lead,metaAte,false)],
+    ["CPL +100k",brl(cpl),"meta "+brl(META.cpl),tone(cpl,META.cpl)],
+    ["SQL",int(K.sql),pct(txSql,1)+" dos leads · meta "+pct(META.sqlTx,0),tone(txSql,META.sqlTx,false)],
+    ["Custo por SQL",brl(custoSql),"meta "+brl(META.custoSql),tone(custoSql,META.custoSql)],
+    ["Leads +100k por dia",dec(K.lead/diasCorr),"meta média "+dec(metaAte/diasCorr),tone(K.lead/diasCorr,metaAte/diasCorr,false)]];
+  s.replaceChildren(...it.map(([l,v,sm,t])=>el("div",{},el("span",{class:"cap",text:l}),el("b",{class:"num "+t,text:v}),el("small",{text:sm}))));
+}
+
+function painelFunil(){
+  const metaInv=metaAte*META.cpl;
+  const f=el("div",{class:"funnel"},
+    stage("Investimento",brl(K.spend),`${int(DATA.k.ativas)} campanhas ativas`,false,"no CPL da meta: "+brl(metaInv),tone(K.spend,metaInv)),
+    rate(brl(BM.cpm,2),"CPM","meta "+brl(META.cpm),tone(BM.cpm,META.cpm)),
+    stage("Impressões",kfmt(K.imp),"CTR todos "+pct(BM.ctr_all,2)),
+    rate(pct(BM.ctr_link,2),"CTR link","meta "+pct(META.ctr,2),tone(BM.ctr_link,META.ctr,false)),
+    stage("Cliques no link",int(K.clk),"CPC link "+brl(BM.cpc,2)),
+    rate(pct(connect,0),"Connect","meta "+pct(META.connect,0)+" · só página",tone(connect,META.connect,false)),
+    stage("Visitas na página",int(visitas),"landing page views"),
+    rate(pct(conv,2),"Visita → lead","meta "+pct(META.conv,2),tone(conv,META.conv,false)),
+    stage("Leads +100k",int(K.lead),`${int(K.lead_pag)} página · ${int(K.lead_nativo)} Lead Ads`,true,`meta até ${dBR(DATA.ate)}: ${int(metaAte)}`,tone(K.lead,metaAte,false)),
+    rate(pct(txSql,1),"Viram SQL","meta "+pct(META.sqlTx,0),tone(txSql,META.sqlTx,false)),
+    stage("SQL",int(K.sql),"custo "+brl(custoSql),true,"meta "+int(metaAte*META.sqlTx),tone(K.sql,metaAte*META.sqlTx,false)));
+  return sec("Funil inbound",`CPM, CTR e CPC prontos do Gerenciador · leads e SQL pelo HubSpot · connect e visita → lead só nas campanhas de página`,f);
+}
+
+function painelKpis(){
+  const tot=K.lead_tot, pagCpl=div(K.pg.spend,K.lead_pag), natCpl=div(K.nat.spend,K.lead_nativo);
+  return sec("Resultado",null,el("div",{class:"kpis"},
+    kpi("CPL +100k",brl(cpl),"meta "+brl(META.cpl)+" · "+tlabel(tone(cpl,META.cpl)),true),
+    kpi("Custo por SQL",brl(custoSql),"meta "+brl(META.custoSql)+" · "+tlabel(tone(custoSql,META.custoSql)),true),
+    kpi("Leads de todas as faixas",int(tot),pct(div(K.lead,tot),0)+" declaram +100k/mês · CPL geral "+brl(div(K.spend,tot))),
+    kpi("SQL por dia",dec(K.sql/diasCorr),"média no ciclo"),
+    kpi("Página",brl(pagCpl),`CPL +100k · ${int(K.lead_pag)} leads · ${brl(K.pg.spend)}`),
+    kpi("Lead Ads",brl(natCpl),`CPL +100k · ${int(K.lead_nativo)} leads · ${brl(K.nat.spend)}`),
+    kpi("CPC link",brl(BM.cpc,2),"do Gerenciador"),
+    kpi("Lead no pixel",int(K.pix),"referência · o HubSpot conta "+dec(div(tot,K.pix),2)+"× mais (todas as faixas)")));
+}
+
+// ritmo: média dos últimos 7 dias fechados × o que falta por dia até o fim do ciclo
+function painelRitmo(){
+  const wrap=el("div",{});
+  wrap.append(el("div",{class:"sec-t"},el("h4",{text:"Ritmo até o fim do ciclo"}),
+    el("small",{text:diasRest?`faltam ${diasRest} dia${diasRest===1?"":"s"} até ${dBR(C.fim)} · ritmo atual = média dos últimos 7 dias fechados`:"ciclo encerrado"})));
+  const u7=D.slice(-7), n7=u7.length||1;
+  const l7=u7.reduce((a,r)=>a+r[5],0), s7=u7.reduce((a,r)=>a+r[6],0), g7=u7.reduce((a,r)=>a+r[1],0);
+  const ritmoL=l7/n7, ritmoS=s7/n7, gastoDia=g7/n7, cpl7=l7?g7/l7:cpl, tx7=l7?s7/l7:txSql;
+  const metaL=C.meta_leads, metaS=Math.round(metaL*META.sqlTx), rest=Math.max(1,diasRest);
+  const linhas=[{tit:"Leads +100k",atual:K.lead,meta:metaL,ritmo:ritmoL,verbo:"trazer"},
+                {tit:"SQL",atual:K.sql,meta:metaS,ritmo:ritmoS,verbo:"trazer"}];
+  const grid=el("div",{class:"ritmo-grid"});
+  linhas.forEach(L=>{
+    const falta=Math.max(0,L.meta-L.atual), precisa=falta/rest, proj=L.atual+L.ritmo*diasRest;
+    const ok=falta===0||L.ritmo>=precisa, perto=!ok&&L.ritmo>=precisa*.8, t=ok?"ok":perto?"warn":"bad";
+    const vezes=L.ritmo>0?precisa/L.ritmo:null, a=Math.min(100,L.atual/L.meta*100);
+    grid.append(el("div",{class:"ritmo-card"},
+      el("div",{class:"ritmo-h"},el("span",{class:"cap",text:L.tit}),el("span",{class:"pill "+t,text:falta===0?"meta batida":ok?"no ritmo":perto?"perto do ritmo":"abaixo do ritmo"})),
+      el("div",{class:"ritmo-nums"},
+        el("div",{},el("b",{class:"num "+t,text:dec(L.ritmo)+"/dia"}),el("span",{text:"ritmo atual"})),
+        el("div",{},el("b",{class:"num",text:falta?dec(precisa)+"/dia":"—"}),el("span",{text:"ritmo necessário"}))),
+      el("div",{class:"ritmo-bar"},el("i",{class:"real",style:`width:${a}%`}),el("i",{class:"proj",style:`left:${a}%;width:${Math.max(0,Math.min(100,proj/L.meta*100)-a)}%`})),
+      el("p",{class:"ritmo-txt"},el("b",{class:"num",text:int(L.atual)}),` de ${int(L.meta)} no ciclo · faltam ${int(falta)}. `,
+        falta?`No ritmo atual, fecha o ciclo com ${int(proj)} (${pct(proj/L.meta,0)} da meta)`+(vezes&&vezes>1.05?`; precisa ${L.verbo} ${dec(vezes)}× o ritmo de hoje.`:"."):"Meta do ciclo já alcançada.")));
+  });
+  const faltaL=Math.max(0,metaL-K.lead), verbaPrecisa=faltaL/rest*cpl7, okV=gastoDia>=verbaPrecisa;
+  grid.append(el("div",{class:"ritmo-card"},
+    el("div",{class:"ritmo-h"},el("span",{class:"cap",text:"Investimento"}),el("span",{class:"pill "+(faltaL?(okV?"ok":"warn"):"ok"),text:faltaL?(okV?"verba suficiente":"verba abaixo do necessário"):"meta batida"})),
+    el("div",{class:"ritmo-nums"},
+      el("div",{},el("b",{class:"num",text:brl(gastoDia)+"/dia"}),el("span",{text:"gasto atual"})),
+      el("div",{},el("b",{class:"num",text:faltaL?brl(verbaPrecisa)+"/dia":"—"}),el("span",{text:"necessário ao CPL atual"}))),
+    el("p",{class:"ritmo-txt"},"CPL +100k nos últimos 7 dias: ",el("b",{class:"num",text:brl(cpl7)}),faltaL?`. Para os ${int(faltaL)} leads que faltam, são cerca de ${brl(faltaL*cpl7)} até ${dBR(C.fim)}.`:".")));
+  wrap.append(grid);
+  const lFim=K.lead+ritmoL*diasRest, sFim=K.sql+ritmoS*diasRest, gFim=K.spend+gastoDia*diasRest;
+  wrap.append(el("div",{class:"cenario"},
+    el("div",{class:"cenario-t"},el("span",{class:"cap",text:"Cenário no ritmo atual"}),el("small",{text:`se mantiver a média dos últimos 7 dias até ${dBR(C.fim)} · CPL ${brl(cpl7)} · ${pct(tx7,1)} viram SQL`})),
+    el("div",{class:"cenario-k"},
+      ...[["Leads +100k",int(lFim),`meta ${int(metaL)} · ${pct(lFim/metaL,0)}`,tone(lFim,metaL,false)],
+          ["SQL",int(sFim),`meta ${int(metaS)} · ${pct(sFim/metaS,0)}`,tone(sFim,metaS,false)],
+          ["Investimento no ciclo",brl(gFim),`hoje ${brl(K.spend)} · +${brl(gFim-K.spend)}`,""],
+          ["CPL +100k no ciclo",brl(div(gFim,lFim)),`custo por SQL ${brl(div(gFim,sFim))}`,tone(div(gFim,lFim),META.cpl)]]
+        .map(([l,v,s,t])=>el("div",{},el("span",{text:l}),el("b",{class:"num "+t,text:v}),el("small",{text:s}))))));
+  wrap.append(ritmoGrafico(ritmoL));
+  return wrap;
+}
+function largura(){ return Math.max(320,(document.getElementById("detail").clientWidth||900)-60); }
+function svgBase(W,H,label){ const NS="http://www.w3.org/2000/svg", s=document.createElementNS(NS,"svg"); s.setAttribute("viewBox",`0 0 ${W} ${H}`); s.setAttribute("role","img"); s.setAttribute("aria-label",label);
+  const add=(t,a,txt)=>{const e=document.createElementNS(NS,t);for(const[k,v]of Object.entries(a))e.setAttribute(k,v);if(txt!=null)e.textContent=txt;s.append(e);return e;}; return [s,add]; }
+// leads acumulados × caminho da meta (rampa) × projeção no ritmo atual
+function ritmoGrafico(ritmoL){
+  const box=el("div",{class:"chart",style:"margin-top:14px"});
+  const W=largura(), H=230, P={l:48,r:72,t:16,b:26};
+  const total=C.dias, dx=i=>P.l+(W-P.l-P.r)*(i/(total-1));
+  let acc=0; const real=D.map(r=>acc+=r[5]);
+  // meta acumulada: rampa diária até o fim do ciclo
+  let ma=0; const metaAcc=C.meta_dias.map(m=>ma+=m);
+  const proj=acc+ritmoL*(total-D.length), maxY=Math.max(C.meta_leads,proj,acc)*1.06;
+  const dy=v=>P.t+(H-P.t-P.b)*(1-v/maxY);
+  const [s,add]=svgBase(W,H,"Leads +100k acumulados, meta do ciclo e projeção");
+  [0,.5,1].forEach(f=>{const v=Math.round(maxY*f/100)*100,y=dy(v); add("line",{x1:P.l,x2:W-P.r,y1:y,y2:y,style:"stroke:rgba(var(--ink-rgb),.08)"}); add("text",{x:P.l-8,y:y+4,"text-anchor":"end","font-size":10,style:"fill:var(--faint)"},int(v));});
+  add("path",{d:"M"+metaAcc.map((v,i)=>`${dx(i)},${dy(v)}`).join("L"),fill:"none",style:"stroke:var(--muted)","stroke-width":1.5,"stroke-dasharray":"6 4"});
+  add("text",{x:W-P.r+6,y:dy(metaAcc.at(-1))+4,"font-size":11,"font-weight":700,style:"fill:var(--muted)"},"meta "+int(metaAcc.at(-1)));
+  add("path",{d:"M"+real.map((v,i)=>`${dx(i)},${dy(v)}`).join("L"),fill:"none",style:"stroke:var(--red)","stroke-width":2.4,"stroke-linejoin":"round"});
+  const hx=dx(D.length-1), hy=dy(acc), ex=dx(total-1), py=dy(proj);
+  if(D.length<total){ add("path",{d:`M${hx},${hy}L${ex},${py}`,fill:"none",style:"stroke:var(--red)","stroke-width":1.5,"stroke-dasharray":"2 3"});
+    add("text",{x:ex+6,y:py+4,"font-size":11,"font-weight":700,style:"fill:var(--red)"},int(proj)); }
+  add("circle",{cx:hx,cy:hy,r:4.5,style:"fill:var(--red)"});
+  add("text",{x:dx(0),y:H-8,"font-size":10,style:"fill:var(--faint)"},dBR(C.ini));
+  add("text",{x:hx,y:H-8,"text-anchor":"middle","font-size":10,style:"fill:var(--muted)"},dBR(DATA.ate));
+  add("text",{x:ex,y:H-8,"text-anchor":"end","font-size":10,style:"fill:var(--faint)"},dBR(C.fim));
+  box.append(s, el("div",{class:"lg",style:"margin-top:6px"},el("span",{},el("i",{style:"background:var(--red)"}),"leads +100k acumulados"),el("span",{},el("i",{style:"background:var(--muted)"}),"meta acumulada (rampa)"),el("span",{},el("i",{style:"background:rgba(var(--red-rgb),.45)"}),"projeção no ritmo atual")));
+  return box;
+}
+
+function painelFaixas(){
+  const ord=["Menor que 100 mil por mês","100 mil a 200 mil por mês","200 mil a 499 mil por mês","500 mil a 999 mil por mês","1 milhão a 3 milhões por mês","3 milhões a 6 milhões por mês","Maior que 6 milhões por mês"];
+  const F=Object.fromEntries(DATA.faixas), tot=DATA.faixas.reduce((a,[,v])=>a+v,0);
+  const nomes=[...ord.filter(n=>F[n]),...Object.keys(F).filter(n=>!ord.includes(n))];
+  const max=Math.max(1,...nomes.map(n=>F[n]));
+  const hb=el("div",{class:"hbars"});
+  nomes.forEach(n=>{const v=F[n], menor=n.startsWith("Menor")||n.startsWith("(");
+    hb.append(el("div",{class:"hrow"},el("span",{class:"hlab",title:n,text:n.replace(" por mês","")}),
+      el("div",{class:"htrack"},el("i",{style:`width:${v/max*100}%;background:${menor?"rgba(var(--ink-rgb),.22)":"var(--red)"}`})),
+      el("span",{class:"hval num"},el("b",{text:int(v)}),` · ${pct(v/tot,0)}`)));});
+  return sec("Faturamento declarado no formulário",`${int(tot)} leads pagos do Meta no HubSpot · em vermelho, os que contam como lead (+100k/mês)`,hb);
+}
+
+const OLHO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const rc=r=>{const sp=r.spend||0,l=r.lead||0,s=r.sql||0;return {sp,l,s,cpl:(l&&sp)?sp/l:null,csql:(s&&sp)?sp/s:null,tx:div(s,l),connect:div(r.lpv,r.clkp??r.clk),conv:div(l,r.lpv),imp:r.imp||0,clk:r.clk||0,lpv:r.lpv||0,cpm:div(sp*1000,r.imp),ctr:div(r.clk,r.imp),cpc:div(sp,r.clk)};};
+const sumRows=rows=>rows.reduce((a,r)=>{for(const[k,v]of Object.entries(r)) if(typeof v==="number") a[k]=(a[k]||0)+v; return a;},{});
+const grp=(t,n,cls)=>el("th",{colspan:String(n),class:"grp"+(cls?" "+cls:""),text:t});
+
+function painelPublico(){
+  const H=["Público","Investimento","Leads +100k","CPL","SQL","% SQL","Custo SQL","CPM","CTR link","Connect","Impressões","Cliques","CPC link"];
+  const linha=(nome,r,m,tag)=>{const x=rc(r);m=m||{};return el(tag||"tr",{},td(nome),
+    td(x.sp?brl(x.sp):"—",H[1]),td(int(x.l),H[2]),td(brl(x.cpl),H[3],tone(x.cpl,META.cpl)),td(int(x.s),H[4]),td(pct(x.tx,0),H[5]),td(brl(x.csql),H[6],"sep"),
+    td(brl(m.cpm??x.cpm),H[7]),td(pct(m.ctr_link??x.ctr,2),H[8]),td(pct(x.connect,0),H[9],"sep"),td(x.imp?kfmt(x.imp):"—",H[10]),td(int(x.clk),H[11]),td(brl(m.cpc??x.cpc,2),H[12]));};
+  const tb=el("tbody"); DATA.publicos.forEach(r=>tb.append(linha(r.nome,r,r.bm)));
+  return sec("Público por janela de envolvimento","mídia por conjunto no Meta · leads pela UTM do formulário",
+    el("div",{class:"tw"},el("table",{},
+      el("thead",{},el("tr",{},el("th",{}),grp("Resultado",6,"sep"),grp("Mídia",3,"sep"),grp("Tráfego",3)),el("tr",{},...H.map((h,i)=>el("th",{class:[6,9].includes(i)?"sep":"",text:h})))),
+      tb, el("tfoot",{},linha("Total",sumRows(DATA.publicos),BM)))),
+    el("p",{class:"note",text:"Todos os conjuntos [FF] do ciclo são de público quente (envolvimento), por isso a divisão é pela janela no nome do conjunto: até 30 dias com listas e CRM, morno de 60 a 180 dias, base ampla de 365 a 730 dias. Mix validados junta janelas. No Lead Ads a UTM não traz o conjunto: cada lead é repartido entre os públicos em que o anúncio rodou, na proporção dos leads do formulário nativo que o Meta contou em cada conjunto. Connect conta só os cliques que levam à página."}));
+}
+
+function painelPaginas(){
+  const H=["Página","Leads +100k","SQL","% SQL","Visita → lead","Connect","Visitas","Investimento","CPL","Custo SQL"];
+  const linha=(r,tag)=>{const x=rc(r), nat=r.nome==="Formulário nativo (Lead Ads)";return el("tr",{},td(r.nome,"","pg"),
+    td(int(x.l),H[1]),td(int(x.s),H[2]),td(pct(x.tx,0),H[3]),td(nat?"—":pct(x.conv,2),H[4],nat?"":tone(x.conv,META.conv,false)),td(nat?"—":pct(x.connect,0),H[5],"sep"),
+    td(nat?"—":int(x.lpv),H[6]),td(x.sp?brl(x.sp):"—",H[7]),td(brl(x.cpl),H[8],tone(x.cpl,META.cpl)),td(brl(x.csql),H[9]));};
+  const rows=DATA.paginas.filter(r=>(r.spend||0)>=50||(r.lead||0)>0);
+  const tb=el("tbody"); rows.forEach(r=>tb.append(linha(r)));
+  const t=rc(sumRows(DATA.paginas));
+  return sec("Páginas que rodaram","investimento pela URL do anúncio · leads pela página do formulário no HubSpot",
+    el("div",{class:"kpis",style:"grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px"},
+      kpi("Visitas na página",int(visitas),"landing page views no Meta"),
+      kpi("Visita → lead +100k",pct(conv,2),"meta "+pct(META.conv,2)+" · leads da página ÷ visitas"),
+      kpi("Connect rate",pct(connect,0),"meta "+pct(META.connect,0)+" · visitas ÷ cliques no link")),
+    el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map((h,i)=>el("th",{class:i===5?"sep":"",text:h})))),tb,
+      el("tfoot",{},el("tr",{},td("Total"),td(int(t.l),H[1]),td(int(t.s),H[2]),td(pct(t.tx,0),H[3]),td(pct(conv,2),H[4]),td(pct(connect,0),H[5],"sep"),td(int(visitas),H[6]),td(brl(t.sp),H[7]),td(brl(t.cpl),H[8]),td(brl(t.csql),H[9]))))),
+    el("p",{class:"note",text:"Página sem investimento recebeu lead de anúncio de outra URL ou de link antigo. Visita → lead e connect não se aplicam ao Lead Ads, que não passa pela página."}));
+}
+
+function painelCriativos(){
+  const nomeC=x=>{const w=el("div",{class:"cre-nome"});
+    if(x.thumb){const img=el("img",{src:x.thumb,alt:"",loading:"lazy",referrerpolicy:"no-referrer"}); img.addEventListener("error",()=>img.remove()); w.append(img);}
+    w.append(el("span",{text:x.nome}));
+    if(x.prev){const a=el("a",{class:"ver",href:x.prev,target:"_blank",rel:"noopener",title:"Ver no Instagram","aria-label":"Ver o criativo no Instagram: "+x.nome}); a.innerHTML=OLHO; w.append(a);}
+    return w;};
+  const MIN=Math.max(1000,K.spend*.003);
+  const cr=DATA.criativos.map(r=>({nome:r.nome,prev:r.prev,thumb:r.thumb,bm:r.bm,...rc(r)})).filter(r=>r.sp>=MIN);
+  const best=cr.filter(r=>r.l>0).sort((a,b)=>a.cpl-b.cpl).slice(0,8);
+  const worst=cr.filter(r=>!best.includes(r)).sort((a,b)=>(b.l?b.cpl:1e9+b.sp)-(a.l?a.cpl:1e9+a.sp)).slice(0,8);
+  const H=["Criativo","Investimento","CTR link","CPM","Leads +100k","CPL","SQL","Custo SQL"];
+  const tabela=(rows,titulo,tom)=>{const tb=el("tbody");
+    rows.forEach(x=>tb.append(el("tr",{},el("td",{class:"pg"},nomeC(x)),td(brl(x.sp),H[1]),td(pct(x.bm?.ctr_link??x.ctr,2),H[2]),td(brl(x.bm?.cpm??x.cpm),H[3]),td(int(x.l),H[4]),
+      td(x.l?brl(x.cpl):"sem lead",H[5],tone(x.cpl,META.cpl)),td(int(x.s),H[6]),td(brl(x.csql),H[7],tone(x.csql,META.custoSql)))));
+    if(!rows.length) tb.append(el("tr",{},el("td",{colspan:"8",style:"color:var(--faint)",text:"Nenhum criativo com investimento suficiente."})));
+    return el("div",{class:"cre-box "+tom},el("h5",{text:titulo}),el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb)));};
+  const lig=DATA.criativos.filter(r=>r.nome!=="(sem anúncio na UTM)").reduce((a,r)=>a+(r.lead||0),0);
+  return sec("Melhores e piores criativos",`${int(lig)} de ${int(K.lead)} leads ligados a um criativo · mínimo ${brl(MIN)} investidos · ${int(cr.length)} criativos no ranking`,
+    el("div",{class:"cre-grid"},tabela(best,"Melhores · menor CPL +100k","bom"),tabela(worst,"Piores · maior CPL ou sem lead","ruim")),
+    el("p",{class:"note",text:"O mesmo criativo em vários conjuntos e campanhas vira uma linha só (pelo nome do anúncio). CTR e CPM do Gerenciador; o olho abre o post no Instagram."}));
+}
+
+function chartDia(){
+  const wrap=el("div",{class:"chart"}), tip=el("div",{class:"tip",hidden:""});
+  const W=largura(), H=250, P={l:58,r:44,t:14,b:28};
+  const maxS=Math.max(1,...D.map(r=>r[1])), maxL=Math.max(1,...D.map(r=>Math.max(r[5],r[11])));
+  const nS=Math.ceil(maxS/5000)*5000||5000, nL=Math.max(4,Math.ceil(maxL/20)*20);
+  const iw=W-P.l-P.r, ih=H-P.t-P.b, bw=iw/D.length;
+  const [s,add]=svgBase(W,H,"Investimento, leads +100k e SQL por dia");
+  for(let i=0;i<=4;i++){const y=P.t+ih-ih*i/4;
+    add("line",{x1:P.l,x2:W-P.r,y1:y,y2:y,style:"stroke:rgba(var(--ink-rgb),.08)"});
+    add("text",{x:P.l-8,y:y+4,"text-anchor":"end","font-size":10,style:"fill:var(--faint)"},"R$ "+kfmt(nS*i/4));
+    add("text",{x:W-P.r+8,y:y+4,"font-size":10,style:"fill:var(--red)"},int(nL*i/4));}
+  D.forEach((r,i)=>{const h=ih*r[1]/nS; add("rect",{x:P.l+i*bw+bw*.15,y:P.t+ih-h,width:Math.max(1,bw*.7),height:h,rx:2,style:"fill:rgba(var(--ink-rgb),.16)"});});
+  const pt=k=>D.map((r,i)=>[P.l+i*bw+bw/2,P.t+ih-ih*r[k]/nL]);
+  const lp=pt(5), sp=pt(6), mp=pt(11);
+  add("path",{d:"M"+mp.map(p=>p.join(",")).join("L"),fill:"none",style:"stroke:var(--muted)","stroke-width":1.4,"stroke-dasharray":"5 4"});
+  add("path",{d:"M"+lp.map(p=>p.join(",")).join("L")+`L${lp.at(-1)[0]},${P.t+ih}L${lp[0][0]},${P.t+ih}Z`,style:"fill:rgba(var(--red-rgb),.12)"});
+  add("path",{d:"M"+lp.map(p=>p.join(",")).join("L"),fill:"none",style:"stroke:var(--red)","stroke-width":2.2,"stroke-linejoin":"round"});
+  add("path",{d:"M"+sp.map(p=>p.join(",")).join("L"),fill:"none",style:"stroke:var(--ok)","stroke-width":1.8,"stroke-linejoin":"round"});
+  add("circle",{cx:lp.at(-1)[0],cy:lp.at(-1)[1],r:4,style:"fill:var(--red)"});
+  const step=Math.ceil(D.length/9);
+  D.forEach((r,i)=>{ if(i%step===0||i===D.length-1) add("text",{x:P.l+i*bw+bw/2,y:H-8,"text-anchor":"middle","font-size":10,style:"fill:var(--faint)"},dBR(r[0])); });
+  const hit=add("rect",{x:P.l,y:P.t,width:iw,height:ih,fill:"transparent"});
+  const guide=add("line",{y1:P.t,y2:P.t+ih,style:"stroke:rgba(var(--red-rgb),.5)","stroke-dasharray":"3 3",visibility:"hidden"});
+  hit.addEventListener("pointermove",ev=>{
+    const b=s.getBoundingClientRect(), x=(ev.clientX-b.left)*W/b.width, i=Math.min(D.length-1,Math.max(0,Math.floor((x-P.l)/bw))), r=D[i];
+    const gx=P.l+i*bw+bw/2; guide.setAttribute("x1",gx); guide.setAttribute("x2",gx); guide.setAttribute("visibility","visible");
+    tip.hidden=false; tip.textContent=`${dBR(r[0])}\nInvestimento ${brl(r[1])}\nLeads +100k ${int(r[5])} · meta ${int(r[11])}\nSQL ${int(r[6])}\nCPL ${brl(div(r[1],r[5]))}`;
+    const px=gx*b.width/W; tip.style.left=Math.min(b.width-110,Math.max(110,px))+"px"; tip.style.top=(Math.min(lp[i][1],mp[i][1])*b.height/H)+"px";
+  });
+  hit.addEventListener("pointerleave",()=>{tip.hidden=true; guide.setAttribute("visibility","hidden");});
+  wrap.append(s,tip);
+  return sec("Investimento, leads e SQL por dia",
+    el("div",{class:"lg"},el("span",{},el("i",{style:"background:rgba(var(--ink-rgb),.22)"}),"Investimento"),el("span",{},el("i",{style:"background:var(--red)"}),"Leads +100k"),el("span",{},el("i",{style:"background:var(--muted)"}),"Meta do dia"),el("span",{},el("i",{style:"background:var(--ok)"}),"SQL")),wrap);
+}
+
+function tabelaDia(){
+  const H=["Dia","Investimento","CPM","CTR link","CTR todos","Cliques","Visitas","Leads +100k","Meta","CPL","SQL","% SQL"];
+  const tb=el("tbody");
+  [...D].reverse().forEach(r=>tb.append(el("tr",{},td(dBR(r[0]),"","num"),td(brl(r[1]),H[1]),td(brl(r[7],2),H[2],tone(r[7],META.cpm)),td(pct(r[8],2),H[3],tone(r[8],META.ctr,false)),td(pct(r[9],2),H[4]),
+    td(int(r[3]),H[5]),td(int(r[4]),H[6]),td(int(r[5]),H[7],tone(r[5],r[11],false)),td(int(r[11]),H[8]),td(brl(div(r[1],r[5])),H[9],tone(div(r[1],r[5]),META.cpl)),td(int(r[6]),H[10]),td(pct(div(r[6],r[5]),0),H[11]))));
+  const sm=k=>D.reduce((a,r)=>a+r[k],0);
+  return sec("Dia a dia","mais recente primeiro · CPM e CTR do Gerenciador · SQL contado no dia do primeiro lead da pessoa",
+    el("div",{class:"tw scroll"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb,
+      el("tfoot",{},el("tr",{},td("Total"),td(brl(K.spend),H[1]),td(brl(BM.cpm,2),H[2]),td(pct(BM.ctr_link,2),H[3]),td(pct(BM.ctr_all,2),H[4]),td(int(K.clk),H[5]),td(int(K.lpv),H[6]),
+        td(int(K.lead),H[7]),td(int(sm(11)),H[8]),td(brl(cpl),H[9]),td(int(K.sql),H[10]),td(pct(txSql,0),H[11]))))));
+}
+
+function tabelaCamps(){
+  const H=["Campanha","Investimento","Visitas","Leads +100k","CPL","SQL","Custo SQL","% da verba"];
+  const tb=el("tbody");
+  DATA.camps.forEach(x=>{const r=rc(x);
+    tb.append(el("tr",x.extra?{class:"extra"}:{},
+      el("td",{},el("span",{class:"st "+(x.status==="ACTIVE"?"on":"off"),text:x.extra?"SEM GASTO NO CICLO":x.status==="ACTIVE"?"ATIVA":"PAUSADA"}),x.extra?(x.name||"Sem campanha na UTM"):x.name),
+      td(x.extra?"—":brl(r.sp),H[1]),td(x.extra?"—":int(r.lpv),H[2]),td(int(r.l),H[3]),td(x.extra?"—":brl(r.cpl),H[4],x.extra?"":tone(r.cpl,META.cpl)),td(int(r.s),H[5]),td(x.extra?"—":brl(r.csql),H[6]),td(x.extra?"—":pct(div(r.sp,K.spend),0),H[7])));});
+  return sec("Campanhas [FF] do ciclo","ordenadas por investimento · leads ligados pela UTM de campanha do formulário",
+    el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb,
+      el("tfoot",{},el("tr",{},td("Total"),td(brl(K.spend),H[1]),td(int(K.lpv),H[2]),td(int(K.lead),H[3]),td(brl(cpl),H[4]),td(int(K.sql),H[5]),td(brl(custoSql),H[6]),td("100%",H[7]))))));
+}
+
+function render(){
+  renderTop();
+  const d=document.getElementById("detail");
+  d.replaceChildren(painelFunil(),painelKpis(),painelRitmo(),painelFaixas(),painelPublico(),painelPaginas(),painelCriativos(),chartDia(),tabelaDia(),tabelaCamps());
+  document.getElementById("foot").replaceChildren(
+    el("p",{text:`Mídia: Meta Ads, conta Perpétuo RGV, campanhas com [FF] no nome e gasto no ciclo ${C.nome} (${dBR(C.ini)} a ${dBR(C.fim)}). CPM, CTR (link e todos) e CPC vêm prontos do Gerenciador; connect (visitas ÷ cliques), visita → lead, CPL e custo por SQL são divisões. Só dias fechados: os dados vão até ontem.`}),
+    el("p",{text:"Lead: envio de formulário PERPÉTUO no HubSpot vindo do Meta pago (página ou Lead Ads), 1 por e-mail por dia, com faturamento declarado de 100 mil por mês ou mais. O pixel subconta, por isso o lead nunca é o do pixel."}),
+    el("p",{text:"SQL: o contato tem negócio no pipeline Vendas Principal (RGV) que chegou em Em Qualificação ou numa fase depois dela (no pipeline padrão, Contato Efetivo em diante), depois do lead. Conta uma vez por pessoa. Leads dos últimos dias ainda estão sendo trabalhados pelo comercial, então o % SQL recente tende a subir."}),
+    el("p",{text:`Metas: leads +100k pela rampa "Operação 3.000 leads" do Instagram/Facebook (51 a 74 por dia a partir de 15/10; antes disso, 51 por dia), ${int(C.meta_leads)} no ciclo. CPL +100k R$ 330, 15% de SQL e custo por SQL R$ 2.200. CPM, CTR link e connect da meta = média das campanhas [FF] nos 30 dias antes do ciclo (${dBR(B.ini)} a ${dBR(B.fim)}); visita → lead da meta é a taxa que fecha o CPL de R$ 330 com essa mídia.`}));
+}
+render();
+
+// tema: escuro por padrão; claro por escolha da pessoa, guardado neste navegador
+(function(){
+  const raiz=document.documentElement, btn=document.getElementById("tema"), txt=document.getElementById("tema-txt");
+  let salvo=null; try{ salvo=localStorage.getItem("tema-rgv"); }catch(e){}
+  const aplicar=t=>{ if(t==="light") raiz.setAttribute("data-theme","light"); else raiz.setAttribute("data-theme","dark");
+    const claro=t==="light"; btn.setAttribute("aria-pressed",String(claro)); txt.textContent=claro?"Tema escuro":"Tema claro"; };
+  aplicar(salvo||"dark");
+  btn.addEventListener("click",()=>{ const n=raiz.getAttribute("data-theme")==="light"?"dark":"light"; aplicar(n); try{ localStorage.setItem("tema-rgv",n); }catch(e){} });
+})();
+// próxima atualização automática (7h de Brasília, no minuto 17)
+const HORAS=[7];
+function proximaAtualizacao(){
+  const p=Object.fromEntries(new Intl.DateTimeFormat("pt-BR",{timeZone:"America/Sao_Paulo",hour:"numeric",minute:"numeric",hourCycle:"h23"}).formatToParts(new Date()).map(x=>[x.type,x.value]));
+  const agora=Number(p.hour)*60+Number(p.minute), h=HORAS.find(h=>h*60+17>agora);
+  return h!=null ? `hoje às ${h}h` : `amanhã às ${HORAS[0]}h`;
+}
+function carimbo(){ document.getElementById("stamp").textContent="Atualizado em "+DATA.gerado+(/vercel\.app$/.test(location.hostname)?" · próxima atualização "+proximaAtualizacao():""); }
+setInterval(carimbo,60000);
+// botão Atualizar agora (só na versão da Vercel, que tem a função /api/atualizar)
+(function(){
+  if(!/vercel\.app$/.test(location.hostname)) return;
+  const btn=document.getElementById("refresh"), msg=document.getElementById("refresh-msg");
+  btn.hidden=false; let timer=null, pedido=0;
+  const estado=(t,rodando)=>{msg.textContent=t; btn.disabled=!!rodando;};
+  const AVISO="Atualizando os dados… leva uns 10 minutos. A página recarrega sozinha.";
+  async function checar(recarregar){
+    try{
+      const r=await fetch("/api/atualizar",{cache:"no-store"}); const j=await r.json();
+      if(j.erro){ if(!recarregar){btn.hidden=true; msg.textContent="";} else estado(j.erro,false); return;}
+      if(j.rodando){estado(AVISO,true); clearTimeout(timer); timer=setTimeout(()=>checar(true),20000);}
+      else if(recarregar){
+        const nova=j.run&&Date.parse(j.run.inicio)>=pedido-60000;
+        if(!nova){timer=setTimeout(()=>checar(true),10000); return;}
+        if(j.run.conclusion==="success") location.reload(); else estado("A última atualização falhou. Tente de novo.",false); }
+      else estado("",false);
+    }catch(e){ if(!recarregar){btn.hidden=true; msg.textContent="";} else estado("Sem conexão com o servidor de atualização.",false);}
+  }
+  btn.addEventListener("click",async()=>{
+    estado("Pedindo a atualização…",true); pedido=Date.now();
+    try{ const r=await fetch("/api/atualizar",{method:"POST"}); const j=await r.json();
+      if(j.erro){estado(j.erro,false);return;}
+      setTimeout(()=>checar(true),8000); estado(AVISO,true);
+    }catch(e){estado("Não consegui pedir a atualização agora.",false);}
+  });
+  checar(false);
+})();
+let rt; addEventListener("resize",()=>{clearTimeout(rt); rt=setTimeout(render,150);});
+</script>
