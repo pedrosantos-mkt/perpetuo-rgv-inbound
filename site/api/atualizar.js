@@ -33,6 +33,7 @@ module.exports = async (req, res) => {
     }
     return res.status(200).json({ rodando: !!run && run.status !== 'completed', run });
   } catch (e) {
+    console.error(e.message);
     return res.status(502).json({ erro: 'Não consegui falar com o GitHub agora. Tente de novo em alguns minutos.' });
   }
 };
