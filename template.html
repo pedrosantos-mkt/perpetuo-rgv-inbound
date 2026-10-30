@@ -155,6 +155,8 @@ td.pg{font-size:12px}
 .st{font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:3px 6px;border-radius:4px;margin-right:8px;white-space:nowrap}
 .st.on{background:rgba(var(--ok-rgb),.15);color:var(--ok)} .st.off{background:var(--line-soft);color:var(--faint)}
 tr.extra td{color:var(--muted)}
+tr.atual td{background:var(--red-soft)}
+tr.atual .st,tr .st.off{margin-left:8px}
 .cre-nome{display:flex;align-items:center;gap:10px;min-width:0}
 .cre-nome img{width:36px;height:36px;border-radius:6px;object-fit:cover;flex:0 0 36px;background:var(--line-soft)}
 .cre-nome span{min-width:0;overflow-wrap:anywhere}
@@ -197,7 +199,7 @@ footer p{margin:0 0 8px}
 
 <script>
 const DATA = __DATA__;
-const HORAS=[7];   // horário da rodada diária (BRT), declarado antes do render
+const HORAS=[6,9,12,15,18,21];   // horários das rodadas (BRT, aos :17), declarado antes do render
 const B = DATA.base;
 // metas de cada etapa: mídia pela base dos 30 dias antes do ciclo; lead e SQL pela rampa "Operação 3.000 leads"
 const META = {
@@ -467,6 +469,25 @@ function tabelaDia(){
         td(int(K.lead),H[7]),td(int(sm(11)),H[8]),td(brl(cpl),H[9]),td(int(K.sql),H[10]),td(pct(txSql,0),H[11]),td(brl(custoSql),H[12],tone(custoSql,META.custoSql)))))));
 }
 
+function tabelaCiclos(){
+  const H=["Ciclo","Período","Dias","Investimento","CPM","CTR link","Leads +100k","Leads/dia","CPL","SQL","% SQL","Custo SQL"];
+  const dA=iso=>iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(2,4);
+  const nd=(a,b)=>Math.round((new Date(b)-new Date(a))/864e5)+1;
+  const tb=el("tbody");
+  [...DATA.historico].reverse().forEach(x=>{const dias=nd(x.ini,x.atual?x.ate:x.fim), sem=!!x.sem_hs,
+      cl=sem||x.parcial?null:div(x.spend,x.lead), cs=sem||x.parcial?null:div(x.spend,x.sql), z=v=>sem?"—":int(v);
+    const tag=x.atual?el("span",{class:"st on",text:"EM ANDAMENTO"}):sem?el("span",{class:"st off",text:"SEM FORM NO HUBSPOT"})
+      :x.parcial?el("span",{class:"st off",text:"FORMS DESDE "+dBR(x.parcial)}):null;
+    tb.append(el("tr",x.atual?{class:"atual"}:sem?{class:"extra"}:{},
+      el("td",{"data-l":H[0]},x.nome,tag),
+      td(dA(x.ini)+" a "+dA(x.fim),H[1]),td(x.atual?`${dias} de ${nd(x.ini,x.fim)}`:int(dias),H[2]),td(brl(x.spend),H[3]),
+      td(brl(x.cpm,2),H[4]),td(pct(x.ctr_link,2),H[5]),td(z(x.lead),H[6]),td(x.parcial||sem?"—":int(div(x.lead,dias)),H[7]),
+      td(brl(cl),H[8],x.parcial?"":tone(cl,META.cpl)),td(z(x.sql),H[9]),td(sem?"—":pct(div(x.sql,x.lead),0),H[10],tone(div(x.sql,x.lead),META.sqlTx,false)),
+      td(brl(cs),H[11],tone(cs,META.custoSql))));});
+  return sec("Ciclos anteriores","mesmas regras do painel: [FF] no Meta, lead +100k e SQL pelo HubSpot · até o RGV 35 o form perguntava faturamento anual (conta de R$ 1 mi/ano para cima) · cores pelas metas do ciclo atual",
+    el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb)));
+}
+
 function tabelaCamps(){
   const H=["Campanha","Investimento","Visitas","Leads +100k","CPL","SQL","Custo SQL","% da verba"];
   const tb=el("tbody");
@@ -482,7 +503,7 @@ function tabelaCamps(){
 function render(){
   renderTop();
   const d=document.getElementById("detail");
-  d.replaceChildren(painelFunil(),painelKpis(),painelRitmo(),painelFaixas(),painelPublico(),painelPaginas(),painelCriativos(),chartDia(),tabelaDia(),tabelaCamps());
+  d.replaceChildren(painelFunil(),painelKpis(),painelRitmo(),painelFaixas(),painelPublico(),painelPaginas(),painelCriativos(),chartDia(),tabelaDia(),DATA.historico&&DATA.historico.length>1?tabelaCiclos():null,tabelaCamps());
   document.getElementById("foot").replaceChildren(
     el("p",{text:`Mídia: Meta Ads, conta Perpétuo RGV, campanhas com [FF] no nome e gasto no ciclo ${C.nome} (${dBR(C.ini)} a ${dBR(C.fim)}). CPM, CTR (link e todos) e CPC vêm prontos do Gerenciador; connect (visitas ÷ cliques), visita → lead, CPL e custo por SQL são divisões. Só dias fechados: os dados vão até ontem.`}),
     el("p",{text:"Lead: envio de formulário PERPÉTUO no HubSpot vindo do Meta pago (página ou Lead Ads), 1 por e-mail por dia, com faturamento declarado de 100 mil por mês ou mais. O pixel subconta, por isso o lead nunca é o do pixel."}),

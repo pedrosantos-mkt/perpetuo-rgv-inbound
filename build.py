@@ -156,6 +156,11 @@ data = {
                   for n, v in cre.items() if v.get('spend', 0) > 0 or v.get('lead', 0) > 0],
     'camps': camps_out,
     'faixas': faixas.most_common(),
+    # ciclos fechados (ciclos.json, gerado à mão por ciclos.py) + o ciclo atual até ontem
+    'historico': (json.load(open(os.path.join(AQUI, 'ciclos.json')))['ciclos'] if os.path.exists(os.path.join(AQUI, 'ciclos.json')) else [])
+                 + [{'nome': CICLO['nome'], 'ini': CICLO['ini'].isoformat(), 'fim': CICLO['fim'].isoformat(), 'atual': True, 'ate': M['fim'],
+                     'spend': round(k['spend'], 2), 'imp': k['imp'], 'clk': k['clk'], 'cpm': bm(T)['cpm'], 'ctr_link': bm(T)['ctr_link'],
+                     'lead_tot': sum(r[10] for r in daily), 'lead': sum(r[5] for r in daily), 'sql': sum(r[6] for r in daily)}],
 }
 json.dump(data, open(os.path.join(AQUI, 'data.json'), 'w'), ensure_ascii=False)
 print('investimento', round(k['spend']), '· leads +100k', data['k']['lead'], '· SQL', data['k']['sql'],
