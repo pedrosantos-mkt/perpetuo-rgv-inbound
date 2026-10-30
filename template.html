@@ -42,6 +42,26 @@ h1 span,h2 span{color:var(--red)}
 tr.clic{cursor:pointer}
 tr.clic:hover td{background:rgba(var(--ink-rgb),.04)}
 tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--red)}
+.crm{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--line-soft);border-radius:18px;background:var(--panel);overflow:hidden}
+.crm>div{padding:18px 16px;border-left:1px solid var(--line-soft);display:flex;flex-direction:column;gap:6px;min-width:0}
+.crm>div:first-child{border-left:0}
+.crm h5{margin:0;font:600 13px/1.2 var(--f-body);color:var(--fg);min-height:2.4em}
+.crm .v{font:700 30px/1.1 var(--f-display);color:var(--fg)}
+.crm .bar{height:6px;border-radius:99px;background:rgba(var(--ink-rgb),.08);margin:4px 0 6px}
+.crm .bar i{display:block;height:100%;border-radius:99px;background:var(--red);min-width:4px}
+.crm .ln{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--muted)}
+.crm .ln b{color:var(--fg);font-weight:600;white-space:nowrap}
+.crm .ln b.ok{color:var(--ok)}.crm .ln b.warn{color:var(--warn)}.crm .ln b.bad{color:var(--bad)}.crm .ln b.cinza{color:var(--faint)}
+.crm .custo{margin-top:auto;padding-top:10px;border-top:1px dashed var(--line-soft);font-size:12.5px;color:var(--muted)}
+.crm .custo b{display:block;font:700 18px/1.3 var(--f-display);color:var(--fg)}
+@media (max-width:1100px){.crm{grid-template-columns:repeat(4,minmax(0,1fr))}.crm>div{border-top:1px solid var(--line-soft)}}
+@media (max-width:640px){.crm{grid-template-columns:repeat(2,minmax(0,1fr))}}
+details.ler{border:1px solid var(--line-soft);border-radius:18px;background:var(--panel);padding:16px 20px}
+details.ler summary{cursor:pointer;font:600 14px/1.2 var(--f-body);color:var(--fg)}
+details.ler dl{display:grid;grid-template-columns:200px 1fr;gap:10px 24px;margin:16px 0 4px}
+details.ler dt{font-weight:700;color:var(--fg);font-size:13.5px}
+details.ler dd{margin:0;color:var(--muted);font-size:13.5px;line-height:1.55}
+@media (max-width:640px){details.ler dl{grid-template-columns:1fr;gap:2px}details.ler dd{margin-bottom:10px}}
 .stamp{font-size:12px;color:var(--faint);text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
 .tema{appearance:none;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-soft);background:var(--panel);color:var(--muted);font:600 12px/1 var(--f-body);padding:8px 12px;border-radius:999px;cursor:pointer}
 .tema:hover{color:var(--fg);border-color:var(--line)}
@@ -276,6 +296,51 @@ function painelFunil(){
     rate(pct(txSql,1),"Viram SQL","meta "+pct(META.sqlTx,0),tone(txSql,META.sqlTx,false)),
     stage("SQL",int(K.sql),"custo "+brl(custoSql),true,FECH?"meta "+pct(META.sqlTx,0)+" dos leads":"meta "+int(metaAte*META.sqlTx),FECH?tone(txSql,META.sqlTx,false):tone(K.sql,metaAte*META.sqlTx,false)));
   return sec("Funil inbound",`${FECH?"CPM, CTR e CPC pelas somas das campanhas (o Meta não filtra campanhas excluídas)":"CPM, CTR e CPC prontos do Gerenciador"} · leads e SQL pelo HubSpot · connect e visita → lead só nas campanhas de página`,f);
+}
+
+// funil comercial pelo pipeline de vendas: metas entre etapas do plano do ciclo 45
+const META_CRM={contato:.33,sql:.45,marcado:.76,realizado:.72,venda:.32};
+function painelComercial(){
+  const c=DATA.crm; if(!c) return null;
+  const sp=K.spend, base=Math.max(1,c.lead_crm);
+  const pp=v=>(v>=0?"+":"−")+Math.abs(v*100).toLocaleString("pt-BR",{maximumFractionDigits:1})+" pp";
+  const card=(tit,v,linhas,custoLab,custo)=>el("div",{},el("h5",{text:tit}),el("span",{class:"v num",text:int(v)}),
+    el("div",{class:"bar"},el("i",{style:`width:${Math.max(1,Math.min(100,v/base*100))}%`})),
+    ...linhas.map(([l,x,cls])=>el("div",{class:"ln"},el("span",{text:l}),el("b",{class:"num "+(cls||""),text:x}))),
+    el("div",{class:"custo"},custoLab,el("b",{class:"num",text:custo})));
+  const etapa=(tit,k,ant,taxaLab,custoLab)=>{const n=c[k], d=c[ant], tx=div(n,d), m=META_CRM[k], pouco=d<5;
+    const t=pouco?"cinza":tone(tx,m,false);
+    return card(tit,n,[[taxaLab,pct(tx,1),t],["Meta",tx==null?pct(m,0):`${pct(m,0)} · ${pp(tx-m)}`,pouco?"cinza":""]],custoLab,n?brl(div(sp,n)):"sem "+tit.toLowerCase().split(" ")[0]);};
+  const g=el("div",{class:"crm"},
+    card("Lead no CRM",c.lead_crm,[c.lead_fonte==="negocios"?["Contado por","negócios [FF]"]:["Leads no Meta",int(c.leads_meta)],["CPL no Meta",brl(div(sp,c.leads_meta))]],"Custo por lead",brl(div(sp,c.lead_crm))),
+    card("Lead no perfil (MQL)",c.mql,[["No perfil",pct(div(c.mql,c.lead_crm),1)],["+100k no formulário",int(K.lead)]],"Custo por MQL",brl(div(sp,c.mql))),
+    etapa("Contato efetivo","contato","mql","Conexão","Custo por contato"),
+    etapa("SQL","sql","contato","Qualificação","Custo por SQL"),
+    etapa("Agendamento marcado","marcado","sql","Agendamento","Custo por ag. marcado"),
+    etapa("Agendamento realizado","realizado","marcado","Comparecimento","Custo por ag. realizado"),
+    etapa("Venda","venda","realizado","Fechamento","Custo por venda (CAC)"));
+  return sec("Funil comercial",`pipeline de vendas do HubSpot · negócios [FF] criados no ${FECH?"ciclo":"ciclo até "+dBR(DATA.ate)} · cada etapa conta quem chegou nela ou passou dela · taxa sobre a etapa anterior`,g);
+}
+
+function comoLer(){
+  const L=[
+    ["Investimento","Gasto no Meta Ads da conta Perpétuo RGV no ciclo, só das campanhas com [FF] no nome (captação). Distribuição e remarketing sem lead ficam de fora."],
+    ["Lead no CRM","Envios de formulário PERPÉTUO no HubSpot vindos do Meta pago (página ou Lead Ads), em todas as faixas de faturamento, 1 por e-mail por dia. Do RGV 29 ao 33, antes dos formulários PERPÉTUO, conta os negócios [FF] de qualquer faixa. \"Leads no Meta\" é o que o pixel/formulário do Meta reportou: ele subconta, por isso nunca é a base."],
+    ["Lead +100k","O mesmo envio, quando o faturamento declarado é de R$ 100 mil por mês ou mais. Até o RGV 35 o formulário perguntava por ano: conta de R$ 1 milhão por ano para cima. É a base do CPL e do % SQL das tabelas."],
+    ["MQL (funil comercial)","Negócio dos pipelines Vendas Principal (RGV), Boletos ou padrão, criado no ciclo, com campanha [FF] na UTM e faturamento de R$ 100 mil por mês ou mais. RGV Processos fica de fora."],
+    ["Etapas","Contato efetivo = chegou em Em Qualificação; SQL = Em Agendamento; agendamento marcado = DIAG. Agendado (NoShow e Reagendado contam); agendamento realizado = DIAG. Realizado; venda = Ganho no Principal ou no Boletos. No pipeline padrão dos ciclos antigos: Contato Efetivo, Em Qualificação, Diagnóstico Agendado, Diagnóstico Realizado e Ganho. Negócio no Boletos conta até o realizado; venda só no Ganho de lá."],
+    ["Etapa alcançada","Cada etapa conta o negócio que chegou nela ou passou dela, mesmo perdido depois. Reentrada não duplica. Negócios recentes ainda estão sendo trabalhados, então as etapas finais do ciclo atual sobem com o tempo."],
+    ["Taxas e metas","No funil comercial, cada taxa é sobre a etapa anterior, contra as metas do plano do ciclo 45: conexão 33%, qualificação 45%, agendamento 76%, comparecimento 72% e fechamento 32%. Com menos de 5 casos na etapa anterior, a taxa fica cinza."],
+    ["SQL das tabelas","Nas tabelas de público, página, criativo, dia e ciclo, SQL é a pessoa (lead +100k) cujo negócio chegou em Em Qualificação ou depois, uma vez por pessoa. No funil comercial essa mesma fase aparece como contato efetivo."],
+    ["Custos por etapa","Investimento do ciclo dividido pela quantidade da etapa: custo por lead, por MQL, por contato, por SQL, por agendamento, por reunião realizada e por venda (CAC)."],
+    ["Metas da mídia","CPM, CTR link e connect: média das campanhas [FF] nos 30 dias antes do ciclo 45. Visita → lead é a taxa que fecha o CPL de R$ 330. Volume de leads: rampa \"Operação 3.000 leads\", só no ciclo atual."],
+    ["Público","Todos os conjuntos [FF] são de público quente; o quadro separa pela janela de envolvimento no nome do conjunto (até 30 dias + listas, 60 a 180, 365 a 730, mix validados). Lead Ads não traz o conjunto na UTM: o lead é repartido pelos leads que o Meta contou em cada conjunto."],
+    ["Página","Endereço de destino sem UTM, somando campanhas e anúncios. Formulário nativo do Meta fica em linha própria. Connect e visita → lead só valem nas campanhas de página."],
+    ["Criativo","Anúncios com o mesmo nome somados em todos os conjuntos. O lead é ligado pelo nome do anúncio na UTM (utm_term ou utm_content), comparando só letras e números. O olho abre o post no Instagram."],
+    ["Datas","O ciclo atual vai até ontem (só dias fechados) e é recalculado a cada 3 horas, das 6h17 às 21h17, ou pelo botão Atualizar agora. Ciclos encerrados foram coletados uma vez e não mudam; neles CPM, CTR e CPC saem das somas das campanhas."],
+    ["Cores","Verde dentro da meta, amarelo até 15% fora, vermelho além disso. Sem meta, o número fica neutro."],
+  ];
+  return el("details",{class:"ler"},el("summary",{text:"Como ler"}),el("dl",{},...L.flatMap(([t,d])=>[el("dt",{text:t}),el("dd",{text:d})])));
 }
 
 function painelKpis(){
@@ -519,7 +584,7 @@ function tabelaCamps(){
 function render(){
   renderTop();
   const d=document.getElementById("detail");
-  d.replaceChildren(painelFunil(),painelKpis(),FECH?null:painelRitmo(),painelFaixas(),painelPublico(),painelPaginas(),painelCriativos(),chartDia(),tabelaDia(),HIST.length>1?tabelaCiclos():null,tabelaCamps());
+  d.replaceChildren(painelFunil(),painelComercial(),painelKpis(),FECH?null:painelRitmo(),painelFaixas(),painelPublico(),painelPaginas(),painelCriativos(),chartDia(),tabelaDia(),HIST.length>1?tabelaCiclos():null,tabelaCamps(),comoLer());
   document.getElementById("foot").replaceChildren(
     el("p",{text:`Mídia: Meta Ads, conta Perpétuo RGV, campanhas com [FF] no nome e gasto no ciclo ${C.nome} (${dBR(C.ini)} a ${dBR(C.fim)}). ${FECH?"Em ciclo encerrado, CPM, CTR (link e todos) e CPC saem das somas das campanhas, porque o filtro do Meta descarta campanhas excluídas":"CPM, CTR (link e todos) e CPC vêm prontos do Gerenciador"}; connect (visitas ÷ cliques), visita → lead, CPL e custo por SQL são divisões. Só dias fechados: os dados vão até ontem.`}),
     el("p",{text:"Lead: envio de formulário PERPÉTUO no HubSpot vindo do Meta pago (página ou Lead Ads), 1 por e-mail por dia, com faturamento declarado de 100 mil por mês ou mais. O pixel subconta, por isso o lead nunca é o do pixel."}),

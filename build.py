@@ -160,6 +160,14 @@ data = {
                   for n, v in cre.items() if v.get('spend', 0) > 0 or v.get('lead', 0) > 0],
     'camps': camps_out,
     'faixas': faixas.most_common(),
+    # funil comercial (crm.py): MQL e etapas pelos negócios [FF] criados no ciclo; lead no CRM = leads pagos de todas as faixas
+    # antes dos forms PERPÉTUO (até o RGV 33) o lead no CRM é o negócio [FF] de qualquer faixa
+    'crm': (lambda c: c and {'lead_crm': len(c['deals']) if CICLO['ini'].isoformat() < '2025-07-15' else sum(r[10] for r in daily),
+                             'lead_fonte': 'negocios' if CICLO['ini'].isoformat() < '2025-07-15' else 'forms',
+                             'leads_meta': round(k['pix']), 'gerado': c['gerado'],
+                             **{e: sum(1 for x in c['deals'] if x['mql'] and (e == 'mql' or x[e]))
+                                for e in ('mql', 'contato', 'sql', 'marcado', 'realizado', 'venda')}})(
+        json.load(open(os.path.join(RAW, 'crm.json'))) if os.path.exists(os.path.join(RAW, 'crm.json')) else None),
     # ciclos fechados (ciclos.json, gerado à mão por ciclos.py) + o ciclo atual até ontem
     'historico': [] if FECHADO else (json.load(open(os.path.join(AQUI, 'ciclos.json')))['ciclos'] if os.path.exists(os.path.join(AQUI, 'ciclos.json')) else [])
                  + [{'nome': CICLO['nome'], 'ini': CICLO['ini'].isoformat(), 'fim': CICLO['fim'].isoformat(), 'atual': True, 'ate': M['fim'],
