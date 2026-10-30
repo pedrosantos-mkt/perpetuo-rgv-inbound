@@ -2,11 +2,23 @@
 import os, json, re, time, datetime as dt, requests
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-RAW = os.path.join(AQUI, 'raw')
-os.makedirs(RAW, exist_ok=True)
 TZ = dt.timezone(dt.timedelta(hours=-3))
 ACT = 'act_696363384474339'
-CICLO = {'nome': 'RGV 45', 'ini': dt.date(2026, 9, 29), 'fim': dt.date(2026, 11, 3)}
+CICLOS = [('RGV 29', '2024-12-10', '2025-01-27'), ('RGV 30', '2025-01-28', '2025-03-10'), ('RGV 31', '2025-03-11', '2025-04-22'),
+          ('RGV 32', '2025-04-23', '2025-06-02'), ('RGV 33', '2025-06-03', '2025-07-22'), ('RGV 34', '2025-07-23', '2025-08-25'),
+          ('RGV 35', '2025-08-26', '2025-09-29'), ('RGV 36', '2025-09-30', '2025-11-03'), ('RGV 37', '2025-11-04', '2025-12-10'),
+          ('RGV 38', '2025-12-11', '2026-02-02'), ('RGV 39', '2026-02-03', '2026-03-23'), ('RGV 40', '2026-03-24', '2026-04-27'),
+          ('RGV 41', '2026-04-28', '2026-06-08'), ('RGV 42', '2026-06-09', '2026-07-21'), ('RGV 43', '2026-07-22', '2026-08-24'),
+          ('RGV 44', '2026-08-25', '2026-09-28'), ('RGV 45', '2026-09-29', '2026-11-03')]
+ATUAL = CICLOS[-1][0]
+slug = lambda nome: nome.replace(' ', '-')
+# ciclo coletado: o atual por padrão; CICLO="RGV 38" coleta um ciclo fechado (cache em raw/RGV-38/, saída em site/c/RGV-38.json)
+_c = next(c for c in CICLOS if c[0] == os.environ.get('CICLO', ATUAL))
+CICLO = {'nome': _c[0], 'ini': dt.date.fromisoformat(_c[1]), 'fim': dt.date.fromisoformat(_c[2])}
+FECHADO = CICLO['nome'] != ATUAL
+RAW_ATUAL = os.path.join(AQUI, 'raw')
+RAW = os.path.join(RAW_ATUAL, slug(CICLO['nome'])) if FECHADO else RAW_ATUAL
+os.makedirs(RAW, exist_ok=True)
 
 
 def hoje():
@@ -35,7 +47,7 @@ def req(method, url, tries=7, **kw):
             j = r.json()
             if isinstance(j, dict) and 'error' in j and isinstance(j['error'], dict):
                 e = j['error']
-                if e.get('code') in (4, 17, 32, 613, 80000, 80004) or e.get('is_transient'):
+                if e.get('code') in (2, 4, 17, 32, 613, 80000, 80004) or e.get('is_transient'):   # 2 = serviço indisponível (consultas pesadas)
                     print('  limite Meta, aguardando', e.get('message', '')[:80]); time.sleep(min(300, 15 * 2 ** i)); continue
                 raise RuntimeError(e)
             return j

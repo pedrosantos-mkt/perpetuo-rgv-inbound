@@ -54,6 +54,14 @@ def mais_100k(fx):
     return not (fx.startswith('Menor que 100') or fx.startswith('<'))
 
 
+# até o RGV 35 o form perguntava o faturamento por ano: conta a partir de R$ 1 milhão/ano (faixa mais próxima de 100 mil/mês)
+ANUAL_100K = {'1 a 6 milhões por ano', '6 a 12 milhões por ano', '12 a 36 milhões por ano', '36 a 50 milhões por ano', 'Acima de 50 milhões'}
+
+
+def q100(v):
+    return mais_100k(v.get('annualrevenue')) if v.get('annualrevenue') else v.get('faturamento_anual') in ANUAL_100K
+
+
 def lotes(l, n):
     for i in range(0, len(l), n): yield l[i:i + n]
 
@@ -65,22 +73,26 @@ def post(url, body):
 def main():
     desde = int(dt.datetime.combine(CICLO['ini'], dt.time(), TZ).timestamp() * 1000)
     fim = ate()
-    fs = forms()
-    with ThreadPoolExecutor(6) as ex:
-        subs = [s for rs in ex.map(lambda f: envios(f, desde), fs) for s in rs]
+    cache = os.path.join(RAW_ATUAL, 'c_subs.json')   # todos os envios desde o RGV 29, baixados por ciclos.py
+    if FECHADO and os.path.exists(cache):
+        subs = [s for s in json.load(open(cache)) if s['ts'] >= desde]
+    else:
+        fs = forms()
+        with ThreadPoolExecutor(6) as ex:
+            subs = [s for rs in ex.map(lambda f: envios(f, desde), fs) for s in rs]
     subs.sort(key=lambda s: s['ts'])
     print(len(subs), 'envios nos forms PERPÉTUO desde', CICLO['ini'])
 
     leads, vistos = [], set()
     for s in subs:
         d = dt.datetime.fromtimestamp(s['ts'] / 1000, TZ).date()
-        if d > fim: continue
+        if d > fim or d < CICLO['ini']: continue
         email = (s['v'].get('email') or '').strip().lower()
         if not email or (email, d) in vistos or not pago_meta(s): continue
         vistos.add((email, d))
         v = s['v']
-        leads.append({'email': email, 'ts': s['ts'], 'dia': d.isoformat(), 'q100': mais_100k(v.get('annualrevenue')),
-                      'faixa': v.get('annualrevenue') or '', 'form': s['form'], 'page': s['page'],
+        leads.append({'email': email, 'ts': s['ts'], 'dia': d.isoformat(), 'q100': q100(v),
+                      'faixa': v.get('annualrevenue') or v.get('faturamento_anual') or '', 'form': s['form'], 'page': s['page'],
                       'camp': v.get('utm_campaign') or '', 'term': v.get('utm_term') or '', 'content': v.get('utm_content') or '',
                       'cargo': v.get('ti__form____cargo') or ''})
     l100 = [l for l in leads if l['q100']]
@@ -115,6 +127,7 @@ def main():
                              'h': [(x['value'], x['timestamp']) for x in r.get('propertiesWithHistory', {}).get('dealstage', [])]}
     sql = set()
     for e, c in cid.items():
+        if e not in primeiro: continue   # o HubSpot achou o contato por um e-mail secundário e devolveu o principal
         t0 = primeiro[e] - 864e5
         for d in deals_de.get(c, []):
             h = hist.get(str(d))

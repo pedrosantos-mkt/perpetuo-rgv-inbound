@@ -6,12 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from comum import *
 import hs
 
-CICLOS = [('RGV 29', '2024-12-10', '2025-01-27'), ('RGV 30', '2025-01-28', '2025-03-10'), ('RGV 31', '2025-03-11', '2025-04-22'),
-          ('RGV 32', '2025-04-23', '2025-06-02'), ('RGV 33', '2025-06-03', '2025-07-22'), ('RGV 34', '2025-07-23', '2025-08-25'),
-          ('RGV 35', '2025-08-26', '2025-09-29'), ('RGV 36', '2025-09-30', '2025-11-03'), ('RGV 37', '2025-11-04', '2025-12-10'),
-          ('RGV 38', '2025-12-11', '2026-02-02'), ('RGV 39', '2026-02-03', '2026-03-23'), ('RGV 40', '2026-03-24', '2026-04-27'),
-          ('RGV 41', '2026-04-28', '2026-06-08'), ('RGV 42', '2026-06-09', '2026-07-21'), ('RGV 43', '2026-07-22', '2026-08-24'),
-          ('RGV 44', '2026-08-25', '2026-09-28')]
+CICLOS = [c for c in CICLOS if c[0] != ATUAL]
 
 
 def ciclo_de(d):
@@ -31,13 +26,8 @@ def midia(c, a, b):
                'cpm': sp / im * 1000 if im else None, 'inline_link_click_ctr': ck / im * 100 if im else None}
 
 
-# até o RGV 35 o form perguntava o faturamento por ano: conta a partir de R$ 1 milhão/ano (faixa mais próxima de 100 mil/mês)
-ANUAL_100K = {'1 a 6 milhões por ano', '6 a 12 milhões por ano', '12 a 36 milhões por ano', '36 a 50 milhões por ano', 'Acima de 50 milhões'}
 INICIO_FORMS = '2025-07-15'   # primeiro envio dos forms PERPÉTUO no HubSpot
 
-
-def q100(v):
-    return hs.mais_100k(v.get('annualrevenue')) if v.get('annualrevenue') else v.get('faturamento_anual') in ANUAL_100K
 
 
 def main():
@@ -62,7 +52,7 @@ def main():
         vistos.add((email, d))
         fx = s['v'].get('annualrevenue') or s['v'].get('faturamento_anual') or ''
         faixas[c][fx] += 1
-        leads.append({'c': c, 'email': email, 'ts': s['ts'], 'q100': q100(s['v'])})
+        leads.append({'c': c, 'email': email, 'ts': s['ts'], 'q100': hs.q100(s['v'])})
     if '-v' in sys.argv:
         tot = collections.Counter()
         for c in faixas: tot.update(faixas[c])

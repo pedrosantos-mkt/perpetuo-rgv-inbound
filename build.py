@@ -2,7 +2,8 @@
 import collections, re, unicodedata
 from comum import *
 
-M, HS, B = le('meta.json'), le('hs.json'), le('base.json')
+M, HS = le('meta.json'), le('hs.json')
+B = json.load(open(os.path.join(RAW_ATUAL, 'base.json')))   # metas da mídia: sempre as do ciclo atual
 SQL = set(HS['sql'])
 NATIVO = 'Formulário nativo (Lead Ads)'
 
@@ -13,6 +14,7 @@ RAMPA = [51, 52, 51, 52, 51, 52, 51, 58, 58, 58, 57, 58, 58, 58, 64, 63, 64, 63,
 
 
 def meta_do_dia(d):
+    if FECHADO: return None   # ciclos fechados não tinham a rampa de volume
     i = (d - RAMPA_INI).days
     return RAMPA[0] if i < 0 else RAMPA[min(i, len(RAMPA) - 1)]
 
@@ -137,10 +139,12 @@ for n, v in sorted(cmp.items(), key=lambda x: (-x[1].get('spend', 0), -x[1].get(
         camps_out.append({'name': n[1:] or None, 'extra': True, **limpa(v)})
     else:
         camps_out.append({'name': n, 'status': st.get(n), **limpa(v)})
-tot_meta_ciclo = sum(meta_do_dia(CICLO['ini'] + dt.timedelta(i)) for i in range((CICLO['fim'] - CICLO['ini']).days + 1))
+tot_meta_ciclo = None if FECHADO else sum(meta_do_dia(CICLO['ini'] + dt.timedelta(i)) for i in range((CICLO['fim'] - CICLO['ini']).days + 1))
 data = {
     'gerado': dt.datetime.now(TZ).strftime('%d/%m/%Y %H:%M'),
-    'ciclo': {'nome': CICLO['nome'], 'ini': CICLO['ini'].isoformat(), 'fim': CICLO['fim'].isoformat(),
+    'ciclo': {'nome': CICLO['nome'], 'fechado': FECHADO,
+              # forms PERPÉTUO só existem no HubSpot desde 15/07/2025
+              'hs_desde': None if CICLO['ini'].isoformat() >= '2025-07-15' else '2025-07-15', 'ini': CICLO['ini'].isoformat(), 'fim': CICLO['fim'].isoformat(),
               'dias': (CICLO['fim'] - CICLO['ini']).days + 1, 'meta_leads': tot_meta_ciclo,
               'meta_dias': [meta_do_dia(CICLO['ini'] + dt.timedelta(i)) for i in range((CICLO['fim'] - CICLO['ini']).days + 1)]},
     'ate': M['fim'],
@@ -157,12 +161,14 @@ data = {
     'camps': camps_out,
     'faixas': faixas.most_common(),
     # ciclos fechados (ciclos.json, gerado à mão por ciclos.py) + o ciclo atual até ontem
-    'historico': (json.load(open(os.path.join(AQUI, 'ciclos.json')))['ciclos'] if os.path.exists(os.path.join(AQUI, 'ciclos.json')) else [])
+    'historico': [] if FECHADO else (json.load(open(os.path.join(AQUI, 'ciclos.json')))['ciclos'] if os.path.exists(os.path.join(AQUI, 'ciclos.json')) else [])
                  + [{'nome': CICLO['nome'], 'ini': CICLO['ini'].isoformat(), 'fim': CICLO['fim'].isoformat(), 'atual': True, 'ate': M['fim'],
                      'spend': round(k['spend'], 2), 'imp': k['imp'], 'clk': k['clk'], 'cpm': bm(T)['cpm'], 'ctr_link': bm(T)['ctr_link'],
                      'lead_tot': sum(r[10] for r in daily), 'lead': sum(r[5] for r in daily), 'sql': sum(r[6] for r in daily)}],
 }
-json.dump(data, open(os.path.join(AQUI, 'data.json'), 'w'), ensure_ascii=False)
+saida = os.path.join(AQUI, 'site', 'c', slug(CICLO['nome']) + '.json') if FECHADO else os.path.join(AQUI, 'data.json')
+os.makedirs(os.path.dirname(saida), exist_ok=True)
+json.dump(data, open(saida, 'w'), ensure_ascii=False, separators=(',', ':'))
 print('investimento', round(k['spend']), '· leads +100k', data['k']['lead'], '· SQL', data['k']['sql'],
       '· meta ciclo', tot_meta_ciclo, '· até', M['fim'])
 for p in data['publicos']: print('  ', p['nome'], round(p.get('spend', 0)), p.get('lead', 0), p.get('sql', 0))
