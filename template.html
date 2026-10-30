@@ -456,15 +456,15 @@ function chartDia(){
 }
 
 function tabelaDia(){
-  const H=["Dia","Investimento","CPM","CTR link","CTR todos","Cliques","Visitas","Leads +100k","Meta","CPL","SQL","% SQL"];
+  const H=["Dia","Investimento","CPM","CTR link","CTR todos","Cliques","Visitas","Leads +100k","Meta","CPL","SQL","% SQL","Custo SQL"];
   const tb=el("tbody");
   [...D].reverse().forEach(r=>tb.append(el("tr",{},td(dBR(r[0]),"","num"),td(brl(r[1]),H[1]),td(brl(r[7],2),H[2],tone(r[7],META.cpm)),td(pct(r[8],2),H[3],tone(r[8],META.ctr,false)),td(pct(r[9],2),H[4]),
-    td(int(r[3]),H[5]),td(int(r[4]),H[6]),td(int(r[5]),H[7],tone(r[5],r[11],false)),td(int(r[11]),H[8]),td(brl(div(r[1],r[5])),H[9],tone(div(r[1],r[5]),META.cpl)),td(int(r[6]),H[10]),td(pct(div(r[6],r[5]),0),H[11]))));
+    td(int(r[3]),H[5]),td(int(r[4]),H[6]),td(int(r[5]),H[7],tone(r[5],r[11],false)),td(int(r[11]),H[8]),td(brl(div(r[1],r[5])),H[9],tone(div(r[1],r[5]),META.cpl)),td(int(r[6]),H[10]),td(pct(div(r[6],r[5]),0),H[11]),td(r[6]?brl(div(r[1],r[6])):"—",H[12],r[6]?tone(div(r[1],r[6]),META.custoSql):""))));
   const sm=k=>D.reduce((a,r)=>a+r[k],0);
   return sec("Dia a dia","mais recente primeiro · CPM e CTR do Gerenciador · SQL contado no dia do primeiro lead da pessoa",
     el("div",{class:"tw scroll"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb,
       el("tfoot",{},el("tr",{},td("Total"),td(brl(K.spend),H[1]),td(brl(BM.cpm,2),H[2]),td(pct(BM.ctr_link,2),H[3]),td(pct(BM.ctr_all,2),H[4]),td(int(K.clk),H[5]),td(int(K.lpv),H[6]),
-        td(int(K.lead),H[7]),td(int(sm(11)),H[8]),td(brl(cpl),H[9]),td(int(K.sql),H[10]),td(pct(txSql,0),H[11]))))));
+        td(int(K.lead),H[7]),td(int(sm(11)),H[8]),td(brl(cpl),H[9]),td(int(K.sql),H[10]),td(pct(txSql,0),H[11]),td(brl(custoSql),H[12],tone(custoSql,META.custoSql)))))));
 }
 
 function tabelaCamps(){
