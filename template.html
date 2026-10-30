@@ -197,6 +197,7 @@ footer p{margin:0 0 8px}
 
 <script>
 const DATA = __DATA__;
+const HORAS=[7];   // horário da rodada diária (BRT), declarado antes do render
 const B = DATA.base;
 // metas de cada etapa: mídia pela base dos 30 dias antes do ciclo; lead e SQL pela rampa "Operação 3.000 leads"
 const META = {
@@ -500,7 +501,6 @@ render();
   btn.addEventListener("click",()=>{ const n=raiz.getAttribute("data-theme")==="light"?"dark":"light"; aplicar(n); try{ localStorage.setItem("tema-rgv",n); }catch(e){} });
 })();
 // próxima atualização automática (7h de Brasília, no minuto 17)
-const HORAS=[7];
 function proximaAtualizacao(){
   const p=Object.fromEntries(new Intl.DateTimeFormat("pt-BR",{timeZone:"America/Sao_Paulo",hour:"numeric",minute:"numeric",hourCycle:"h23"}).formatToParts(new Date()).map(x=>[x.type,x.value]));
   const agora=Number(p.hour)*60+Number(p.minute), h=HORAS.find(h=>h*60+17>agora);
