@@ -1,6 +1,6 @@
 {
 "ciclo": "RGV 45",
-"atualizado": "03/11/2026 12:26",
+"atualizado": "03/11/2026 13:05",
 "vendas": [
 {
 "data": "02/10",
@@ -48,24 +48,6 @@
 "via": "fonte do contato no HubSpot"
 },
 {
-"data": "16/10",
-"id": "65900938013",
-"valor": 50000,
-"vendas": 4,
-"tipo": "Orgânico",
-"canal": "Página orgânica",
-"via": "[FORM][TI<>MKT][RGV][ORGANICO] - PERPETUO - rgv-24-org (19/08/2026)"
-},
-{
-"data": "17/10",
-"id": "66021817119",
-"valor": 16400,
-"vendas": 1,
-"tipo": "Tráfego pago",
-"canal": "Meta Ads",
-"via": "[FORM][TI<>MKT][RGV] - PERPETUO - Problema x Solução (04/09/2026)"
-},
-{
 "data": "19/10",
 "id": "66340414329",
 "valor": 16000,
@@ -75,15 +57,6 @@
 "via": "[FORM][TI<>MKT][RGV] - PERPETUO (19/10/2026)"
 },
 {
-"data": "21/10",
-"id": "65204591726",
-"valor": 19800,
-"vendas": 1,
-"tipo": "Orgânico",
-"canal": "Acesso direto (fonte do contato)",
-"via": "fonte do contato no HubSpot"
-},
-{
 "data": "22/10",
 "id": "66495602614",
 "valor": 16900,
@@ -91,15 +64,6 @@
 "tipo": "Tráfego pago",
 "canal": "Meta Ads",
 "via": "[FORM][TI<>MKT][RGV] - PERPETUO - Problema x Solução (21/10/2026)"
-},
-{
-"data": "22/10",
-"id": "66440397598",
-"valor": 19800,
-"vendas": 1,
-"tipo": "Tráfego pago",
-"canal": "Meta Ads",
-"via": "Gravity Forms - Método RGV - (Sem Faturamento - Problema x Solucao) ( Não exclua ou edite ) (07/06/2025)"
 },
 {
 "data": "22/10",
