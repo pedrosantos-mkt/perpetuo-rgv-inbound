@@ -102,6 +102,7 @@ dia_leads = collections.defaultdict(collections.Counter)
 sql_ja = set()
 for l in HS['leads']:
     dia_leads[l['dia']]['tot'] += 1
+    if 'LEAD ADS' not in l['form']: dia_leads[l['dia']]['tot_pag'] += 1   # base da conversão da página (todas as faixas)
     faixas[l['faixa'] or '(sem resposta)'] += 1
     if not l['q100']: continue
     a = atribui(l)
@@ -149,7 +150,7 @@ data = {
               'meta_dias': [meta_do_dia(CICLO['ini'] + dt.timedelta(i)) for i in range((CICLO['fim'] - CICLO['ini']).days + 1)]},
     'ate': M['fim'],
     'k': {**limpa(k), 'lead': sum(r[5] for r in daily), 'sql': sum(r[6] for r in daily), 'lead_tot': sum(r[10] for r in daily),
-          'lead_pag': sum(L.get('lead_pag', 0) for L in dia_leads.values()), 'lead_nativo': sum(L.get('lead_nativo', 0) for L in dia_leads.values()),
+          'lead_pag': sum(L.get('lead_pag', 0) for L in dia_leads.values()), 'lead_tot_pag': sum(L.get('tot_pag', 0) for L in dia_leads.values()), 'lead_nativo': sum(L.get('lead_nativo', 0) for L in dia_leads.values()),
           'pg': limpa(pg_m), 'nat': limpa(nat_m), 'ativas': sum(1 for c in M['camps'] if c.get('status') == 'ACTIVE')},
     'bm': bm(T),
     'base': B,

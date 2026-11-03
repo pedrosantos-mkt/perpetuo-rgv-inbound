@@ -228,12 +228,11 @@ let DATA = __DATA__;
 const DATA0 = DATA, HIST = DATA.historico||[], LISTA = __LISTA__;   // ciclo atual embutido; os fechados vêm de c/<ciclo>.json
 const HORAS=[6,9,12,15,18,21];   // horários das rodadas (BRT, aos :17), declarado antes do render
 const B = DATA.base;
-// metas de cada etapa: mídia pela base dos 30 dias antes do ciclo; lead e SQL pela rampa "Operação 3.000 leads"
+// metas de cada etapa: CPM pela base dos 30 dias antes do ciclo; CTR, connect e conversão da página definidos pelo time; lead e SQL pela rampa "Operação 3.000 leads"
 const META = {
-  cpm: Math.round(B.cpm), ctr: Math.round(B.ctr_link*1e4)/1e4, connect: Math.round(B.connect*100)/100,
+  cpm: Math.round(B.cpm), ctr: .02, connect: .80, conv: .05,
   cpl: 330, sqlTx: .15, custoSql: 2200,
 };
-META.conv = META.cpm/(1000*META.ctr*META.connect*META.cpl);   // visita → lead +100k que fecha o CPL da meta com a mídia da meta
 
 const brl = (v,d=0) => v==null||!isFinite(v) ? "—" : "R$ " + v.toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d});
 const int = v => v==null||!isFinite(v) ? "—" : Math.round(v).toLocaleString("pt-BR");
@@ -254,7 +253,7 @@ function deriva(){
   diasCorr = D.length; diasRest = Math.max(0, Math.round((FIM-ATE)/864e5));
   metaAte = FECH ? null : D.reduce((a,r)=>a+r[11],0);   // meta de leads +100k acumulada até o último dia fechado (só o ciclo atual tem rampa)
   visitas = K.pg.lpv||0; cliquesPag = K.pg.clk||0;
-  conv = div(K.lead_pag, visitas); connect = div(visitas, cliquesPag);
+  conv = div(K.lead_tot_pag ?? K.lead_pag, visitas); connect = div(visitas, cliquesPag);
   cpl = div(K.spend, K.lead); custoSql = div(K.spend, K.sql); txSql = div(K.sql, K.lead);
 }
 deriva();
@@ -291,11 +290,12 @@ function painelFunil(){
     stage("Cliques no link",int(K.clk),"CPC link "+brl(BM.cpc,2)),
     rate(pct(connect,0),"Connect","meta "+pct(META.connect,0)+" · só página",tone(connect,META.connect,false)),
     stage("Visitas na página",int(visitas),"landing page views"),
-    rate(pct(conv,2),"Visita → lead","meta "+pct(META.conv,2),tone(conv,META.conv,false)),
+    rate(pct(conv,2),"Conversão da página","meta "+pct(META.conv,0)+" · todas as faixas",tone(conv,META.conv,false)),
+    ...(K.lead_tot_pag!=null?[stage("Leads da página",int(K.lead_tot_pag),"todas as faixas de faturamento"),rate(pct(div(K.lead_pag,K.lead_tot_pag),0),"Faturam +100k","")]:[]),
     stage("Leads +100k",int(K.lead),`${int(K.lead_pag)} página · ${int(K.lead_nativo)} Lead Ads`,true,FECH?null:`meta até ${dBR(DATA.ate)}: ${int(metaAte)}`,tone(K.lead,metaAte,false)),
     rate(pct(txSql,1),"Viram SQL","meta "+pct(META.sqlTx,0),tone(txSql,META.sqlTx,false)),
     stage("SQL",int(K.sql),"custo "+brl(custoSql),true,FECH?"meta "+pct(META.sqlTx,0)+" dos leads":"meta "+int(metaAte*META.sqlTx),FECH?tone(txSql,META.sqlTx,false):tone(K.sql,metaAte*META.sqlTx,false)));
-  return sec("Funil inbound",`${FECH?"CPM, CTR e CPC pelas somas das campanhas (o Meta não filtra campanhas excluídas)":"CPM, CTR e CPC prontos do Gerenciador"} · leads e SQL pelo HubSpot · connect e visita → lead só nas campanhas de página`,f);
+  return sec("Funil inbound",`${FECH?"CPM, CTR e CPC pelas somas das campanhas (o Meta não filtra campanhas excluídas)":"CPM, CTR e CPC prontos do Gerenciador"} · leads e SQL pelo HubSpot · connect e conversão só nas campanhas de página`,f);
 }
 
 // funil comercial pelo pipeline de vendas: metas entre etapas do plano do ciclo 45
@@ -333,7 +333,7 @@ function comoLer(){
     ["Taxas e metas","No funil comercial, cada taxa é sobre a etapa anterior, contra as metas do plano do ciclo 45: conexão 33%, qualificação 45%, agendamento 76%, comparecimento 72% e fechamento 32%. Com menos de 5 casos na etapa anterior, a taxa fica cinza."],
     ["SQL das tabelas","Nas tabelas de público, página, criativo, dia e ciclo, SQL é a pessoa (lead +100k) cujo negócio chegou em Em Qualificação ou depois, uma vez por pessoa. No funil comercial essa mesma fase aparece como contato efetivo."],
     ["Custos por etapa","Investimento do ciclo dividido pela quantidade da etapa: custo por lead, por MQL, por contato, por SQL, por agendamento, por reunião realizada e por venda (CAC)."],
-    ["Metas da mídia","CPM, CTR link e connect: média das campanhas [FF] nos 30 dias antes do ciclo 45. Visita → lead é a taxa que fecha o CPL de R$ 330. Volume de leads: rampa \"Operação 3.000 leads\", só no ciclo atual."],
+    ["Metas da mídia","CPM: média das campanhas [FF] nos 30 dias antes do ciclo 45. CTR link 2%, connect 80% e conversão da página 5% (leads de todas as faixas ÷ visitas) são as metas do time. Volume de leads: rampa \"Operação 3.000 leads\", só no ciclo atual."],
     ["Público","Todos os conjuntos [FF] são de público quente; o quadro separa pela janela de envolvimento no nome do conjunto (até 30 dias + listas, 60 a 180, 365 a 730, mix validados). Lead Ads não traz o conjunto na UTM: o lead é repartido pelos leads que o Meta contou em cada conjunto."],
     ["Página","Endereço de destino sem UTM, somando campanhas e anúncios. Formulário nativo do Meta fica em linha própria. Connect e visita → lead só valem nas campanhas de página."],
     ["Criativo","Anúncios com o mesmo nome somados em todos os conjuntos. O lead é ligado pelo nome do anúncio na UTM (utm_term ou utm_content), comparando só letras e números. O olho abre o post no Instagram."],
@@ -464,7 +464,7 @@ function painelPublico(){
 function painelPaginas(){
   const H=["Página","Leads +100k","SQL","% SQL","Visita → lead","Connect","Visitas","Investimento","CPL","Custo SQL"];
   const linha=(r,tag)=>{const x=rc(r), nat=r.nome==="Formulário nativo (Lead Ads)";return el("tr",{},td(r.nome,"","pg"),
-    td(int(x.l),H[1]),td(int(x.s),H[2]),td(pct(x.tx,0),H[3]),td(nat?"—":pct(x.conv,2),H[4],nat?"":tone(x.conv,META.conv,false)),td(nat?"—":pct(x.connect,0),H[5],"sep"),
+    td(int(x.l),H[1]),td(int(x.s),H[2]),td(pct(x.tx,0),H[3]),td(nat?"—":pct(x.conv,2),H[4]),td(nat?"—":pct(x.connect,0),H[5],"sep"),
     td(nat?"—":int(x.lpv),H[6]),td(x.sp?brl(x.sp):"—",H[7]),td(brl(x.cpl),H[8],tone(x.cpl,META.cpl)),td(brl(x.csql),H[9]));};
   const rows=DATA.paginas.filter(r=>(r.spend||0)>=50||(r.lead||0)>0);
   const tb=el("tbody"); rows.forEach(r=>tb.append(linha(r)));
@@ -472,10 +472,10 @@ function painelPaginas(){
   return sec("Páginas que rodaram","investimento pela URL do anúncio · leads pela página do formulário no HubSpot",
     el("div",{class:"kpis",style:"grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px"},
       kpi("Visitas na página",int(visitas),"landing page views no Meta"),
-      kpi("Visita → lead +100k",pct(conv,2),"meta "+pct(META.conv,2)+" · leads da página ÷ visitas"),
+      kpi("Conversão da página",pct(conv,2),"meta "+pct(META.conv,0)+" · leads da página (todas as faixas) ÷ visitas"),
       kpi("Connect rate",pct(connect,0),"meta "+pct(META.connect,0)+" · visitas ÷ cliques no link")),
     el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map((h,i)=>el("th",{class:i===5?"sep":"",text:h})))),tb,
-      el("tfoot",{},el("tr",{},td("Total"),td(int(t.l),H[1]),td(int(t.s),H[2]),td(pct(t.tx,0),H[3]),td(pct(conv,2),H[4]),td(pct(connect,0),H[5],"sep"),td(int(visitas),H[6]),td(brl(t.sp),H[7]),td(brl(t.cpl),H[8]),td(brl(t.csql),H[9]))))),
+      el("tfoot",{},el("tr",{},td("Total"),td(int(t.l),H[1]),td(int(t.s),H[2]),td(pct(t.tx,0),H[3]),td(pct(div(t.l,visitas),2),H[4]),td(pct(connect,0),H[5],"sep"),td(int(visitas),H[6]),td(brl(t.sp),H[7]),td(brl(t.cpl),H[8]),td(brl(t.csql),H[9]))))),
     el("p",{class:"note",text:"Página sem investimento recebeu lead de anúncio de outra URL ou de link antigo. Visita → lead e connect não se aplicam ao Lead Ads, que não passa pela página."}));
 }
 
@@ -589,7 +589,7 @@ function render(){
     el("p",{text:`Mídia: Meta Ads, conta Perpétuo RGV, campanhas com [FF] no nome e gasto no ciclo ${C.nome} (${dBR(C.ini)} a ${dBR(C.fim)}). ${FECH?"Em ciclo encerrado, CPM, CTR (link e todos) e CPC saem das somas das campanhas, porque o filtro do Meta descarta campanhas excluídas":"CPM, CTR (link e todos) e CPC vêm prontos do Gerenciador"}; connect (visitas ÷ cliques), visita → lead, CPL e custo por SQL são divisões. Só dias fechados: os dados vão até ontem.`}),
     el("p",{text:"Lead: envio de formulário PERPÉTUO no HubSpot vindo do Meta pago (página ou Lead Ads), 1 por e-mail por dia, com faturamento declarado de 100 mil por mês ou mais. O pixel subconta, por isso o lead nunca é o do pixel."}),
     el("p",{text:"SQL: o contato tem negócio no pipeline Vendas Principal (RGV) que chegou em Em Qualificação ou numa fase depois dela (no pipeline padrão, Contato Efetivo em diante), depois do lead. Conta uma vez por pessoa. Leads dos últimos dias ainda estão sendo trabalhados pelo comercial, então o % SQL recente tende a subir."}),
-    el("p",{text:FECH?"Metas: o ciclo encerrado não tinha rampa de volume; CPL, % de SQL, custo por SQL e mídia são comparados com as metas do ciclo atual.":`Metas: leads +100k pela rampa "Operação 3.000 leads" do Instagram/Facebook (51 a 74 por dia a partir de 15/10; antes disso, 51 por dia), ${int(C.meta_leads)} no ciclo. CPL +100k R$ 330, 15% de SQL e custo por SQL R$ 2.200. CPM, CTR link e connect da meta = média das campanhas [FF] nos 30 dias antes do ciclo (${dBR(B.ini)} a ${dBR(B.fim)}); visita → lead da meta é a taxa que fecha o CPL de R$ 330 com essa mídia.`}));
+    el("p",{text:FECH?"Metas: o ciclo encerrado não tinha rampa de volume; CPL, % de SQL, custo por SQL e mídia são comparados com as metas do ciclo atual.":`Metas: leads +100k pela rampa "Operação 3.000 leads" do Instagram/Facebook (51 a 74 por dia a partir de 15/10; antes disso, 51 por dia), ${int(C.meta_leads)} no ciclo. CPL +100k R$ 330, 15% de SQL e custo por SQL R$ 2.200. CPM da meta = média das campanhas [FF] nos 30 dias antes do ciclo (${dBR(B.ini)} a ${dBR(B.fim)}). CTR link 2%, connect 80% e conversão da página 5% (leads de todas as faixas ÷ visitas) são as metas do time.`}));
 }
 render();
 
