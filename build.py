@@ -169,6 +169,9 @@ data = {
                              **{e: sum(1 for x in c['deals'] if x['mql'] and (e == 'mql' or x[e]))
                                 for e in ('mql', 'contato', 'sql', 'marcado', 'realizado', 'venda')}})(
         json.load(open(os.path.join(RAW, 'crm.json'))) if os.path.exists(os.path.join(RAW, 'crm.json')) else None),
+    # vendas da Planilha Comercial com tráfego × orgânico pela UTM (vendas.json, gerado à mão no debriefing-ciclo45/exporta_vendas.py)
+    'vendas': (lambda v: v if v and v.get('ciclo') == CICLO['nome'] else None)(
+        json.load(open(os.path.join(AQUI, 'vendas.json'))) if os.path.exists(os.path.join(AQUI, 'vendas.json')) else None),
     # ciclos fechados (ciclos.json, gerado à mão por ciclos.py) + o ciclo atual até ontem
     'historico': [] if FECHADO else (json.load(open(os.path.join(AQUI, 'ciclos.json')))['ciclos'] if os.path.exists(os.path.join(AQUI, 'ciclos.json')) else [])
                  + [{'nome': CICLO['nome'], 'ini': CICLO['ini'].isoformat(), 'fim': CICLO['fim'].isoformat(), 'atual': True, 'ate': M['fim'],

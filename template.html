@@ -322,6 +322,30 @@ function painelComercial(){
   return sec("Funil comercial",`pipeline de vendas do HubSpot · negócios [FF] criados no ${FECH?"ciclo":"ciclo até "+dBR(DATA.ate)} · cada etapa conta quem chegou nela ou passou dela · taxa sobre a etapa anterior`,g);
 }
 
+function painelVendas(){
+  const v=DATA.vendas; if(!v) return null;
+  const L=v.vendas, soma=(a,k)=>a.reduce((s,x)=>s+x[k],0);
+  const grupo=tp=>L.filter(x=>x.tipo===tp);
+  const pago=grupo("Tráfego pago"), org=grupo("Orgânico"), sem=grupo("Sem UTM");
+  const rec=soma(L,"valor");
+  const k=(tit,a,extra)=>kpi(tit,int(soma(a,"vendas")),`${brl(soma(a,"valor"))} · ${pct(div(soma(a,"valor"),rec),0)} da receita${extra?" · "+extra:""}`,tit==="Tráfego pago");
+  const H=["Canal pela UTM","Tipo","Negócios","Vendas","Receita","% da receita"];
+  const C={}; L.forEach(x=>{const c=(C[x.tipo+"|"+x.canal]=C[x.tipo+"|"+x.canal]||{tipo:x.tipo,canal:x.canal,n:0,v:0,r:0}); c.n++; c.v+=x.vendas; c.r+=x.valor;});
+  const ordem={"Tráfego pago":0,"Orgânico":1,"Sem UTM":2};
+  const tb=el("tbody"); Object.values(C).sort((a,b)=>ordem[a.tipo]-ordem[b.tipo]||b.r-a.r).forEach(c=>tb.append(el("tr",{},td(c.canal,H[0]),td(c.tipo,H[1]),td(int(c.n),H[2]),td(int(c.v),H[3]),td(brl(c.r),H[4]),td(pct(div(c.r,rec),0),H[5]))));
+  const H2=["Data","Negócio","Valor","Tipo","Canal","Como foi identificado"];
+  const tb2=el("tbody"); L.forEach(x=>tb2.append(el("tr",{},td(x.data,H2[0]),el("td",{"data-l":H2[1]},x.id?el("a",{href:"https://app.hubspot.com/contacts/23586399/record/0-3/"+x.id,target:"_blank",rel:"noopener",text:x.id}):"—"),td(brl(x.valor),H2[2]),td(x.tipo,H2[3]),td(x.canal,H2[4]),td(x.via,H2[5]))));
+  return sec("Vendas: tráfego pago × orgânico",`vendas do Perpétuo na Planilha Comercial (canal Perpétuo + vendas de outras ações que vieram do Perpétuo) · tráfego ou orgânico pela UTM do formulário que levou à venda · atualizado em ${v.atualizado}`,
+    el("div",{class:"kpis"},
+      kpi("Vendas no ciclo",int(soma(L,"vendas")),`${int(L.length)} negócios · ${brl(rec)}`,true),
+      k("Tráfego pago",pago,"ROAS "+dec(div(soma(pago,"valor"),K.spend),2)+"x sobre o [FF]"),
+      k("Orgânico",org),
+      k("Sem UTM",sem),
+      kpi("CAC do tráfego pago",brl(div(K.spend,soma(pago,"vendas"))),"investimento [FF] ÷ vendas de tráfego pago")),
+    el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb)),
+    el("details",{class:"ler"},el("summary",{text:`Ver as ${L.length} vendas`}),el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H2.map(h=>el("th",{text:h})))),tb2))));
+}
+
 function comoLer(){
   const L=[
     ["Investimento","Gasto no Meta Ads da conta Perpétuo RGV no ciclo, só das campanhas com [FF] no nome (captação). Distribuição e remarketing sem lead ficam de fora."],
@@ -338,6 +362,7 @@ function comoLer(){
     ["Página","Endereço de destino sem UTM, somando campanhas e anúncios. Formulário nativo do Meta fica em linha própria. Connect e visita → lead só valem nas campanhas de página."],
     ["Criativo","Anúncios com o mesmo nome somados em todos os conjuntos. O lead é ligado pelo nome do anúncio na UTM (utm_term ou utm_content), comparando só letras e números. O olho abre o post no Instagram."],
     ["Datas","O ciclo atual vai até ontem (só dias fechados) e é recalculado a cada 3 horas, das 6h17 às 21h17, ou pelo botão Atualizar agora. Ciclos encerrados foram coletados uma vez e não mudam; neles CPM, CTR e CPC saem das somas das campanhas."],
+    ["Vendas","Vendas do Perpétuo na Planilha Comercial do time: o canal Perpétuo (fechou na call) mais as vendas de outras ações em que o contato veio do Perpétuo. Tráfego pago ou orgânico pela UTM do formulário PERPÉTUO que levou à venda; sem UTM nele, vale a UTM do negócio, a fonte do contato no HubSpot e a origem do negócio. A planilha é privada, então esta parte é atualizada à mão."],
     ["Cores","Verde dentro da meta, amarelo até 15% fora, vermelho além disso. Sem meta, o número fica neutro."],
   ];
   return el("details",{class:"ler"},el("summary",{text:"Como ler"}),el("dl",{},...L.flatMap(([t,d])=>[el("dt",{text:t}),el("dd",{text:d})])));
@@ -584,7 +609,7 @@ function tabelaCamps(){
 function render(){
   renderTop();
   const d=document.getElementById("detail");
-  d.replaceChildren(painelFunil(),painelComercial(),painelKpis(),FECH?null:painelRitmo(),painelFaixas(),painelPublico(),painelPaginas(),painelCriativos(),chartDia(),tabelaDia(),HIST.length>1?tabelaCiclos():null,tabelaCamps(),comoLer());
+  d.replaceChildren(painelFunil(),painelComercial(),painelVendas(),painelKpis(),FECH?null:painelRitmo(),painelFaixas(),painelPublico(),painelPaginas(),painelCriativos(),chartDia(),tabelaDia(),HIST.length>1?tabelaCiclos():null,tabelaCamps(),comoLer());
   document.getElementById("foot").replaceChildren(
     el("p",{text:`Mídia: Meta Ads, conta Perpétuo RGV, campanhas com [FF] no nome e gasto no ciclo ${C.nome} (${dBR(C.ini)} a ${dBR(C.fim)}). ${FECH?"Em ciclo encerrado, CPM, CTR (link e todos) e CPC saem das somas das campanhas, porque o filtro do Meta descarta campanhas excluídas":"CPM, CTR (link e todos) e CPC vêm prontos do Gerenciador"}; connect (visitas ÷ cliques), visita → lead, CPL e custo por SQL são divisões. Só dias fechados: os dados vão até ontem.`}),
     el("p",{text:"Lead: envio de formulário PERPÉTUO no HubSpot vindo do Meta pago (página ou Lead Ads), 1 por e-mail por dia, com faturamento declarado de 100 mil por mês ou mais. O pixel subconta, por isso o lead nunca é o do pixel."}),
