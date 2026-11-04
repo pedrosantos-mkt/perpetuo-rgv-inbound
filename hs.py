@@ -47,6 +47,14 @@ def pago_meta(s):
     return med in ('cpc', 'paid', 'paid_social') or src.startswith('meta_') or (src in ('facebook', 'fb') and med != 'organico')
 
 
+def pago_google(s):
+    """Google Ads pago (Search e YouTube): UTM de google/youtube ou campanha [SEARCH]/[YT]."""
+    v = s['v']
+    src = (v.get('utm_source') or '').lower(); camp = (v.get('utm_campaign') or '').lower()
+    if 'teste-claude' in src or 'LEAD ADS' in s['form']: return False
+    return 'youtube' in src or 'google' in src or '[yt]' in camp or '[search]' in camp
+
+
 def mais_100k(fx):
     fx = (fx or '').strip()
     if not fx: return False
@@ -88,15 +96,16 @@ def main():
         d = dt.datetime.fromtimestamp(s['ts'] / 1000, TZ).date()
         if d > fim or d < CICLO['ini']: continue
         email = (s['v'].get('email') or '').strip().lower()
-        if not email or (email, d) in vistos or not pago_meta(s): continue
+        canal = 'meta' if pago_meta(s) else 'google' if pago_google(s) else None
+        if not email or (email, d) in vistos or not canal: continue
         vistos.add((email, d))
         v = s['v']
-        leads.append({'email': email, 'ts': s['ts'], 'dia': d.isoformat(), 'q100': q100(v),
+        leads.append({'email': email, 'ts': s['ts'], 'dia': d.isoformat(), 'q100': q100(v), 'canal': canal,
                       'faixa': v.get('annualrevenue') or v.get('faturamento_anual') or '', 'form': s['form'], 'page': s['page'],
                       'camp': v.get('utm_campaign') or '', 'term': v.get('utm_term') or '', 'content': v.get('utm_content') or '',
                       'cargo': v.get('ti__form____cargo') or ''})
     l100 = [l for l in leads if l['q100']]
-    print(len(leads), 'leads pagos do Meta ·', len(l100), '+100k')
+    print(len(leads), 'leads pagos (Meta + Google) ·', len(l100), '+100k ·', sum(l['canal'] == 'google' for l in l100), 'do Google')
 
     # SQL: contato → negócios → histórico de fase
     emails = sorted({l['email'] for l in l100})

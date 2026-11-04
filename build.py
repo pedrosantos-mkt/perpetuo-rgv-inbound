@@ -100,7 +100,23 @@ def atribui(l):
 faixas = collections.Counter()
 dia_leads = collections.defaultdict(collections.Counter)
 sql_ja = set()
+# Google Ads (Search e YouTube): gasto lido à mão no google.json; leads e SQL pela UTM do HubSpot, fora dos quadros do Meta
+G_CAMP = {}
+_gj = json.load(open(os.path.join(AQUI, 'google.json'))) if os.path.exists(os.path.join(AQUI, 'google.json')) else {}
+_gc = _gj.get('ciclos', {}).get(CICLO['nome'])
+sem_rgv = lambda n: N((n or '').replace('[RGV]', ''))   # a UTM do Google vem sem o [RGV] do nome da campanha
+if _gc:
+    for c in _gc['campanhas']: G_CAMP[sem_rgv(c['nome'])] = collections.Counter({'spend': c['spend'], 'imp': c['imp'], 'clk': c['clk']})
+G = collections.Counter()
 for l in HS['leads']:
+    if l.get('canal') == 'google':
+        if 'teste' in l['camp'].lower() or 'teste' in l['email']: continue
+        s = 1 if (l['q100'] and l['email'] in SQL and l['email'] not in sql_ja) else 0
+        if s: sql_ja.add(l['email'])
+        alvo = G_CAMP.setdefault(sem_rgv(l['camp']) or 'SEMCAMPANHA', collections.Counter())
+        for c in (G, alvo):
+            c['lead_tot'] += 1; c['lead'] += l['q100']; c['sql'] += s
+        continue
     dia_leads[l['dia']]['tot'] += 1
     if 'LEAD ADS' not in l['form']: dia_leads[l['dia']]['tot_pag'] += 1   # base da conversão da página (todas as faixas)
     faixas[l['faixa'] or '(sem resposta)'] += 1
@@ -161,9 +177,14 @@ data = {
                   for n, v in cre.items() if v.get('spend', 0) > 0 or v.get('lead', 0) > 0],
     'camps': camps_out,
     'faixas': faixas.most_common(),
+    'google': _gc and {'fonte': _gj['fonte'], 'spend': round(sum(c['spend'] for c in _gc['campanhas']), 2),
+                       'imp': sum(c['imp'] for c in _gc['campanhas']), 'clk': sum(c['clk'] for c in _gc['campanhas']), **G,
+                       'campanhas': sorted(({'nome': next((c['nome'] for c in _gc['campanhas'] if sem_rgv(c['nome']) == kk), kk if kk != 'SEMCAMPANHA' else 'Sem campanha na UTM'),
+                                             'tipo': next((c['tipo'] for c in _gc['campanhas'] if sem_rgv(c['nome']) == kk), ''), **v}
+                                            for kk, v in G_CAMP.items() if v.get('spend') or v.get('lead_tot')), key=lambda r: -r.get('spend', 0))},
     # funil comercial (crm.py): MQL e etapas pelos negócios [FF] criados no ciclo; lead no CRM = leads pagos de todas as faixas
     # antes dos forms PERPÉTUO (até o RGV 33) o lead no CRM é o negócio [FF] de qualquer faixa
-    'crm': (lambda c: c and {'lead_crm': len(c['deals']) if CICLO['ini'].isoformat() < '2025-07-15' else sum(r[10] for r in daily),
+    'crm': (lambda c: c and {'lead_crm': len(c['deals']) if CICLO['ini'].isoformat() < '2025-07-15' else sum(r[10] for r in daily) + G['lead_tot'],
                              'lead_fonte': 'negocios' if CICLO['ini'].isoformat() < '2025-07-15' else 'forms',
                              'leads_meta': round(k['pix']), 'gerado': c['gerado'],
                              **{e: sum(1 for x in c['deals'] if x['mql'] and (e == 'mql' or x[e]))
@@ -176,7 +197,8 @@ data = {
     'historico': [] if FECHADO else (json.load(open(os.path.join(AQUI, 'ciclos.json')))['ciclos'] if os.path.exists(os.path.join(AQUI, 'ciclos.json')) else [])
                  + [{'nome': CICLO['nome'], 'ini': CICLO['ini'].isoformat(), 'fim': CICLO['fim'].isoformat(), 'atual': True, 'ate': M['fim'],
                      'spend': round(k['spend'], 2), 'imp': k['imp'], 'clk': k['clk'], 'cpm': bm(T)['cpm'], 'ctr_link': bm(T)['ctr_link'],
-                     'lead_tot': sum(r[10] for r in daily), 'lead': sum(r[5] for r in daily), 'sql': sum(r[6] for r in daily)}],
+                     'lead_tot': sum(r[10] for r in daily), 'lead': sum(r[5] for r in daily), 'sql': sum(r[6] for r in daily),
+                     **({'g_spend': round(sum(c['spend'] for c in _gc['campanhas']), 2), 'g_lead': G['lead'], 'g_sql': G['sql']} if _gc else {})}],
 }
 saida = os.path.join(AQUI, 'site', 'c', slug(CICLO['nome']) + '.json') if FECHADO else os.path.join(AQUI, 'data.json')
 os.makedirs(os.path.dirname(saida), exist_ok=True)

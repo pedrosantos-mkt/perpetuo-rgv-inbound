@@ -62,7 +62,9 @@ def main():
     out = []
     for d in deals:
         p = d['properties']
-        if '[FF]' not in (p.get('utm_camp') or '').upper(): continue
+        uc = (p.get('utm_camp') or '').upper()
+        # [FF] do Meta ou campanha do Google Ads do Perpétuo ([C2G] ... [PERPETUO] [SEARCH]/[YT])
+        if '[FF]' not in uc and not ('[PERPETUO]' in uc and ('[SEARCH]' in uc or '[YT]' in uc)): continue
         if 'PROCESSOS' in (p.get('produto') or '').upper() or 'PROCESSOS' in (p.get('dealname') or '').upper(): continue
         pipe = p['pipeline']
         fx = p.get('faturamento_mensal_oficial')

@@ -1,0 +1,17 @@
+{
+ "fonte": "Google Ads, conta Método RGV (568-341-4595) na MCC Grupo R1 (287-003-2933), relatório de campanhas lido na interface em 04/11/2026; não há acesso à API, então é atualizado à mão",
+ "ciclos": {
+  "RGV 45": {
+   "ini": "2026-09-29", "fim": "2026-11-03",
+   "campanhas": [
+    {"nome": "[C2G] [RGV] [LEADS] [PERPETUO] [YT] [IN-STREAM] [PQ] Visitantes Site", "tipo": "YouTube", "spend": 4354.32, "imp": 100024, "clk": 1239},
+    {"nome": "[C2G] [RGV] [LEADS] [PERPETUO] [YT] [IN-STREAM] [PF] Segmentos Custom", "tipo": "YouTube", "spend": 1927.76, "imp": 54857, "clk": 671},
+    {"nome": "[C2G] [RGV] [LEADS] [PERPETUO] [SEARCH] [PF] Termos do nicho", "tipo": "Pesquisa", "spend": 1478.43, "imp": 5724, "clk": 377},
+    {"nome": "[C2G] [RGV] [LEADS] [PERPETUO] [SEARCH] Marca 3", "tipo": "Pesquisa", "spend": 1332.87, "imp": 3775, "clk": 331},
+    {"nome": "[C2G] [LEADS] [PERPETUO] [SEARCH] Marca", "tipo": "Pesquisa", "spend": 0, "imp": 0, "clk": 0},
+    {"nome": "[C2G] [LEADS] [PERPETUO] [SEARCH] Marca 2", "tipo": "Pesquisa", "spend": 0, "imp": 0, "clk": 0},
+    {"nome": "[C2G] [BLACK26] [LEADS] [PERPETUO] [YT] [IN-STREAM] [QUENTE] Mix Youtube", "tipo": "YouTube", "spend": 0, "imp": 0, "clk": 0}
+   ]
+  }
+ }
+}
