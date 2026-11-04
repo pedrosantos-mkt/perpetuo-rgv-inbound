@@ -1,6 +1,6 @@
 {
 "ciclo": "RGV 45",
-"atualizado": "03/11/2026 13:05",
+"atualizado": "04/11/2026 12:42",
 "vendas": [
 {
 "data": "02/10",
@@ -208,6 +208,42 @@
 "tipo": "Tráfego pago",
 "canal": "Meta Ads",
 "via": "[FORMFAT][TI<>MKT][RGV] - MATERIAL RICO - NETFLIX Gestão (18/10/2026)"
+},
+{
+"data": "03/11",
+"id": "67171228215",
+"valor": 30000,
+"vendas": 2,
+"tipo": "Tráfego pago",
+"canal": "Meta Ads",
+"via": "[FORM][TI<>MKT][RGV] - PERPETUO - Problema x Solução (30/10/2026)"
+},
+{
+"data": "03/11",
+"id": "67153392712",
+"valor": 16900,
+"vendas": 1,
+"tipo": "Tráfego pago",
+"canal": "Meta Ads",
+"via": "[FORM][TI<>MKT][TURNEMAQUINADEVENDAS] - Ribeirão Preto - Outubro/2026 (28/09/2026)"
+},
+{
+"data": "03/11",
+"id": "67153578929",
+"valor": 6276,
+"vendas": 1,
+"tipo": "Tráfego pago",
+"canal": "Meta Ads",
+"via": "[FORM][TI<>MKT][TURNEMAQUINADEVENDAS] - Cuiabá - Outubro/2026  (25/09/2026)"
+},
+{
+"data": "03/11",
+"id": "60705056937",
+"valor": 16900,
+"vendas": 1,
+"tipo": "Tráfego pago",
+"canal": "Meta Ads",
+"via": "[FORM][TI<>MKT][RGV] - PERPETUO - SITE FUNIL DE FLUXO DE CAIXA (29/05/2026)"
 }
 ]
 }
