@@ -246,12 +246,13 @@ const el = (tag, attrs={}, ...kids) => { const e=document.createElement(tag); fo
 const tone = (v,meta,menor=true) => v==null||!isFinite(v)||meta==null||!isFinite(meta) ? "" : (menor ? (v<=meta?"ok":v<=meta*1.15?"warn":"bad") : (v>=meta?"ok":v>=meta*.85?"warn":"bad"));
 const tlabel = t => t==="ok"?"dentro da meta":t==="warn"?"perto da meta":t==="bad"?"fora da meta":"";
 
-let C, K, BM, D, ATE, FIM, INI, diasCorr, diasRest, metaAte, visitas, cliquesPag, conv, connect, cpl, custoSql, txSql, FECH, GG, GR, SPT, LT, STT, cplT, custoSqlT, txSqlT;
+let C, K, BM, D, ATE, FIM, INI, diasCorr, diasRest, metaAte, SM, visitas, cliquesPag, conv, connect, cpl, custoSql, txSql, FECH, GG, GR, SPT, LT, STT, cplT, custoSqlT, txSqlT;
 function deriva(){
   C = DATA.ciclo; K = DATA.k; BM = DATA.bm; D = DATA.daily; FECH = !!C.fechado;
   ATE = new Date(DATA.ate+"T12:00:00"); FIM = new Date(C.fim+"T12:00:00"); INI = new Date(C.ini+"T12:00:00");
   diasCorr = D.length; diasRest = Math.max(0, Math.round((FIM-ATE)/864e5));
-  metaAte = FECH ? null : D.reduce((a,r)=>a+r[11],0);   // meta de leads +100k acumulada até o último dia fechado (só o ciclo atual tem rampa)
+  metaAte = FECH||!C.meta_leads ? null : D.reduce((a,r)=>a+r[11],0);
+  SM = metaAte==null;   // sem meta de volume: ciclo encerrado ou ciclo sem rampa cadastrada   // meta de leads +100k acumulada até o último dia fechado (só o ciclo atual tem rampa)
   visitas = K.pg.lpv||0; cliquesPag = K.pg.clk||0;
   conv = div(K.lead_tot_pag ?? K.lead_pag, visitas); connect = div(visitas, cliquesPag);
   cpl = div(K.spend, K.lead); custoSql = div(K.spend, K.sql); txSql = div(K.sql, K.lead);
@@ -277,24 +278,24 @@ function renderTop(){
   carimbo();
   const s=document.getElementById("sum");
   const it=GG?[["Investimento",brl(SPT),`Meta ${brl(K.spend)} · Google ${brl(GG.spend)}`,""],
-    ["Leads +100k",int(LT),`Meta ${int(K.lead)} · Google ${int(GG.lead)}${FECH?"":` · meta do Meta até ${dBR(DATA.ate)}: ${int(metaAte)}`}`,FECH?"":tone(K.lead,metaAte,false)],
+    ["Leads +100k",int(LT),`Meta ${int(K.lead)} · Google ${int(GG.lead)}${SM?"":` · meta do Meta até ${dBR(DATA.ate)}: ${int(metaAte)}`}`,SM?"":tone(K.lead,metaAte,false)],
     ["CPL +100k",brl(cplT),`meta ${brl(META.cpl)} · Meta ${brl(cpl)} · Google ${brl(div(GG.spend,GG.lead))}`,tone(cplT,META.cpl)],
     ["SQL",int(STT),`${pct(txSqlT,1)} dos leads · Meta ${int(K.sql)} · Google ${int(GG.sql)}`,tone(txSqlT,META.sqlTx,false)],
     ["Custo por SQL",brl(custoSqlT),"meta "+brl(META.custoSql),tone(custoSqlT,META.custoSql)],
-    ["Leads +100k Meta por dia",dec(K.lead/diasCorr),FECH?"média no ciclo":"meta da rampa "+dec(metaAte/diasCorr),FECH?"":tone(K.lead/diasCorr,metaAte/diasCorr,false)]]
+    ["Leads +100k Meta por dia",dec(K.lead/diasCorr),SM?"média no ciclo":"meta da rampa "+dec(metaAte/diasCorr),SM?"":tone(K.lead/diasCorr,metaAte/diasCorr,false)]]
    :[["Investimento",brl(K.spend),brl(K.spend/diasCorr)+" por dia",""],
-    ["Leads +100k",int(K.lead),FECH?`${int(K.lead_tot)} leads em todas as faixas`:`meta até ${dBR(DATA.ate)}: ${int(metaAte)} · ${pct(K.lead/metaAte,0)}`,tone(K.lead,metaAte,false)],
+    ["Leads +100k",int(K.lead),SM?`${int(K.lead_tot)} leads em todas as faixas`:`meta até ${dBR(DATA.ate)}: ${int(metaAte)} · ${pct(K.lead/metaAte,0)}`,tone(K.lead,metaAte,false)],
     ["CPL +100k",brl(cpl),"meta "+brl(META.cpl),tone(cpl,META.cpl)],
     ["SQL",int(K.sql),pct(txSql,1)+" dos leads · meta "+pct(META.sqlTx,0),tone(txSql,META.sqlTx,false)],
     ["Custo por SQL",brl(custoSql),"meta "+brl(META.custoSql),tone(custoSql,META.custoSql)],
-    ["Leads +100k por dia",dec(K.lead/diasCorr),FECH?"média no ciclo":"meta média "+dec(metaAte/diasCorr),FECH?"":tone(K.lead/diasCorr,metaAte/diasCorr,false)]];
+    ["Leads +100k por dia",dec(K.lead/diasCorr),SM?"média no ciclo":"meta média "+dec(metaAte/diasCorr),SM?"":tone(K.lead/diasCorr,metaAte/diasCorr,false)]];
   s.replaceChildren(...it.map(([l,v,sm,t])=>el("div",{},el("span",{class:"cap",text:l}),el("b",{class:"num "+t,text:v}),el("small",{text:sm}))));
 }
 
 function painelFunil(){
-  const metaInv=FECH?null:metaAte*META.cpl;
+  const metaInv=SM?null:metaAte*META.cpl;
   const f=el("div",{class:"funnel"},
-    stage("Investimento",brl(K.spend),FECH?`${DATA.camps.filter(c=>!c.extra).length} campanhas`:`${int(DATA.k.ativas)} campanhas ativas`,false,FECH?null:"no CPL da meta: "+brl(metaInv),tone(K.spend,metaInv)),
+    stage("Investimento",brl(K.spend),FECH?`${DATA.camps.filter(c=>!c.extra).length} campanhas`:`${int(DATA.k.ativas)} campanhas ativas`,false,SM?null:"no CPL da meta: "+brl(metaInv),tone(K.spend,metaInv)),
     rate(brl(BM.cpm,2),"CPM","meta "+brl(META.cpm),tone(BM.cpm,META.cpm)),
     stage("Impressões",kfmt(K.imp),"CTR todos "+pct(BM.ctr_all,2)),
     rate(pct(BM.ctr_link,2),"CTR link","meta "+pct(META.ctr,2),tone(BM.ctr_link,META.ctr,false)),
@@ -303,10 +304,10 @@ function painelFunil(){
     stage("Visitas na página",int(visitas),"landing page views"),
     rate(pct(conv,2),"Conversão da página","meta "+pct(META.conv,0)+" · todas as faixas",tone(conv,META.conv,false)),
     ...(K.lead_tot_pag!=null?[stage("Leads da página",int(K.lead_tot_pag),"todas as faixas de faturamento"),rate(pct(div(K.lead_pag,K.lead_tot_pag),0),"Faturam +100k","")]:[]),
-    stage("Leads +100k",int(K.lead),`${int(K.lead_pag)} página · ${int(K.lead_nativo)} Lead Ads`,true,FECH?null:`meta até ${dBR(DATA.ate)}: ${int(metaAte)}`,tone(K.lead,metaAte,false)),
+    stage("Leads +100k",int(K.lead),`${int(K.lead_pag)} página · ${int(K.lead_nativo)} Lead Ads`,true,SM?null:`meta até ${dBR(DATA.ate)}: ${int(metaAte)}`,tone(K.lead,metaAte,false)),
     rate(pct(txSql,1),"Viram SQL","meta "+pct(META.sqlTx,0),tone(txSql,META.sqlTx,false)),
-    stage("SQL",int(K.sql),"custo "+brl(custoSql),true,FECH?"meta "+pct(META.sqlTx,0)+" dos leads":"meta "+int(metaAte*META.sqlTx),FECH?tone(txSql,META.sqlTx,false):tone(K.sql,metaAte*META.sqlTx,false)));
-  return sec(GG?"Funil inbound · Meta":"Funil inbound",`${FECH?"CPM, CTR e CPC pelas somas das campanhas (o Meta não filtra campanhas excluídas)":"CPM, CTR e CPC prontos do Gerenciador"} · leads e SQL pelo HubSpot · connect e conversão só nas campanhas de página`,f);
+    stage("SQL",int(K.sql),"custo "+brl(custoSql),true,SM?"meta "+pct(META.sqlTx,0)+" dos leads":"meta "+int(metaAte*META.sqlTx),SM?tone(txSql,META.sqlTx,false):tone(K.sql,metaAte*META.sqlTx,false)));
+  return sec(GG?"Funil inbound · Meta":"Funil inbound",`${C.somado?"CPM, CTR e CPC pelas somas das campanhas (o Meta não filtra campanhas excluídas)":"CPM, CTR e CPC prontos do Gerenciador"} · leads e SQL pelo HubSpot · connect e conversão só nas campanhas de página`,f);
 }
 
 // funil comercial pelo pipeline de vendas: metas entre etapas do plano do ciclo 45
@@ -572,7 +573,7 @@ function chartDia(){
   D.forEach((r,i)=>{const h=ih*r[1]/nS; add("rect",{x:P.l+i*bw+bw*.15,y:P.t+ih-h,width:Math.max(1,bw*.7),height:h,rx:2,style:"fill:rgba(var(--ink-rgb),.16)"});});
   const pt=k=>D.map((r,i)=>[P.l+i*bw+bw/2,P.t+ih-ih*r[k]/nL]);
   const lp=pt(5), sp=pt(6), mp=pt(11);
-  if(!FECH) add("path",{d:"M"+mp.map(p=>p.join(",")).join("L"),fill:"none",style:"stroke:var(--muted)","stroke-width":1.4,"stroke-dasharray":"5 4"});
+  if(!SM) add("path",{d:"M"+mp.map(p=>p.join(",")).join("L"),fill:"none",style:"stroke:var(--muted)","stroke-width":1.4,"stroke-dasharray":"5 4"});
   add("path",{d:"M"+lp.map(p=>p.join(",")).join("L")+`L${lp.at(-1)[0]},${P.t+ih}L${lp[0][0]},${P.t+ih}Z`,style:"fill:rgba(var(--red-rgb),.12)"});
   add("path",{d:"M"+lp.map(p=>p.join(",")).join("L"),fill:"none",style:"stroke:var(--red)","stroke-width":2.2,"stroke-linejoin":"round"});
   add("path",{d:"M"+sp.map(p=>p.join(",")).join("L"),fill:"none",style:"stroke:var(--ok)","stroke-width":1.8,"stroke-linejoin":"round"});
@@ -584,13 +585,13 @@ function chartDia(){
   hit.addEventListener("pointermove",ev=>{
     const b=s.getBoundingClientRect(), x=(ev.clientX-b.left)*W/b.width, i=Math.min(D.length-1,Math.max(0,Math.floor((x-P.l)/bw))), r=D[i];
     const gx=P.l+i*bw+bw/2; guide.setAttribute("x1",gx); guide.setAttribute("x2",gx); guide.setAttribute("visibility","visible");
-    tip.hidden=false; tip.textContent=`${dBR(r[0])}\nInvestimento ${brl(r[1])}\nLeads +100k ${int(r[5])}${FECH?"":" · meta "+int(r[11])}\nSQL ${int(r[6])}\nCPL ${brl(div(r[1],r[5]))}`;
-    const px=gx*b.width/W; tip.style.left=Math.min(b.width-110,Math.max(110,px))+"px"; tip.style.top=((FECH?lp[i][1]:Math.min(lp[i][1],mp[i][1]))*b.height/H)+"px";
+    tip.hidden=false; tip.textContent=`${dBR(r[0])}\nInvestimento ${brl(r[1])}\nLeads +100k ${int(r[5])}${SM?"":" · meta "+int(r[11])}\nSQL ${int(r[6])}\nCPL ${brl(div(r[1],r[5]))}`;
+    const px=gx*b.width/W; tip.style.left=Math.min(b.width-110,Math.max(110,px))+"px"; tip.style.top=((SM?lp[i][1]:Math.min(lp[i][1],mp[i][1]))*b.height/H)+"px";
   });
   hit.addEventListener("pointerleave",()=>{tip.hidden=true; guide.setAttribute("visibility","hidden");});
   wrap.append(s,tip);
   return sec("Investimento, leads e SQL por dia",
-    el("div",{class:"lg"},el("span",{},el("i",{style:"background:rgba(var(--ink-rgb),.22)"}),"Investimento"),el("span",{},el("i",{style:"background:var(--red)"}),"Leads +100k"),el("span",{},el("i",{style:"background:var(--muted)"}),"Meta do dia"),el("span",{},el("i",{style:"background:var(--ok)"}),"SQL")),wrap);
+    el("div",{class:"lg"},el("span",{},el("i",{style:"background:rgba(var(--ink-rgb),.22)"}),"Investimento"),el("span",{},el("i",{style:"background:var(--red)"}),"Leads +100k"),SM?null:el("span",{},el("i",{style:"background:var(--muted)"}),"Meta do dia"),el("span",{},el("i",{style:"background:var(--ok)"}),"SQL")),wrap);
 }
 
 function tabelaDia(){
@@ -602,7 +603,7 @@ function tabelaDia(){
   return sec("Dia a dia",`mais recente primeiro · CPM e CTR do Gerenciador · SQL contado no dia do primeiro lead da pessoa${GG?" · o Google Ads não tem quebra por dia e entra no fim":""}`,
     el("div",{class:"tw scroll"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb,
       el("tfoot",{},el("tr",{},td(GR?"Total Meta":"Total"),td(brl(K.spend),H[1]),td(brl(BM.cpm,2),H[2]),td(pct(BM.ctr_link,2),H[3]),td(pct(BM.ctr_all,2),H[4]),td(int(K.clk),H[5]),td(int(K.lpv),H[6]),
-        td(int(K.lead),H[7]),td(FECH?"—":int(sm(11)),H[8]),td(brl(cpl),H[9]),td(int(K.sql),H[10]),td(pct(txSql,0),H[11]),td(brl(custoSql),H[12],tone(custoSql,META.custoSql))),
+        td(int(K.lead),H[7]),td(SM?"—":int(sm(11)),H[8]),td(brl(cpl),H[9]),td(int(K.sql),H[10]),td(pct(txSql,0),H[11]),td(brl(custoSql),H[12],tone(custoSql,META.custoSql))),
         GR?el("tr",{},td("Google Ads no ciclo"),td(brl(GR.spend),H[1]),td("—",H[2]),td("—",H[3]),td("—",H[4]),td(int(GR.clk),H[5]),td("—",H[6]),td(int(GR.lead),H[7]),td("—",H[8]),td(brl(div(GR.spend,GR.lead)),H[9]),td(int(GR.sql),H[10]),td(pct(div(GR.sql,GR.lead),0),H[11]),td(brl(div(GR.spend,GR.sql)),H[12])):null,
         GR?el("tr",{},td("Total Meta + Google"),td(brl(SPT),H[1]),td("—",H[2]),td("—",H[3]),td("—",H[4]),td(int(K.clk+GR.clk),H[5]),td("—",H[6]),td(int(LT),H[7]),td("—",H[8]),td(brl(cplT),H[9],tone(cplT,META.cpl)),td(int(STT),H[10]),td(pct(txSqlT,0),H[11]),td(brl(custoSqlT),H[12],tone(custoSqlT,META.custoSql))):null))));
 }
@@ -645,12 +646,12 @@ function tabelaCamps(){
 function render(){
   renderTop();
   const d=document.getElementById("detail");
-  d.replaceChildren(painelFunil(),painelComercial(),painelGoogle(),painelVendas(),painelKpis(),FECH?null:painelRitmo(),painelFaixas(),painelPublico(),painelPaginas(),painelCriativos(),chartDia(),tabelaDia(),HIST.length>1?tabelaCiclos():null,tabelaCamps(),comoLer());
+  d.replaceChildren(painelFunil(),painelComercial(),painelGoogle(),painelVendas(),painelKpis(),SM?null:painelRitmo(),painelFaixas(),painelPublico(),painelPaginas(),painelCriativos(),chartDia(),tabelaDia(),HIST.length>1?tabelaCiclos():null,tabelaCamps(),comoLer());
   document.getElementById("foot").replaceChildren(
-    el("p",{text:`Mídia: Meta Ads, conta Perpétuo RGV, campanhas com [FF] no nome e gasto no ciclo ${C.nome} (${dBR(C.ini)} a ${dBR(C.fim)}). ${FECH?"Em ciclo encerrado, CPM, CTR (link e todos) e CPC saem das somas das campanhas, porque o filtro do Meta descarta campanhas excluídas":"CPM, CTR (link e todos) e CPC vêm prontos do Gerenciador"}; connect (visitas ÷ cliques), visita → lead, CPL e custo por SQL são divisões. Só dias fechados: os dados vão até ontem.`}),
+    el("p",{text:`Mídia: Meta Ads, conta Perpétuo RGV, campanhas com [FF] no nome e gasto no ciclo ${C.nome} (${dBR(C.ini)} a ${dBR(C.fim)}). ${C.somado?"Em ciclo encerrado, CPM, CTR (link e todos) e CPC saem das somas das campanhas, porque o filtro do Meta descarta campanhas excluídas":"CPM, CTR (link e todos) e CPC vêm prontos do Gerenciador"}; connect (visitas ÷ cliques), visita → lead, CPL e custo por SQL são divisões. Só dias fechados: os dados vão até ontem.`}),
     el("p",{text:"Lead: envio de formulário PERPÉTUO no HubSpot vindo do Meta pago (página ou Lead Ads), 1 por e-mail por dia, com faturamento declarado de 100 mil por mês ou mais. O pixel subconta, por isso o lead nunca é o do pixel."}),
     el("p",{text:"SQL: o contato tem negócio no pipeline Vendas Principal (RGV) que chegou em Em Qualificação ou numa fase depois dela (no pipeline padrão, Contato Efetivo em diante), depois do lead. Conta uma vez por pessoa. Leads dos últimos dias ainda estão sendo trabalhados pelo comercial, então o % SQL recente tende a subir."}),
-    el("p",{text:FECH?"Metas: o ciclo encerrado não tinha rampa de volume; CPL, % de SQL, custo por SQL e mídia são comparados com as metas do ciclo atual.":`Metas: leads +100k pela rampa "Operação 3.000 leads" do Instagram/Facebook (51 a 74 por dia a partir de 15/10; antes disso, 51 por dia), ${int(C.meta_leads)} no ciclo. CPL +100k R$ 330, 15% de SQL e custo por SQL R$ 2.200. CPM da meta = média das campanhas [FF] nos 30 dias antes do ciclo (${dBR(B.ini)} a ${dBR(B.fim)}). CTR link 2%, connect 80% e conversão da página 5% (leads de todas as faixas ÷ visitas) são as metas do time.`}));
+    el("p",{text:SM?`Metas: ${FECH?"no ciclo encerrado o volume não é comparado com rampa":"o ciclo "+C.nome+" ainda não tem rampa de volume cadastrada"}; CPL, % de SQL, custo por SQL e mídia são comparados com as metas do time.`:`Metas: leads +100k pela rampa "Operação 3.000 leads" do Instagram/Facebook (51 a 74 por dia a partir de 15/10; antes disso, 51 por dia), ${int(C.meta_leads)} no ciclo. CPL +100k R$ 330, 15% de SQL e custo por SQL R$ 2.200. CPM da meta = média das campanhas [FF] nos 30 dias antes do ciclo (${dBR(B.ini)} a ${dBR(B.fim)}). CTR link 2%, connect 80% e conversão da página 5% (leads de todas as faixas ÷ visitas) são as metas do time.`}));
 }
 render();
 

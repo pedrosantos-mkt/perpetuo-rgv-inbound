@@ -13,8 +13,11 @@ RAMPA_INI = dt.date(2026, 10, 15)
 RAMPA = [51, 52, 51, 52, 51, 52, 51, 58, 58, 58, 57, 58, 58, 58, 64, 63, 64, 63, 64, 63, 64, 69, 70, 69, 69, 69, 70, 69, 73, 74, 73]
 
 
+RAMPA_CICLO = 'RGV 45'   # a rampa "Operação 3.000 leads" é do ciclo 45; ciclo sem rampa fica sem meta de volume
+
+
 def meta_do_dia(d):
-    if FECHADO: return None   # ciclos fechados não tinham a rampa de volume
+    if FECHADO or CICLO['nome'] != RAMPA_CICLO: return None
     i = (d - RAMPA_INI).days
     return RAMPA[0] if i < 0 else RAMPA[min(i, len(RAMPA) - 1)]
 
@@ -156,10 +159,10 @@ for n, v in sorted(cmp.items(), key=lambda x: (-x[1].get('spend', 0), -x[1].get(
         camps_out.append({'name': n[1:] or None, 'extra': True, **limpa(v)})
     else:
         camps_out.append({'name': n, 'status': st.get(n), **limpa(v)})
-tot_meta_ciclo = None if FECHADO else sum(meta_do_dia(CICLO['ini'] + dt.timedelta(i)) for i in range((CICLO['fim'] - CICLO['ini']).days + 1))
+tot_meta_ciclo = None if meta_do_dia(CICLO['ini']) is None else sum(meta_do_dia(CICLO['ini'] + dt.timedelta(i)) for i in range((CICLO['fim'] - CICLO['ini']).days + 1))
 data = {
     'gerado': dt.datetime.now(TZ).strftime('%d/%m/%Y %H:%M'),
-    'ciclo': {'nome': CICLO['nome'], 'fechado': FECHADO,
+    'ciclo': {'nome': CICLO['nome'], 'fechado': FECHADO, 'somado': bool(M.get('somado')),   # somado: mídia somada por campanha (meta.py em ciclo fechado)
               # forms PERPÉTUO só existem no HubSpot desde 15/07/2025
               'hs_desde': None if CICLO['ini'].isoformat() >= '2025-07-15' else '2025-07-15', 'ini': CICLO['ini'].isoformat(), 'fim': CICLO['fim'].isoformat(),
               'dias': (CICLO['fim'] - CICLO['ini']).days + 1, 'meta_leads': tot_meta_ciclo,

@@ -113,5 +113,5 @@ def _cre():
 cre_bm = etapa('m_cre.json', _cre)
 print(len(cre_bm), 'criativos com métricas do Gerenciador')
 
-salva('meta.json', {'ini': INI, 'fim': FIM, 'camps': camps, 'total': total[0] if total else {}, 'dia': dia,
+salva('meta.json', {'ini': INI, 'fim': FIM, 'somado': FECHADO, 'camps': camps, 'total': total[0] if total else {}, 'dia': dia,
                     'adsets': adsets, 'pub_bm': pub_bm, 'ads_ins': ads_ins, 'ads': ads, 'cre_bm': cre_bm})
