@@ -105,43 +105,8 @@ def post(url, body):
     return req('POST', url, headers={**H, 'Content-Type': 'application/json'}, json=body)
 
 
-def main():
-    desde = int(dt.datetime.combine(CICLO['ini'], dt.time(), TZ).timestamp() * 1000)
-    fim = ate()
-    cache = os.path.join(RAW_ATUAL, 'c_subs.json')   # todos os envios desde o RGV 29, baixados por ciclos.py
-    if FECHADO and os.path.exists(cache):
-        subs = [s for s in json.load(open(cache)) if s['ts'] >= desde]
-    else:
-        fs = forms()
-        with ThreadPoolExecutor(6) as ex:
-            subs = [s for rs in ex.map(lambda f: envios(f, desde), fs) for s in rs]
-    subs.sort(key=lambda s: s['ts'])
-    print(len(subs), 'envios nos forms PERPÉTUO desde', CICLO['ini'])
-
-    leads, vistos = [], set()
-    for s in subs:
-        d = dt.datetime.fromtimestamp(s['ts'] / 1000, TZ).date()
-        if d > fim or d < CICLO['ini']: continue
-        email = (s['v'].get('email') or '').strip().lower()
-        canal = 'meta' if pago_meta(s) else 'google' if pago_google(s) else None
-        if not email or (email, d) in vistos or not canal: continue
-        vistos.add((email, d))
-        leads.append(lead(s, email, d, canal))
-    # demais origens (orgânico, live, sem UTM...): 1 por e-mail por dia, sem testes, sem repetir quem já veio pago no mesmo dia
-    org_vistos = set()
-    for s in subs:
-        d = dt.datetime.fromtimestamp(s['ts'] / 1000, TZ).date()
-        if d > fim or d < CICLO['ini']: continue
-        email = (s['v'].get('email') or '').strip().lower()
-        if not email or pago_meta(s) or pago_google(s) or teste(s, email) or (email, d) in vistos or (email, d) in org_vistos: continue
-        org_vistos.add((email, d))
-        leads.append(lead(s, email, d, 'organico', origem_organica(s)))
-    leads.sort(key=lambda l: l['ts'])
-    l100 = [l for l in leads if l['q100']]
-    print(len(leads), 'leads (todas as origens) ·', len(l100), '+100k ·', sum(l['canal'] == 'meta' for l in l100), 'Meta ·',
-          sum(l['canal'] == 'google' for l in l100), 'Google ·', sum(l['canal'] == 'organico' for l in l100), 'outras origens')
-
-    # SQL: contato → negócios → histórico de fase
+def sql_de(l100):
+    """SQL: contato → negócios → histórico de fase, depois do primeiro lead +100k da pessoa."""
     emails = sorted({l['email'] for l in l100})
     primeiro = {}
     for l in l100: primeiro.setdefault(l['email'], l['ts'])
@@ -180,6 +145,46 @@ def main():
                 if st in SQL_FASES[h['pipeline']] and ms >= t0:
                     sql.add(e); break
     print(len(sql), 'SQL entre', len(emails), 'contatos +100k')
+    return sql
+
+
+def main():
+    desde = int(dt.datetime.combine(CICLO['ini'], dt.time(), TZ).timestamp() * 1000)
+    fim = ate()
+    cache = os.path.join(RAW_ATUAL, 'c_subs.json')   # todos os envios desde o RGV 29, baixados por ciclos.py
+    if FECHADO and os.path.exists(cache):
+        subs = [s for s in json.load(open(cache)) if s['ts'] >= desde]
+    else:
+        fs = forms()
+        with ThreadPoolExecutor(6) as ex:
+            subs = [s for rs in ex.map(lambda f: envios(f, desde), fs) for s in rs]
+    subs.sort(key=lambda s: s['ts'])
+    print(len(subs), 'envios nos forms PERPÉTUO desde', CICLO['ini'])
+
+    leads, vistos = [], set()
+    for s in subs:
+        d = dt.datetime.fromtimestamp(s['ts'] / 1000, TZ).date()
+        if d > fim or d < CICLO['ini']: continue
+        email = (s['v'].get('email') or '').strip().lower()
+        canal = 'meta' if pago_meta(s) else 'google' if pago_google(s) else None
+        if not email or (email, d) in vistos or not canal: continue
+        vistos.add((email, d))
+        leads.append(lead(s, email, d, canal))
+    # demais origens (orgânico, live, sem UTM...): 1 por e-mail por dia, sem testes, sem repetir quem já veio pago no mesmo dia
+    org_vistos = set()
+    for s in subs:
+        d = dt.datetime.fromtimestamp(s['ts'] / 1000, TZ).date()
+        if d > fim or d < CICLO['ini']: continue
+        email = (s['v'].get('email') or '').strip().lower()
+        if not email or pago_meta(s) or pago_google(s) or teste(s, email) or (email, d) in vistos or (email, d) in org_vistos: continue
+        org_vistos.add((email, d))
+        leads.append(lead(s, email, d, 'organico', origem_organica(s)))
+    leads.sort(key=lambda l: l['ts'])
+    l100 = [l for l in leads if l['q100']]
+    print(len(leads), 'leads (todas as origens) ·', len(l100), '+100k ·', sum(l['canal'] == 'meta' for l in l100), 'Meta ·',
+          sum(l['canal'] == 'google' for l in l100), 'Google ·', sum(l['canal'] == 'organico' for l in l100), 'outras origens')
+
+    sql = sql_de(l100)
     salva('hs.json', {'leads': leads, 'sql': sorted(sql), 'gerado': dt.datetime.now(TZ).strftime('%d/%m/%Y %H:%M')})
 
 

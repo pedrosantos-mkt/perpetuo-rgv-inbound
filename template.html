@@ -62,6 +62,32 @@ details.ler dl{display:grid;grid-template-columns:200px 1fr;gap:10px 24px;margin
 details.ler dt{font-weight:700;color:var(--fg);font-size:13.5px}
 details.ler dd{margin:0;color:var(--muted);font-size:13.5px;line-height:1.55}
 @media (max-width:640px){details.ler dl{grid-template-columns:1fr;gap:2px}details.ler dd{margin-bottom:10px}}
+[hidden]{display:none!important}
+.menu{position:sticky;top:0;z-index:20;display:flex;gap:6px;margin:0 0 18px;padding:8px 0;background:var(--bg);border-bottom:1px solid var(--line-soft)}
+.menu button{appearance:none;border:1px solid var(--line-soft);background:var(--panel);color:var(--muted);font:700 13px/1 var(--f-body);letter-spacing:.04em;text-transform:uppercase;padding:10px 16px;border-radius:999px;cursor:pointer}
+.menu button[aria-selected="true"]{background:var(--red);border-color:var(--red);color:var(--on-red)}
+.menu button:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.cri-ctl{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}
+.cri-ctl input,.cri-ctl select{appearance:none;border:1px solid var(--line-soft);background:var(--panel);color:var(--fg);font:500 13px/1 var(--f-body);padding:10px 12px;border-radius:10px}
+.cri-ctl input{flex:1 1 220px;min-width:0}
+.cri-ctl .seg{display:inline-flex;border:1px solid var(--line-soft);border-radius:10px;overflow:hidden}
+.cri-ctl .seg button{appearance:none;border:0;background:var(--panel);color:var(--muted);font:600 12px/1 var(--f-body);padding:10px 12px;cursor:pointer}
+.cri-ctl .seg button[aria-pressed="true"]{background:var(--panel-2);color:var(--fg);box-shadow:inset 0 -2px 0 var(--red)}
+.cri-ctl small{color:var(--faint);font-size:12px}
+.cri-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.cri{border:1px solid var(--line-soft);border-radius:16px;background:var(--panel);overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.cri .thumb{position:relative;aspect-ratio:4/3;background:var(--panel-2);display:flex;align-items:center;justify-content:center;color:var(--faint);font:700 12px/1 var(--f-body);letter-spacing:.06em}
+.cri .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cri .tag{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.72);color:#fff;font:700 11px/1 var(--f-body);letter-spacing:.06em;padding:6px 8px;border-radius:6px}
+.cri .rk{position:absolute;top:10px;right:10px;background:var(--red);color:var(--on-red);font:800 12px/1 var(--f-body);padding:6px 8px;border-radius:6px}
+.cri .bd{padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px;flex:1}
+.cri .nm{display:flex;align-items:flex-start;gap:8px;justify-content:space-between}
+.cri .nm span{font:600 12.5px/1.35 var(--f-body);color:var(--fg);word-break:break-word}
+.cri dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 10px;margin:0}
+.cri dt{font:700 10px/1.2 var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.cri dd{margin:2px 0 0;font:700 14px/1.2 var(--f-body);color:var(--fg)}
+.cri dd.ok{color:var(--ok)}.cri dd.warn{color:var(--warn)}.cri dd.bad{color:var(--bad)}
+.cri.sem{opacity:.72}
 .stamp{font-size:12px;color:var(--faint);text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
 .tema{appearance:none;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-soft);background:var(--panel);color:var(--muted);font:600 12px/1 var(--f-body);padding:8px 12px;border-radius:999px;cursor:pointer}
 .tema:hover{color:var(--fg);border-color:var(--line)}
@@ -219,8 +245,10 @@ footer p{margin:0 0 8px}
     </div>
     <div class="stamp"><label class="sel-ciclo" id="sel-wrap" hidden><span>Ciclo</span><select id="ciclo"></select></label><button class="tema" id="tema" type="button" aria-pressed="false"><span class="tema-ico" aria-hidden="true"></span><span id="tema-txt">Tema claro</span></button><span id="stamp"></span><button class="refresh" id="refresh" type="button" hidden>Atualizar agora</button><span class="refresh-msg" id="refresh-msg" aria-live="polite"></span></div>
   </header>
+  <nav class="menu" id="menu" role="tablist" aria-label="Painéis"><button type="button" role="tab" data-v="funil" aria-selected="true">Funil</button><button type="button" role="tab" data-v="criativos" aria-selected="false">Criativos</button></nav>
   <section class="sum" id="sum"></section>
   <section class="detail" id="detail" aria-live="polite"></section>
+  <section class="detail" id="cri" hidden></section>
   <footer id="foot"></footer>
 </div>
 
@@ -413,7 +441,7 @@ function painelOrigens(){
   tb.append(linha("Mídia paga · total do topo",sp,"sub",true));
   org.forEach(o=>tb.append(linha(o.nome,o,"",false)));
   if(org.length) tb.append(linha("Orgânico e outras · total",so,"sub",false));
-  return sec("Origem dos leads",`todos os envios dos formulários PERPÉTUO no HubSpot, 1 por e-mail por dia, sem testes · a mídia paga é o que o resto do painel mostra; as outras origens entram só aqui`,
+  return sec("Origem dos leads",`todos os envios dos formulários PERPÉTUO no HubSpot, 1 por e-mail por dia, sem testes · a mídia paga é o que o resto do painel mostra; as outras origens entram só aqui${DATA.origens_obs?" · "+DATA.origens_obs:""}`,
     el("div",{class:"kpis",style:"grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px"},
       kpi("Leads +100k em todas as origens",int(tot.lead),`${int(tot.lead_tot)} leads em todas as faixas · ${int(tot.sql)} SQL`,true),
       kpi("Mídia paga",int(sp.lead),`${pct(div(sp.lead,tot.lead),0)} dos leads +100k · ${int(sp.sql)} SQL`),
@@ -668,8 +696,75 @@ function tabelaCamps(){
         GR?el("tr",{},td("Total Meta + Google"),td(brl(SPT),H[1]),td("—",H[2]),td(int(LT),H[3]),td(brl(cplT),H[4]),td(int(STT),H[5]),td(brl(custoSqlT),H[6]),td("100%",H[7])):null))));
 }
 
+// painel de criativos: todos os criativos do ciclo em cartões, com busca, tipo e ordenação
+let VIEW="funil";
+const CRI={q:"",tipo:"todos",ord:"spend"};
+const tipoCri=n=>/\[(VD|VIDEO|REELS?)\]/i.test(n)?"vd":/\[(IMG|EST|ESTATICO|CARROSSEL|CAR)\]/i.test(n)?"img":"outro";
+function renderCriativos(){
+  const box=document.getElementById("cri");
+  const todos=DATA.criativos.filter(r=>r.nome!=="(sem anúncio na UTM)").map(r=>({...r,...rc(r),tipo:tipoCri(r.nome)}));
+  const semUtm=DATA.criativos.find(r=>r.nome==="(sem anúncio na UTM)");
+  const comGasto=todos.filter(r=>r.sp>0), t=rc(sumRows(todos));
+  const ORD={spend:["Maior investimento",(a,b)=>b.sp-a.sp],lead:["Mais leads +100k",(a,b)=>b.l-a.l||b.sp-a.sp],cpl:["Menor CPL +100k",(a,b)=>(a.l?a.cpl:1e12-a.sp)-(b.l?b.cpl:1e12-b.sp)],
+    sql:["Mais SQL",(a,b)=>b.s-a.s||b.l-a.l],csql:["Menor custo por SQL",(a,b)=>(a.s?a.csql:1e12-a.sp)-(b.s?b.csql:1e12-b.sp)],
+    ctr:["Maior CTR link",(a,b)=>((b.bm?.ctr_link??b.ctr)||0)-((a.bm?.ctr_link??a.ctr)||0)],tx:["Maior % SQL",(a,b)=>(b.tx||0)-(a.tx||0)||b.s-a.s]};
+  const q=CRI.q.trim().toLowerCase();
+  const lista=todos.filter(r=>(CRI.tipo==="todos"||r.tipo===CRI.tipo)&&(!q||r.nome.toLowerCase().includes(q))).sort(ORD[CRI.ord][1]);
+  const busca=el("input",{type:"search",placeholder:"Buscar pelo nome do anúncio (ex.: AD09)",value:CRI.q,"aria-label":"Buscar criativo"});
+  busca.addEventListener("input",()=>{CRI.q=busca.value; desenhaGrade();});
+  const seg=el("div",{class:"seg",role:"group","aria-label":"Tipo de criativo"},...[["todos","Todos"],["vd","Vídeo"],["img","Imagem"]].map(([v,l])=>{
+    const b=el("button",{type:"button","aria-pressed":String(CRI.tipo===v),text:l}); b.addEventListener("click",()=>{CRI.tipo=v; renderCriativos();}); return b;}));
+  const ord=el("select",{"aria-label":"Ordenar criativos"},...Object.entries(ORD).map(([v,[l]])=>{const o=el("option",{value:v,text:l}); if(v===CRI.ord) o.selected=true; return o;}));
+  ord.addEventListener("change",()=>{CRI.ord=ord.value; renderCriativos();});
+  const cont=el("small",{});
+  const grade=el("div",{class:"cri-grid"});
+  function desenhaGrade(){
+    const q2=CRI.q.trim().toLowerCase();
+    const vis=todos.filter(r=>(CRI.tipo==="todos"||r.tipo===CRI.tipo)&&(!q2||r.nome.toLowerCase().includes(q2))).sort(ORD[CRI.ord][1]);
+    cont.textContent=`${int(vis.length)} de ${int(todos.length)} criativos`;
+    grade.replaceChildren(...vis.map((r,i)=>{
+      const th=el("div",{class:"thumb",text:r.tipo==="vd"?"VÍDEO":r.tipo==="img"?"IMAGEM":"CRIATIVO"});
+      if(r.thumb){const img=el("img",{src:r.thumb,alt:"",loading:"lazy",referrerpolicy:"no-referrer"}); img.addEventListener("error",()=>img.remove()); th.append(img);}
+      th.append(el("span",{class:"tag",text:r.tipo==="vd"?"VD":r.tipo==="img"?"IMG":"—"}),el("span",{class:"rk",text:"#"+(i+1)}));
+      const nm=el("div",{class:"nm"},el("span",{text:r.nome}));
+      if(r.prev){const a=el("a",{class:"ver",href:r.prev,target:"_blank",rel:"noopener",title:"Ver no Instagram","aria-label":"Ver o criativo no Instagram: "+r.nome}); a.innerHTML=OLHO; nm.append(a);}
+      const m=(dtx,v,cls)=>[el("div",{},el("dt",{text:dtx}),el("dd",{class:cls||"",text:v}))];
+      const ctr=r.bm?.ctr_link??r.ctr, cpm=r.bm?.cpm??r.cpm;
+      return el("article",{class:"cri"+(r.sp?"":" sem")},th,el("div",{class:"bd"},nm,el("dl",{},
+        ...m("Investimento",r.sp?brl(r.sp):"—"),...m("CPM",brl(cpm,2)),...m("CTR link",pct(ctr,2),tone(ctr,META.ctr,false)),
+        ...m("Cliques",int(r.clk)),...m("Connect",r.connect>1.1?"—":pct(r.connect,0)),   // post impulsionado: o Meta conta mais visitas que cliques no link
+        ...m("Leads +100k",int(r.l)),
+        ...m("CPL +100k",r.l?brl(r.cpl):(r.sp?"sem lead":"—"),tone(r.cpl,META.cpl)),...m("SQL",int(r.s)),...m("Custo SQL",brl(r.csql),tone(r.csql,META.custoSql)))));}));
+    if(!vis.length) grade.append(el("p",{class:"note",text:"Nenhum criativo com esse filtro."}));
+  }
+  desenhaGrade();
+  box.replaceChildren(
+    sec("Criativos do ciclo",`${C.nome} · Meta [FF] · o mesmo anúncio em vários conjuntos e campanhas vira um cartão só · leads e SQL pela UTM do formulário`,
+      el("div",{class:"kpis",style:"grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:14px"},
+        kpi("Criativos com investimento",int(comGasto.length),`${int(todos.length-comGasto.length)} só com lead (sem gasto no ciclo)`,true),
+        kpi("Leads +100k ligados a criativo",int(t.l),`de ${int(K.lead)} do Meta · ${int(semUtm?.lead||0)} sem anúncio na UTM`),
+        kpi("CPL +100k dos criativos",brl(t.cpl),"meta "+brl(META.cpl)),
+        kpi("SQL ligados a criativo",int(t.s),`custo ${brl(t.csql)} · ${pct(t.tx,1)} dos leads`)),
+      el("div",{class:"cri-ctl"},busca,seg,ord,cont),grade,
+      el("p",{class:"note",text:"Tipo pelo nome do anúncio ([VD] vídeo, [IMG] imagem). CPM e CTR do Gerenciador; connect = visitas ÷ cliques. Cores pelas metas do painel. Miniaturas antigas podem não carregar (o Meta expira o link); o olho abre o post no Instagram."})));
+}
+function mostra(v,push){
+  VIEW=v;
+  document.querySelectorAll("#menu button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.v===v)));
+  document.getElementById("detail").hidden=v!=="funil";
+  document.getElementById("cri").hidden=v!=="criativos";
+  if(v==="criativos") renderCriativos();
+  if(push!==false) atualizaHash();
+}
+function atualizaHash(){
+  const c=C.nome===DATA0.ciclo.nome?"":C.nome.replace(" ","-"), h=[c,VIEW==="criativos"?"criativos":""].filter(Boolean).join("/");
+  try{ history.replaceState(null,"",h?"#"+h:location.pathname); }catch(e){}
+}
+document.querySelectorAll("#menu button").forEach(b=>b.addEventListener("click",()=>{mostra(b.dataset.v); window.scrollTo({top:0});}));
+
 function render(){
   renderTop();
+  if(VIEW==="criativos") renderCriativos();
   const d=document.getElementById("detail");
   d.replaceChildren(...[painelFunil(),painelComercial(),painelGoogle(),painelOrigens(),painelVendas(),painelKpis(),SM?null:painelRitmo(),painelFaixas(),painelPublico(),painelPaginas(),painelCriativos(),chartDia(),tabelaDia(),HIST.length>1?tabelaCiclos():null,tabelaCamps(),comoLer()].filter(Boolean));
   document.getElementById("foot").replaceChildren(
@@ -688,18 +783,19 @@ async function trocaCiclo(nome, rolar){
     if(!CACHE_C[nome]){ sel.disabled=true;
       const r=await fetch("c/"+nome.replace(" ","-")+".json"); if(!r.ok) throw new Error(r.status); CACHE_C[nome]=await r.json(); }
     DATA=CACHE_C[nome]; deriva(); render();
-    try{ history.replaceState(null,"",nome===DATA0.ciclo.nome?location.pathname:"#"+nome.replace(" ","-")); }catch(e){}
+    atualizaHash();
     if(rolar) window.scrollTo({top:0,behavior:"smooth"});
   }catch(e){ sel.value=C.nome; alert("Não consegui abrir o "+nome+" agora."); }
   finally{ sel.disabled=false; }
 }
 (function(){
+  if(decodeURIComponent(location.hash.slice(1)).split("/").includes("criativos")) mostra("criativos",false);
   if(!LISTA.length) return;   // sem arquivos dos ciclos fechados (ex.: Artifact), o seletor fica escondido
   const sel=document.getElementById("ciclo");
   [{nome:DATA0.ciclo.nome}, ...[...LISTA].reverse()].forEach((c,i)=>sel.append(el("option",{value:c.nome,text:c.nome+(i?"":" · atual")})));
   sel.addEventListener("change",()=>trocaCiclo(sel.value));
   document.getElementById("sel-wrap").hidden=false;
-  const h=decodeURIComponent(location.hash.slice(1)).replace("-"," ");
+  const partes=decodeURIComponent(location.hash.slice(1)).split("/"), h=(partes.find(x=>/^RGV-/.test(x))||"").replace("-"," ");
   if(h && LISTA.some(c=>c.nome===h)) trocaCiclo(h);
 })();
 
