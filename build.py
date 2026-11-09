@@ -181,6 +181,10 @@ data = {
               'dias': (CICLO['fim'] - CICLO['ini']).days + 1, 'meta_leads': tot_meta_ciclo,
               'meta_dias': [meta_do_dia(CICLO['ini'] + dt.timedelta(i)) for i in range((CICLO['fim'] - CICLO['ini']).days + 1)]},
     'ate': M['fim'],
+    # o dia de hoje entra parcial: frac = parte do dia já passada na coleta (médias por dia e meta de hoje usam essa fração)
+    'parcial': (not FECHADO) and M['fim'] == hoje().isoformat(),
+    'hora': dt.datetime.now(TZ).strftime('%Hh%M'),
+    'frac': round((dt.datetime.now(TZ).hour * 60 + dt.datetime.now(TZ).minute) / 1440, 4),
     'k': {**limpa(k), 'lead': sum(r[5] for r in daily), 'sql': sum(r[6] for r in daily), 'lead_tot': sum(r[10] for r in daily),
           'lead_pag': sum(L.get('lead_pag', 0) for L in dia_leads.values()), 'lead_tot_pag': sum(L.get('tot_pag', 0) for L in dia_leads.values()), 'lead_nativo': sum(L.get('lead_nativo', 0) for L in dia_leads.values()),
           'pg': limpa(pg_m), 'nat': limpa(nat_m), 'ativas': sum(1 for c in M['camps'] if c.get('status') == 'ACTIVE')},

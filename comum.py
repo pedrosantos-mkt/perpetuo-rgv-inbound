@@ -27,8 +27,8 @@ def hoje():
 
 
 def ate():
-    """Último dia fechado (ontem), limitado ao fim do ciclo."""
-    return min(hoje() - dt.timedelta(1), CICLO['fim'])
+    """Até hoje (o dia atual entra parcial, até a hora da coleta), limitado ao fim do ciclo."""
+    return min(hoje(), CICLO['fim'])
 
 
 def tok(env, arq):
