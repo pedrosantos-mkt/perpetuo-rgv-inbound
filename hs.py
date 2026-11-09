@@ -55,6 +55,33 @@ def pago_google(s):
     return 'youtube' in src or 'google' in src or '[yt]' in camp or '[search]' in camp
 
 
+def origem_organica(s):
+    """Origem de quem não veio de mídia paga, pela UTM do formulário."""
+    v = s['v']
+    src = (v.get('utm_source') or '').strip().lower(); med = (v.get('utm_medium') or '').strip().lower()
+    if not src and not med: return 'Sem UTM'
+    if src == 'live' or 'live' in med: return 'Live'
+    if src in ('instagram', 'ig', 'bio', 'stories', 'reels', 'direct') or 'instagram' in src: return 'Instagram orgânico'
+    if 'manychat' in src or 'manychat' in med: return 'ManyChat'
+    if 'whats' in src: return 'WhatsApp'
+    if 'youtube' in src: return 'YouTube orgânico'
+    if 'email' in src or 'e-mail' in src or med == 'email': return 'E-mail'
+    return 'Outras origens'
+
+
+def teste(s, email):
+    v = s['v']
+    return 'teste' in (v.get('utm_source') or '').lower() or 'teste' in (v.get('utm_medium') or '').lower() or 'teste' in email
+
+
+def lead(s, email, d, canal, origem=None):
+    v = s['v']
+    return {'email': email, 'ts': s['ts'], 'dia': d.isoformat(), 'q100': q100(v), 'canal': canal, 'origem': origem,
+            'faixa': v.get('annualrevenue') or v.get('faturamento_anual') or '', 'form': s['form'], 'page': s['page'],
+            'camp': v.get('utm_campaign') or '', 'term': v.get('utm_term') or '', 'content': v.get('utm_content') or '',
+            'cargo': v.get('ti__form____cargo') or ''}
+
+
 def mais_100k(fx):
     fx = (fx or '').strip()
     if not fx: return False
@@ -99,13 +126,20 @@ def main():
         canal = 'meta' if pago_meta(s) else 'google' if pago_google(s) else None
         if not email or (email, d) in vistos or not canal: continue
         vistos.add((email, d))
-        v = s['v']
-        leads.append({'email': email, 'ts': s['ts'], 'dia': d.isoformat(), 'q100': q100(v), 'canal': canal,
-                      'faixa': v.get('annualrevenue') or v.get('faturamento_anual') or '', 'form': s['form'], 'page': s['page'],
-                      'camp': v.get('utm_campaign') or '', 'term': v.get('utm_term') or '', 'content': v.get('utm_content') or '',
-                      'cargo': v.get('ti__form____cargo') or ''})
+        leads.append(lead(s, email, d, canal))
+    # demais origens (orgânico, live, sem UTM...): 1 por e-mail por dia, sem testes, sem repetir quem já veio pago no mesmo dia
+    org_vistos = set()
+    for s in subs:
+        d = dt.datetime.fromtimestamp(s['ts'] / 1000, TZ).date()
+        if d > fim or d < CICLO['ini']: continue
+        email = (s['v'].get('email') or '').strip().lower()
+        if not email or pago_meta(s) or pago_google(s) or teste(s, email) or (email, d) in vistos or (email, d) in org_vistos: continue
+        org_vistos.add((email, d))
+        leads.append(lead(s, email, d, 'organico', origem_organica(s)))
+    leads.sort(key=lambda l: l['ts'])
     l100 = [l for l in leads if l['q100']]
-    print(len(leads), 'leads pagos (Meta + Google) ·', len(l100), '+100k ·', sum(l['canal'] == 'google' for l in l100), 'do Google')
+    print(len(leads), 'leads (todas as origens) ·', len(l100), '+100k ·', sum(l['canal'] == 'meta' for l in l100), 'Meta ·',
+          sum(l['canal'] == 'google' for l in l100), 'Google ·', sum(l['canal'] == 'organico' for l in l100), 'outras origens')
 
     # SQL: contato → negócios → histórico de fase
     emails = sorted({l['email'] for l in l100})

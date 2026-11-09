@@ -110,16 +110,21 @@ _gc = _gj.get('ciclos', {}).get(CICLO['nome'])
 sem_rgv = lambda n: N((n or '').replace('[RGV]', ''))   # a UTM do Google vem sem o [RGV] do nome da campanha
 if _gc:
     for c in _gc['campanhas']: G_CAMP[sem_rgv(c['nome'])] = collections.Counter({'spend': c['spend'], 'imp': c['imp'], 'clk': c['clk']})
-G = collections.Counter()
+G, G_NOME = collections.Counter(), {}
+ORIG = collections.defaultdict(collections.Counter)   # origem do lead → leads (todas as faixas), +100k e SQL
 for l in HS['leads']:
+    if l.get('canal') == 'organico': continue   # demais origens: segunda passada, depois da mídia paga
     if l.get('canal') == 'google':
         if 'teste' in l['camp'].lower() or 'teste' in l['email']: continue
         s = 1 if (l['q100'] and l['email'] in SQL and l['email'] not in sql_ja) else 0
         if s: sql_ja.add(l['email'])
         alvo = G_CAMP.setdefault(sem_rgv(l['camp']) or 'SEMCAMPANHA', collections.Counter())
-        for c in (G, alvo):
+        G_NOME.setdefault(sem_rgv(l['camp']) or 'SEMCAMPANHA', l['camp'].strip())
+        for c in (G, alvo, ORIG['Google Ads']):
             c['lead_tot'] += 1; c['lead'] += l['q100']; c['sql'] += s
         continue
+    o = ORIG['Meta · Lead Ads' if 'LEAD ADS' in l['form'] else 'Meta · página']
+    o['lead_tot'] += 1
     dia_leads[l['dia']]['tot'] += 1
     if 'LEAD ADS' not in l['form']: dia_leads[l['dia']]['tot_pag'] += 1   # base da conversão da página (todas as faixas)
     faixas[l['faixa'] or '(sem resposta)'] += 1
@@ -128,6 +133,7 @@ for l in HS['leads']:
     # SQL conta uma vez por contato, no primeiro lead +100k do ciclo
     s = 1 if (l['email'] in SQL and l['email'] not in sql_ja) else 0
     if s: sql_ja.add(l['email'])
+    o['lead'] += 1; o['sql'] += s
     dia_leads[l['dia']]['lead'] += 1; dia_leads[l['dia']]['sql'] += s
     dia_leads[l['dia']]['lead_nativo' if a['page'] == NATIVO else 'lead_pag'] += 1
     for g, w in a['tags'].items():
@@ -135,6 +141,13 @@ for l in HS['leads']:
     for bucket, key in ((pag, a['page']), (cre, a['ad'] or '(sem anúncio na UTM)'),
                         (cmp, a['camp'] if a['camp'] in cmp else ('·' + a['camp'] if a['camp'] else '·'))):
         bucket[key]['lead'] += 1; bucket[key]['sql'] += s
+
+for l in HS['leads']:
+    if l.get('canal') != 'organico': continue
+    o = ORIG[l.get('origem') or 'Outras origens']
+    s = 1 if (l['q100'] and l['email'] in SQL and l['email'] not in sql_ja) else 0
+    if s: sql_ja.add(l['email'])
+    o['lead_tot'] += 1; o['lead'] += l['q100']; o['sql'] += s
 
 # ---------- totais e dia a dia ----------
 T = M['total']; k = midia(T)
@@ -180,11 +193,19 @@ data = {
                   for n, v in cre.items() if v.get('spend', 0) > 0 or v.get('lead', 0) > 0],
     'camps': camps_out,
     'faixas': faixas.most_common(),
-    'google': _gc and {'fonte': _gj['fonte'], 'spend': round(sum(c['spend'] for c in _gc['campanhas']), 2),
-                       'imp': sum(c['imp'] for c in _gc['campanhas']), 'clk': sum(c['clk'] for c in _gc['campanhas']), **G,
-                       'campanhas': sorted(({'nome': next((c['nome'] for c in _gc['campanhas'] if sem_rgv(c['nome']) == kk), kk if kk != 'SEMCAMPANHA' else 'Sem campanha na UTM'),
-                                             'tipo': next((c['tipo'] for c in _gc['campanhas'] if sem_rgv(c['nome']) == kk), ''), **v}
-                                            for kk, v in G_CAMP.items() if v.get('spend') or v.get('lead_tot')), key=lambda r: -r.get('spend', 0))},
+    # origem de todos os leads dos forms PERPÉTUO (pago e orgânico); investimento só nas pagas
+    'origens': [{'nome': n, 'pago': n.startswith('Meta') or n == 'Google Ads',
+                 'spend': round(pg_m['spend'] if n == 'Meta · página' else nat_m['spend'] if n == 'Meta · Lead Ads'
+                                else sum(c['spend'] for c in _gc['campanhas']) if n == 'Google Ads' and _gc else 0, 2), **v}
+                for n, v in sorted(ORIG.items(), key=lambda x: (['Meta · página', 'Meta · Lead Ads', 'Google Ads'] + [x[0]]).index(x[0]) * 1e6 - x[1]['lead_tot'])]
+                if any(l.get('canal') == 'organico' for l in HS['leads']) else None,
+    # sem gasto lido no google.json (sem_gasto), os leads do Google entram mesmo assim, para o topo fechar com as origens
+    'google': (_gc or G['lead_tot']) and {'fonte': _gj.get('fonte'), 'sem_gasto': not _gc,
+                       'spend': round(sum(c['spend'] for c in _gc['campanhas']), 2) if _gc else 0,
+                       'imp': sum(c['imp'] for c in _gc['campanhas']) if _gc else 0, 'clk': sum(c['clk'] for c in _gc['campanhas']) if _gc else 0, **G,
+                       'campanhas': sorted(({'nome': next((c['nome'] for c in (_gc or {}).get('campanhas', []) if sem_rgv(c['nome']) == kk), G_NOME.get(kk, kk) if kk != 'SEMCAMPANHA' else 'Sem campanha na UTM'),
+                                             'tipo': next((c['tipo'] for c in (_gc or {}).get('campanhas', []) if sem_rgv(c['nome']) == kk), ''), **v}
+                                            for kk, v in G_CAMP.items() if v.get('spend') or v.get('lead_tot')), key=lambda r: -r.get('spend', 0))} or None,
     # funil comercial (crm.py): MQL e etapas pelos negócios [FF] criados no ciclo; lead no CRM = leads pagos de todas as faixas
     # antes dos forms PERPÉTUO (até o RGV 33) o lead no CRM é o negócio [FF] de qualquer faixa
     'crm': (lambda c: c and {'lead_crm': len(c['deals']) if CICLO['ini'].isoformat() < '2025-07-15' else sum(r[10] for r in daily) + G['lead_tot'],
@@ -201,7 +222,7 @@ data = {
                  + [{'nome': CICLO['nome'], 'ini': CICLO['ini'].isoformat(), 'fim': CICLO['fim'].isoformat(), 'atual': True, 'ate': M['fim'],
                      'spend': round(k['spend'], 2), 'imp': k['imp'], 'clk': k['clk'], 'cpm': bm(T)['cpm'], 'ctr_link': bm(T)['ctr_link'],
                      'lead_tot': sum(r[10] for r in daily), 'lead': sum(r[5] for r in daily), 'sql': sum(r[6] for r in daily),
-                     **({'g_spend': round(sum(c['spend'] for c in _gc['campanhas']), 2), 'g_lead': G['lead'], 'g_sql': G['sql']} if _gc else {})}],
+                     **({'g_spend': round(sum(c['spend'] for c in _gc['campanhas']), 2) if _gc else 0, 'g_lead': G['lead'], 'g_sql': G['sql']} if (_gc or G['lead_tot']) else {})}],
 }
 saida = os.path.join(AQUI, 'site', 'c', slug(CICLO['nome']) + '.json') if FECHADO else os.path.join(AQUI, 'data.json')
 os.makedirs(os.path.dirname(saida), exist_ok=True)

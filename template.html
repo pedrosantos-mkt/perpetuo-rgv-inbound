@@ -181,6 +181,7 @@ td.pg{font-size:12px}
 .st{font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:3px 6px;border-radius:4px;margin-right:8px;white-space:nowrap}
 .st.on{background:rgba(var(--ok-rgb),.15);color:var(--ok)} .st.off{background:var(--line-soft);color:var(--faint)}
 tr.extra td{color:var(--muted)}
+tr.sub td{font-weight:700;background:rgba(var(--ink-rgb),.04)}
 tr.atual td{background:var(--red-soft)}
 tr.atual .st,tr .st.off{margin-left:8px}
 .cre-nome{display:flex;align-items:center;gap:10px;min-width:0}
@@ -258,7 +259,7 @@ function deriva(){
   cpl = div(K.spend, K.lead); custoSql = div(K.spend, K.sql); txSql = div(K.sql, K.lead);
   // Google Ads (Search e YouTube): soma no total do ciclo; mídia (CPM, CTR, connect) segue só do Meta
   GG = DATA.google||null;
-  GR = GG ? {spend:GG.spend, lead:GG.lead||0, sql:GG.sql||0, imp:GG.imp, clk:GG.clk} : null;
+  GR = GG ? {spend:GG.sem_gasto?null:GG.spend, lead:GG.lead||0, sql:GG.sql||0, imp:GG.imp, clk:GG.clk} : null;   // sem_gasto: gasto do Google ainda não lido
   SPT = K.spend+(GG?GG.spend:0); LT = K.lead+(GG?GG.lead||0:0); STT = K.sql+(GG?GG.sql||0:0);
   cplT = div(SPT,LT); custoSqlT = div(SPT,STT); txSqlT = div(STT,LT);
 }
@@ -277,9 +278,9 @@ function renderTop(){
     : `Ciclo ${C.nome} · ${dBR(C.ini)} a ${dBR(C.fim)} · campanhas [FF] de captação no Meta${GG?" + Google Ads":""} · dados até ${dBR(DATA.ate)} (${diasCorr} de ${C.dias} dias)`;
   carimbo();
   const s=document.getElementById("sum");
-  const it=GG?[["Investimento",brl(SPT),`Meta ${brl(K.spend)} · Google ${brl(GG.spend)}`,""],
+  const it=GG?[["Investimento",brl(SPT),`Meta ${brl(K.spend)} · Google ${GG.sem_gasto?"gasto ainda não lido":brl(GG.spend)}`,""],
     ["Leads +100k",int(LT),`Meta ${int(K.lead)} · Google ${int(GG.lead)}${SM?"":` · meta do Meta até ${dBR(DATA.ate)}: ${int(metaAte)}`}`,SM?"":tone(K.lead,metaAte,false)],
-    ["CPL +100k",brl(cplT),`meta ${brl(META.cpl)} · Meta ${brl(cpl)} · Google ${brl(div(GG.spend,GG.lead))}`,tone(cplT,META.cpl)],
+    ["CPL +100k",brl(cplT),`meta ${brl(META.cpl)} · Meta ${brl(cpl)} · Google ${GG.sem_gasto?"—":brl(div(GG.spend,GG.lead))}`,tone(cplT,META.cpl)],
     ["SQL",int(STT),`${pct(txSqlT,1)} dos leads · Meta ${int(K.sql)} · Google ${int(GG.sql)}`,tone(txSqlT,META.sqlTx,false)],
     ["Custo por SQL",brl(custoSqlT),"meta "+brl(META.custoSql),tone(custoSqlT,META.custoSql)],
     ["Leads +100k Meta por dia",dec(K.lead/diasCorr),SM?"média no ciclo":"meta da rampa "+dec(metaAte/diasCorr),SM?"":tone(K.lead/diasCorr,metaAte/diasCorr,false)]]
@@ -361,6 +362,7 @@ function painelVendas(){
 function comoLer(){
   const L=[
     ["Investimento","Gasto no Meta Ads da conta Perpétuo RGV no ciclo, só das campanhas com [FF] no nome (captação), mais o Google Ads do Perpétuo quando houver. Distribuição e remarketing sem lead ficam de fora."],
+    ["Origem dos leads","Todos os envios dos formulários PERPÉTUO no HubSpot, de qualquer origem, 1 por e-mail por dia e sem testes. Mídia paga (Meta e Google) é a mesma do resto do painel e fecha no topo; Instagram orgânico, Live, Sem UTM e outras aparecem só nesse quadro. Quem veio pago e orgânico no mesmo dia conta só na mídia paga."],
     ["Google Ads","Campanhas de Search e YouTube da conta Método RGV (568-341-4595), todas do Perpétuo. O gasto é lido à mão no Google Ads, sem quebra por dia; leads e SQL vêm do HubSpot pela UTM (utm_source google/youtube ou campanha [SEARCH]/[YT]). Entra no topo, no funil comercial, nas linhas próprias de cada tabela e nos totais \"Meta + Google\". CPM, CTR, connect e as metas de mídia continuam só do Meta."],
     ["Lead no CRM","Envios de formulário PERPÉTUO no HubSpot vindos do Meta pago (página ou Lead Ads), em todas as faixas de faturamento, 1 por e-mail por dia. Do RGV 29 ao 33, antes dos formulários PERPÉTUO, conta os negócios [FF] de qualquer faixa. \"Leads no Meta\" é o que o pixel/formulário do Meta reportou: ele subconta, por isso nunca é a base."],
     ["Lead +100k","O mesmo envio, quando o faturamento declarado é de R$ 100 mil por mês ou mais. Até o RGV 35 o formulário perguntava por ano: conta de R$ 1 milhão por ano para cima. É a base do CPL e do % SQL das tabelas."],
@@ -384,17 +386,40 @@ function comoLer(){
 function painelGoogle(){
   if(!GG) return null;
   const H=["Campanha","Tipo","Investimento","Impressões","Cliques","CPC","Leads","Leads +100k","CPL +100k","SQL","Custo SQL"];
-  const linha=(r,nome,tag)=>el("tr",{},td(nome??r.nome,"","pg"),td(r.tipo||"—",H[1]),td(brl(r.spend||0),H[2]),td(r.imp?int(r.imp):"—",H[3]),td(r.clk?int(r.clk):"—",H[4]),
+  const linha=(r,nome,tag)=>el("tr",{},td(nome??r.nome,"","pg"),td(r.tipo||"—",H[1]),td(GG.sem_gasto?"—":brl(r.spend||0),H[2]),td(r.imp?int(r.imp):"—",H[3]),td(r.clk?int(r.clk):"—",H[4]),
     td(brl(div(r.spend,r.clk),2),H[5]),td(int(r.lead_tot||0),H[6]),td(int(r.lead||0),H[7]),td(brl(div(r.spend,r.lead)),H[8],tone(div(r.spend,r.lead),META.cpl)),td(int(r.sql||0),H[9]),td(brl(div(r.spend,r.sql)),H[10]));
   const tb=el("tbody"); GG.campanhas.forEach(r=>tb.append(linha(r)));
   return sec("Google Ads",`Search e YouTube da conta Método RGV · investimento lido no Google Ads · leads e SQL pela UTM do formulário no HubSpot`,
     el("div",{class:"kpis",style:"grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:12px"},
-      kpi("Investimento",brl(GG.spend),pct(div(GG.spend,SPT),1)+" do total do ciclo"),
+      kpi("Investimento",GG.sem_gasto?"não lido":brl(GG.spend),GG.sem_gasto?"gasto deste ciclo ainda não foi lido no Google Ads":pct(div(GG.spend,SPT),1)+" do total do ciclo"),
       kpi("Leads +100k",int(GG.lead),`${int(GG.lead_tot)} leads em todas as faixas`),
-      kpi("CPL +100k",brl(div(GG.spend,GG.lead)),"meta "+brl(META.cpl)),
-      kpi("SQL",int(GG.sql),"custo "+brl(div(GG.spend,GG.sql)))),
+      kpi("CPL +100k",GG.sem_gasto?"—":brl(div(GG.spend,GG.lead)),"meta "+brl(META.cpl)),
+      kpi("SQL",int(GG.sql),GG.sem_gasto?"custo depois da leitura do gasto":"custo "+brl(div(GG.spend,GG.sql)))),
     el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb,el("tfoot",{},linha({...GG,tipo:""},"Total Google")))),
     el("p",{class:"note",text:"O Google Ads não tem acesso por API aqui: o investimento é lido à mão no relatório de campanhas e não muda nas rodadas automáticas. As UTMs do Google chegam sem o [RGV] do nome da campanha; a ligação é pelo restante do nome."}));
+}
+
+function painelOrigens(){
+  const O=DATA.origens; if(!O||!O.length) return null;
+  const H=["Origem","Leads","Leads +100k","% +100k","SQL","% SQL","Investimento","CPL +100k","Custo SQL","% dos +100k"];
+  const tot=sumRows(O), pago=O.filter(o=>o.pago), org=O.filter(o=>!o.pago), sp=sumRows(pago), so=sumRows(org);
+  const semG=GG&&GG.sem_gasto;
+  const linha=(nome,r,cls,paga)=>{const g=nome==="Google Ads"&&semG, inv=paga&&!g&&r.spend?r.spend:null;
+    return el("tr",cls?{class:cls}:{},td(nome,"","pg"),td(int(r.lead_tot||0),H[1]),td(int(r.lead||0),H[2]),td(pct(div(r.lead,r.lead_tot),0),H[3]),
+      td(int(r.sql||0),H[4]),td(pct(div(r.sql,r.lead),0),H[5]),td(paga?(g?"não lido":brl(inv||0)):"—",H[6]),
+      td(inv?brl(div(inv,r.lead)):"—",H[7],inv?tone(div(inv,r.lead),META.cpl):""),td(inv&&r.sql?brl(div(inv,r.sql)):"—",H[8]),td(pct(div(r.lead,tot.lead),0),H[9]));};
+  const tb=el("tbody");
+  pago.forEach(o=>tb.append(linha(o.nome,o,"",true)));
+  tb.append(linha("Mídia paga · total do topo",sp,"sub",true));
+  org.forEach(o=>tb.append(linha(o.nome,o,"",false)));
+  if(org.length) tb.append(linha("Orgânico e outras · total",so,"sub",false));
+  return sec("Origem dos leads",`todos os envios dos formulários PERPÉTUO no HubSpot, 1 por e-mail por dia, sem testes · a mídia paga é o que o resto do painel mostra; as outras origens entram só aqui`,
+    el("div",{class:"kpis",style:"grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px"},
+      kpi("Leads +100k em todas as origens",int(tot.lead),`${int(tot.lead_tot)} leads em todas as faixas · ${int(tot.sql)} SQL`,true),
+      kpi("Mídia paga",int(sp.lead),`${pct(div(sp.lead,tot.lead),0)} dos leads +100k · ${int(sp.sql)} SQL`),
+      kpi("Orgânico e outras",int(so.lead),`${pct(div(so.lead,tot.lead),0)} dos leads +100k · ${int(so.sql)} SQL`)),
+    el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb,el("tfoot",{},linha("Todas as origens",tot,"",false)))),
+    el("p",{class:"note",text:"Origem pela UTM do formulário: Meta pago (página ou Lead Ads) e Google Ads como no resto do painel; Instagram orgânico = utm_source instagram, bio ou stories; Live = utm_source live; Sem UTM = formulário sem utm_source e utm_medium. Quem veio pago e orgânico no mesmo dia conta só na mídia paga. SQL conta uma vez por pessoa, na primeira origem +100k do ciclo, começando pela mídia paga."}));
 }
 
 function painelKpis(){
@@ -613,9 +638,9 @@ function tabelaCiclos(){
   const dA=iso=>iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(2,4);
   const nd=(a,b)=>Math.round((new Date(b)-new Date(a))/864e5)+1;
   const tb=el("tbody");
-  [...HIST].reverse().map(x=>x.g_spend?{...x,spend:x.spend+x.g_spend,lead:x.lead+x.g_lead,sql:x.sql+x.g_sql}:x).forEach(x=>{const dias=nd(x.ini,x.atual?x.ate:x.fim), sem=!!x.sem_hs,
+  [...HIST].reverse().map(x=>x.g_lead!=null?{...x,spend:x.spend+x.g_spend,lead:x.lead+x.g_lead,sql:x.sql+x.g_sql}:x).forEach(x=>{const dias=nd(x.ini,x.atual?x.ate:x.fim), sem=!!x.sem_hs,
       cl=sem||x.parcial?null:div(x.spend,x.lead), cs=sem||x.parcial?null:div(x.spend,x.sql), z=v=>sem?"—":int(v);
-    const tag=x.atual?el("span",{class:"st on",text:(x.ate<x.fim?"EM ANDAMENTO":"ENCERRADO")+(x.g_spend?" · META + GOOGLE":"")}):sem?el("span",{class:"st off",text:"SEM FORM NO HUBSPOT"})
+    const tag=x.atual?el("span",{class:"st on",text:(x.ate<x.fim?"EM ANDAMENTO":"ENCERRADO")+(x.g_lead!=null?" · META + GOOGLE":"")}):sem?el("span",{class:"st off",text:"SEM FORM NO HUBSPOT"})
       :x.parcial?el("span",{class:"st off",text:"FORMS DESDE "+dBR(x.parcial)}):null;
     const tr=el("tr",{class:[x.atual?"atual":sem?"extra":"",x.nome===C.nome?"sel":"",LISTA.some(l=>l.nome===x.nome)?"clic":""].join(" ").trim()},
       el("td",{"data-l":H[0]},x.nome,tag),
@@ -646,7 +671,7 @@ function tabelaCamps(){
 function render(){
   renderTop();
   const d=document.getElementById("detail");
-  d.replaceChildren(painelFunil(),painelComercial(),painelGoogle(),painelVendas(),painelKpis(),SM?null:painelRitmo(),painelFaixas(),painelPublico(),painelPaginas(),painelCriativos(),chartDia(),tabelaDia(),HIST.length>1?tabelaCiclos():null,tabelaCamps(),comoLer());
+  d.replaceChildren(...[painelFunil(),painelComercial(),painelGoogle(),painelOrigens(),painelVendas(),painelKpis(),SM?null:painelRitmo(),painelFaixas(),painelPublico(),painelPaginas(),painelCriativos(),chartDia(),tabelaDia(),HIST.length>1?tabelaCiclos():null,tabelaCamps(),comoLer()].filter(Boolean));
   document.getElementById("foot").replaceChildren(
     el("p",{text:`Mídia: Meta Ads, conta Perpétuo RGV, campanhas com [FF] no nome e gasto no ciclo ${C.nome} (${dBR(C.ini)} a ${dBR(C.fim)}). ${C.somado?"Em ciclo encerrado, CPM, CTR (link e todos) e CPC saem das somas das campanhas, porque o filtro do Meta descarta campanhas excluídas":"CPM, CTR (link e todos) e CPC vêm prontos do Gerenciador"}; connect (visitas ÷ cliques), visita → lead, CPL e custo por SQL são divisões. Só dias fechados: os dados vão até ontem.`}),
     el("p",{text:"Lead: envio de formulário PERPÉTUO no HubSpot vindo do Meta pago (página ou Lead Ads), 1 por e-mail por dia, com faturamento declarado de 100 mil por mês ou mais. O pixel subconta, por isso o lead nunca é o do pixel."}),
