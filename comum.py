@@ -101,7 +101,7 @@ def janela(nome):
 
 
 ORDEM_PUBLICO = ['Quente · até 30 dias + listas', 'Morno · 60 a 180 dias', 'Base ampla · 365 a 730 dias',
-                 'Mix validados', 'Outros', 'Sem conjunto na UTM']
+                 'Mix validados', 'Outros', 'Sem conjunto na UTM', 'Google Ads (Search e YouTube)', 'Sem anúncio (orgânico e outras origens)']
 
 
 def norm_page(u):

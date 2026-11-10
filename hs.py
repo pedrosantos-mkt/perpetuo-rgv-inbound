@@ -152,7 +152,7 @@ def main():
     desde = int(dt.datetime.combine(CICLO['ini'], dt.time(), TZ).timestamp() * 1000)
     fim = ate()
     cache = os.path.join(RAW_ATUAL, 'c_subs.json')   # todos os envios desde o RGV 29, baixados por ciclos.py
-    if FECHADO and os.path.exists(cache):
+    if FECHADO and os.path.exists(cache) and not os.environ.get('HS_FRESCO'):   # HS_FRESCO=1: baixa de novo (o cache vai só até 30/10)
         subs = [s for s in json.load(open(cache)) if s['ts'] >= desde]
     else:
         fs = forms()
@@ -161,31 +161,22 @@ def main():
     subs.sort(key=lambda s: s['ts'])
     print(len(subs), 'envios nos forms PERPÉTUO desde', CICLO['ini'])
 
-    leads, vistos = [], set()
+    # lead = pessoa única no ciclo (primeiro envio), de qualquer origem, sem testes e sem e-mails @grupor1.com;
+    # todos os envios ficam em "envios" para ligar cada MQL (negócio) ao formulário que a pessoa preencheu antes dele
+    leads, envs, vistos = [], [], set()
     for s in subs:
         d = dt.datetime.fromtimestamp(s['ts'] / 1000, TZ).date()
         if d > fim or d < CICLO['ini']: continue
         email = (s['v'].get('email') or '').strip().lower()
-        canal = 'meta' if pago_meta(s) else 'google' if pago_google(s) else None
-        if not email or (email, d) in vistos or not canal: continue
-        vistos.add((email, d))
-        leads.append(lead(s, email, d, canal))
-    # demais origens (orgânico, live, sem UTM...): 1 por e-mail por dia, sem testes, sem repetir quem já veio pago no mesmo dia
-    org_vistos = set()
-    for s in subs:
-        d = dt.datetime.fromtimestamp(s['ts'] / 1000, TZ).date()
-        if d > fim or d < CICLO['ini']: continue
-        email = (s['v'].get('email') or '').strip().lower()
-        if not email or pago_meta(s) or pago_google(s) or teste(s, email) or (email, d) in vistos or (email, d) in org_vistos: continue
-        org_vistos.add((email, d))
-        leads.append(lead(s, email, d, 'organico', origem_organica(s)))
-    leads.sort(key=lambda l: l['ts'])
-    l100 = [l for l in leads if l['q100']]
-    print(len(leads), 'leads (todas as origens) ·', len(l100), '+100k ·', sum(l['canal'] == 'meta' for l in l100), 'Meta ·',
-          sum(l['canal'] == 'google' for l in l100), 'Google ·', sum(l['canal'] == 'organico' for l in l100), 'outras origens')
-
-    sql = sql_de(l100)
-    salva('hs.json', {'leads': leads, 'sql': sorted(sql), 'gerado': dt.datetime.now(TZ).strftime('%d/%m/%Y %H:%M')})
+        if not email or teste(s, email) or email.endswith('@grupor1.com'): continue
+        canal = 'meta' if pago_meta(s) else 'google' if pago_google(s) else 'organico'
+        l = lead(s, email, d, canal, None if canal != 'organico' else origem_organica(s))
+        envs.append(l)
+        if email not in vistos:
+            vistos.add(email); leads.append(l)
+    print(len(leads), 'leads (pessoas únicas, todas as origens) ·', sum(l['canal'] == 'meta' for l in leads), 'Meta ·',
+          sum(l['canal'] == 'google' for l in leads), 'Google ·', sum(l['canal'] == 'organico' for l in leads), 'outras origens ·', len(envs), 'envios')
+    salva('hs.json', {'leads': leads, 'envios': envs, 'gerado': dt.datetime.now(TZ).strftime('%d/%m/%Y %H:%M')})
 
 
 if __name__ == '__main__':

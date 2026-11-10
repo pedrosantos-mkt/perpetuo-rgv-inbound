@@ -31,6 +31,11 @@ FASES = {
     },
 }
 GANHO_BOLETO = '1086562155'
+# MQL = negócio do relatório "[CICLO] MQL - PERPÉTUO": pipelines padrão, Boletos e Vendas Principal (RGV), criado no ciclo,
+# fora estas origens do negócio (eventos, indicações, outbound...); mesmo filtro do relatório do HubSpot
+ORIGENS_FORA = ['Indicação - Aluno RGV', 'Palestras', 'Indicação - Clube R1', 'Networking - Nunes', 'Convocação Nacional', 'Instagram - Stories',
+                'Indicação - Lead', 'Indicação - Ricardo Nunes', 'Outbound', 'Membro Clube R1', 'Funcionários - Clube R1', 'Café com Ricardo - MG',
+                'MSA - Cimed', 'Resgate Convocação', 'CNE On-line', 'Café com Ricardo - SP']
 MENSAL_100K = lambda fx: bool(fx) and not (fx.startswith('Menor que 100') or fx.startswith('<'))
 ANUAL_100K = {'1 a 6 milhões por ano', '6 a 12 milhões por ano', '12 a 36 milhões por ano', '36 a 50 milhões por ano', 'Acima de 50 milhões'}
 STAGES = sorted({s for p in FASES.values() for l in p.values() for s in l})
@@ -44,7 +49,8 @@ def busca(a, b):
     while True:
         j = req('POST', 'https://api.hubapi.com/crm/v3/objects/deals/search', headers={**H, 'Content-Type': 'application/json'},
                 json={'filterGroups': [{'filters': [{'propertyName': 'createdate', 'operator': 'BETWEEN', 'value': str(a), 'highValue': str(b - 1)},
-                                                    {'propertyName': 'pipeline', 'operator': 'IN', 'values': [PRINCIPAL, BOLETO, PADRAO]}]}],
+                                                    {'propertyName': 'pipeline', 'operator': 'IN', 'values': [PRINCIPAL, BOLETO, PADRAO]},
+                                                    {'propertyName': 'origem_dos_negocios', 'operator': 'NOT_IN', 'values': ORIGENS_FORA}]}],
                       'properties': PROPS, 'limit': 200, **({'after': after} if after else {})})
         out += j.get('results', [])
         after = j.get('paging', {}).get('next', {}).get('after')
@@ -59,26 +65,31 @@ def main():
     janelas = [(ms(d), ms(d + dt.timedelta(1))) for d in dias]   # um dia por consulta (fica longe do limite de 10 mil)
     with ThreadPoolExecutor(2) as ex:   # mais que isso estoura o limite por segundo do HubSpot
         deals = [d for r in ex.map(lambda w: busca(*w), janelas) for d in r]
+    # e-mails dos contatos de cada negócio, para ligar o MQL ao formulário (origem e anúncio)
+    ass = {}
+    ids = [d['id'] for d in deals]
+    for k in range(0, len(ids), 100):
+        j = req('POST', 'https://api.hubapi.com/crm/v4/associations/deals/contacts/batch/read', headers={**H, 'Content-Type': 'application/json'},
+                json={'inputs': [{'id': x} for x in ids[k:k + 100]]})
+        for r in j.get('results', []): ass[r['from']['id']] = [str(t['toObjectId']) for t in r.get('to', [])]
+    cids = sorted({c for v in ass.values() for c in v}); em = {}
+    for k in range(0, len(cids), 100):
+        j = req('POST', 'https://api.hubapi.com/crm/v3/objects/contacts/batch/read', headers={**H, 'Content-Type': 'application/json'},
+                json={'inputs': [{'id': x} for x in cids[k:k + 100]], 'properties': ['email']})
+        for r in j.get('results', []): em[r['id']] = (r['properties'].get('email') or '').strip().lower()
     out = []
     for d in deals:
-        p = d['properties']
-        uc = (p.get('utm_camp') or '').upper()
-        # [FF] do Meta ou campanha do Google Ads do Perpétuo ([C2G] ... [PERPETUO] [SEARCH]/[YT])
-        if '[FF]' not in uc and not ('[PERPETUO]' in uc and ('[SEARCH]' in uc or '[YT]' in uc)): continue
-        if 'PROCESSOS' in (p.get('produto') or '').upper() or 'PROCESSOS' in (p.get('dealname') or '').upper(): continue
-        pipe = p['pipeline']
-        fx = p.get('faturamento_mensal_oficial')
-        mql = MENSAL_100K(fx) if fx else p.get('faturamento_anual') in ANUAL_100K
+        p = d['properties']; pipe = p['pipeline']
         if pipe == BOLETO:   # o Boletos é a continuação depois da reunião: chegou até o realizado; venda só no Ganho de lá
             ch = {e: e != 'venda' or p['dealstage'] == GANHO_BOLETO for e in ETAPAS}
         else:
             f = FASES[pipe]
             ch = {e: p['dealstage'] in f[e] or any(p.get(f'hs_v2_date_entered_{s}') for s in f[e]) for e in ETAPAS}
-        dia = (dt.datetime.fromisoformat(p['createdate'].replace('Z', '+00:00')).astimezone(TZ)).date().isoformat()
-        out.append({'id': d['id'], 'dia': dia, 'pipe': pipe, 'mql': mql, **{e: bool(v) for e, v in ch.items()}})
-    n = lambda k: sum(1 for x in out if x['mql'] and x[k])
-    print(len(deals), 'negócios nos pipelines ·', len(out), '[FF] ·', sum(x['mql'] for x in out), 'MQL ·',
-          ' · '.join(f'{e} {n(e)}' for e in ETAPAS))
+        cria = dt.datetime.fromisoformat(p['createdate'].replace('Z', '+00:00'))
+        out.append({'id': d['id'], 'dia': cria.astimezone(TZ).date().isoformat(), 'ts': int(cria.timestamp() * 1000), 'pipe': pipe,
+                    'emails': [em[c] for c in ass.get(d['id'], []) if em.get(c)], 'utm_camp': p.get('utm_camp') or '', 'mql': True,
+                    **{e: bool(v) for e, v in ch.items()}})
+    print(len(out), 'MQL (negócios do relatório [CICLO] MQL - PERPÉTUO) ·', ' · '.join(f"{e} {sum(x[e] for x in out)}" for e in ETAPAS))
     salva('crm.json', {'deals': out, 'gerado': dt.datetime.now(TZ).strftime('%d/%m/%Y %H:%M')})
 
 

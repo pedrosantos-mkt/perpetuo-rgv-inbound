@@ -328,7 +328,7 @@ const el = (tag, attrs={}, ...kids) => { const e=document.createElement(tag); fo
 const tone = (v,meta,menor=true) => v==null||!isFinite(v)||meta==null||!isFinite(meta) ? "" : (menor ? (v<=meta?"ok":v<=meta*1.15?"warn":"bad") : (v>=meta?"ok":v>=meta*.85?"warn":"bad"));
 const tlabel = t => t==="ok"?"dentro da meta":t==="warn"?"perto da meta":t==="bad"?"fora da meta":"";
 
-let C, K, BM, D, ATE, FIM, INI, PARC, FR, DF, diasCorr, diasRest, metaAte, SM, visitas, cliquesPag, conv, connect, cpl, custoSql, txSql, FECH, GG, GR, SPT, LT, STT, cplT, custoSqlT, txSqlT;
+let C, K, BM, D, ATE, FIM, INI, PARC, FR, DF, diasCorr, diasRest, metaAte, SM, visitas, cliquesPag, conv, connect, cpl, cmql, custoSql, txSql, FECH, GG, GR, SPT, LT, STT, cplT, custoSqlT, txSqlT;
 function deriva(){
   C = DATA.ciclo; K = DATA.k; BM = DATA.bm; D = DATA.daily; FECH = !!C.fechado;
   ATE = new Date(DATA.ate+"T12:00:00"); FIM = new Date(C.fim+"T12:00:00"); INI = new Date(C.ini+"T12:00:00");
@@ -336,15 +336,16 @@ function deriva(){
   PARC = !FECH && !!DATA.parcial && D.length>0; FR = PARC ? Math.max(.02, DATA.frac||1) : 1; DF = PARC ? D.slice(0,-1) : D;
   diasCorr = D.length - 1 + FR; diasRest = Math.max(0, Math.round((FIM-ATE)/864e5) + (PARC ? 1-FR : 0));
   metaAte = FECH||!C.meta_leads ? null : DF.reduce((a,r)=>a+r[11],0) + (PARC ? D[D.length-1][11]*FR : 0);
-  SM = metaAte==null;   // sem meta de volume: ciclo encerrado ou ciclo sem rampa cadastrada   // meta de leads +100k acumulada até o último dia fechado (só o ciclo atual tem rampa)
+  SM = metaAte==null;   // sem meta de volume: ciclo encerrado ou ciclo sem rampa cadastrada
   visitas = K.pg.lpv||0; cliquesPag = K.pg.clk||0;
-  conv = div(K.lead_tot_pag ?? K.lead_pag, visitas); connect = div(visitas, cliquesPag);
-  cpl = div(K.spend, K.lead); custoSql = div(K.spend, K.sql); txSql = div(K.sql, K.lead);
+  conv = div(K.lead_pag, visitas); connect = div(visitas, cliquesPag);   // conversão da página: leads que vieram de anúncio de página ÷ visitas
+  // leads, MQL e SQL vêm só do HubSpot, de todas as origens; os custos usam o investimento Meta + Google
   // Google Ads (Search e YouTube): soma no total do ciclo; mídia (CPM, CTR, connect) segue só do Meta
   GG = DATA.google||null;
-  GR = GG ? {spend:GG.sem_gasto?null:GG.spend, lead:GG.lead||0, sql:GG.sql||0, imp:GG.imp, clk:GG.clk} : null;   // sem_gasto: gasto do Google ainda não lido
-  SPT = K.spend+(GG?GG.spend:0); LT = K.lead+(GG?GG.lead||0:0); STT = K.sql+(GG?GG.sql||0:0);
-  cplT = div(SPT,LT); custoSqlT = div(SPT,STT); txSqlT = div(STT,LT);
+  GR = GG ? {spend:GG.sem_gasto?null:GG.spend, lead:GG.lead||0, mql:GG.mql||0, sql:GG.sql||0, imp:GG.imp, clk:GG.clk} : null;   // sem_gasto: gasto do Google ainda não lido
+  SPT = K.spend+(GG&&!GG.sem_gasto?GG.spend:0); LT = K.lead; STT = K.sql;
+  cpl = div(SPT,K.lead); cmql = div(SPT,K.mql); custoSql = div(SPT,K.sql); txSql = div(K.sql,K.mql);
+  cplT = cpl; custoSqlT = custoSql; txSqlT = txSql;
 }
 deriva();
 const dAno = iso => dBR(iso)+"/"+iso.slice(2,4);
@@ -357,41 +358,36 @@ const td = (t,l,cls) => el("td",{class:(cls||""),"data-l":l||"",text:t});
 
 function renderTop(){
   document.getElementById("sub").textContent=FECH
-    ? `Ciclo ${C.nome} · ${dAno(C.ini)} a ${dAno(C.fim)} (${C.dias} dias) · campanhas [FF] de captação no Meta · ciclo encerrado${C.hs_desde?(C.fim<C.hs_desde?" · sem formulário PERPÉTUO no HubSpot: leads e SQL indisponíveis":` · formulários PERPÉTUO só a partir de ${dAno(C.hs_desde)}: leads e SQL parciais`):""}`
-    : `Ciclo ${C.nome} · ${dBR(C.ini)} a ${dBR(C.fim)} · campanhas [FF] de captação no Meta${GG?" + Google Ads":""} · ${PARC?`dados até hoje, ${dBR(DATA.ate)}, às ${DATA.hora} (parcial)`:`dados até ${dBR(DATA.ate)}`} · dia ${D.length} de ${C.dias}`;
+    ? `Ciclo ${C.nome} · ${dAno(C.ini)} a ${dAno(C.fim)} (${C.dias} dias) · campanhas [FF] de captação no Meta · ciclo encerrado${C.hs_desde?(C.fim<C.hs_desde?" · sem formulário PERPÉTUO no HubSpot: leads indisponíveis (MQL e SQL pelos negócios)":` · formulários PERPÉTUO só a partir de ${dAno(C.hs_desde)}: leads parciais (MQL e SQL pelos negócios)`):""}`
+    : `Ciclo ${C.nome} · ${dBR(C.ini)} a ${dBR(C.fim)} · investimento Meta [FF]${GG?" + Google Ads":""} · leads e MQL do HubSpot, todas as origens · ${PARC?`dados até hoje, ${dBR(DATA.ate)}, às ${DATA.hora} (parcial)`:`dados até ${dBR(DATA.ate)}`} · dia ${D.length} de ${C.dias}`;
   carimbo();
   const s=document.getElementById("sum");
-  const it=GG?[["Investimento",brl(SPT),`Meta ${brl(K.spend)} · Google ${GG.sem_gasto?"gasto ainda não lido":brl(GG.spend)}`,""],
-    ["Leads +100k",int(LT),`Meta ${int(K.lead)} · Google ${int(GG.lead)}${SM?"":` · meta do Meta até ${dBR(DATA.ate)}: ${int(metaAte)}`}`,SM?"":tone(K.lead,metaAte,false)],
-    ["CPL +100k",brl(cplT),`meta ${brl(META.cpl)} · Meta ${brl(cpl)} · Google ${GG.sem_gasto?"—":brl(div(GG.spend,GG.lead))}`,tone(cplT,META.cpl)],
-    ["SQL",int(STT),`${pct(txSqlT,1)} dos leads · Meta ${int(K.sql)} · Google ${int(GG.sql)}`,tone(txSqlT,META.sqlTx,false)],
-    ["Custo por SQL",brl(custoSqlT),"meta "+brl(META.custoSql),tone(custoSqlT,META.custoSql)],
-    ["Leads +100k Meta por dia",dec(K.lead/diasCorr),SM?"média no ciclo":"meta da rampa "+dec(metaAte/diasCorr),SM?"":tone(K.lead/diasCorr,metaAte/diasCorr,false)]]
-   :[["Investimento",brl(K.spend),brl(K.spend/diasCorr)+" por dia",""],
-    ["Leads +100k",int(K.lead),SM?`${int(K.lead_tot)} leads em todas as faixas`:`meta até ${dBR(DATA.ate)}: ${int(metaAte)} · ${pct(K.lead/metaAte,0)}`,tone(K.lead,metaAte,false)],
-    ["CPL +100k",brl(cpl),"meta "+brl(META.cpl),tone(cpl,META.cpl)],
-    ["SQL",int(K.sql),pct(txSql,1)+" dos leads · meta "+pct(META.sqlTx,0),tone(txSql,META.sqlTx,false)],
-    ["Custo por SQL",brl(custoSql),"meta "+brl(META.custoSql),tone(custoSql,META.custoSql)],
-    ["Leads +100k por dia",dec(K.lead/diasCorr),SM?"média no ciclo":"meta média "+dec(metaAte/diasCorr),SM?"":tone(K.lead/diasCorr,metaAte/diasCorr,false)]];
+  const it=[["Investimento",brl(SPT),GG?`Meta ${brl(K.spend)} · Google ${GG.sem_gasto?"gasto ainda não lido":brl(GG.spend)}`:brl(SPT/diasCorr)+" por dia",""],
+    ["Leads",int(K.lead),`pessoas no HubSpot · CPL ${brl(cpl)}`,""],
+    ["MQL",int(K.mql),SM?`${pct(div(K.mql,K.lead),0)} dos leads`:`meta até ${dBR(DATA.ate)}: ${int(metaAte)} · ${pct(K.mql/metaAte,0)}`,SM?"":tone(K.mql,metaAte,false)],
+    ["Custo por MQL",brl(cmql),"meta "+brl(META.cpl),tone(cmql,META.cpl)],
+    ["SQL",int(K.sql),`${pct(txSql,1)} dos MQL · meta ${pct(META.sqlTx,0)}`,tone(txSql,META.sqlTx,false)],
+    ["Custo por SQL",brl(custoSql),"meta "+brl(META.custoSql),tone(custoSql,META.custoSql)]];
   s.replaceChildren(...it.map(([l,v,sm,t])=>el("div",{},el("span",{class:"cap",text:l}),el("b",{class:"num "+t,text:v}),el("small",{text:sm}))));
 }
 
 function painelFunil(){
   const metaInv=SM?null:metaAte*META.cpl;
   const f=el("div",{class:"funnel"},
-    stage("Investimento",brl(K.spend),FECH?`${DATA.camps.filter(c=>!c.extra).length} campanhas`:`${int(DATA.k.ativas)} campanhas ativas`,false,SM?null:"no CPL da meta: "+brl(metaInv),tone(K.spend,metaInv)),
+    stage("Investimento",brl(SPT),GG&&!GG.sem_gasto?`Meta ${brl(K.spend)} + Google`:FECH?`${DATA.camps.filter(c=>!c.extra).length} campanhas`:`${int(DATA.k.ativas)} campanhas ativas`,false,SM?null:"no custo por MQL da meta: "+brl(metaInv),tone(SPT,metaInv)),
     rate(brl(BM.cpm,2),"CPM","meta "+brl(META.cpm),tone(BM.cpm,META.cpm)),
     stage("Impressões",kfmt(K.imp),"CTR todos "+pct(BM.ctr_all,2)),
     rate(pct(BM.ctr_link,2),"CTR link","meta "+pct(META.ctr,2),tone(BM.ctr_link,META.ctr,false)),
     stage("Cliques no link",int(K.clk),"CPC link "+brl(BM.cpc,2)),
     rate(pct(connect,0),"Connect","meta "+pct(META.connect,0)+" · só página",tone(connect,META.connect,false)),
     stage("Visitas na página",int(visitas),"landing page views"),
-    rate(pct(conv,2),"Conversão da página","meta "+pct(META.conv,0)+" · todas as faixas",tone(conv,META.conv,false)),
-    ...(K.lead_tot_pag!=null?[stage("Leads da página",int(K.lead_tot_pag),"todas as faixas de faturamento"),rate(pct(div(K.lead_pag,K.lead_tot_pag),0),"Faturam +100k","")]:[]),
-    stage("Leads +100k",int(K.lead),`${int(K.lead_pag)} página · ${int(K.lead_nativo)} Lead Ads`,true,SM?null:`meta até ${dBR(DATA.ate)}: ${int(metaAte)}`,tone(K.lead,metaAte,false)),
+    rate(pct(conv,2),"Conversão da página","meta "+pct(META.conv,0)+" · leads de anúncio de página",tone(conv,META.conv,false)),
+    stage("Leads",int(K.lead),`todas as origens · ${int(K.lead_pag)} de página · ${int(K.lead_nativo)} de Lead Ads`,true),
+    rate(pct(div(K.mql,K.lead),0),"Viram MQL",""),
+    stage("MQL",int(K.mql),"custo "+brl(cmql),true,SM?"meta custo "+brl(META.cpl):`meta até ${dBR(DATA.ate)}: ${int(metaAte)}`,SM?tone(cmql,META.cpl):tone(K.mql,metaAte,false)),
     rate(pct(txSql,1),"Viram SQL","meta "+pct(META.sqlTx,0),tone(txSql,META.sqlTx,false)),
-    stage("SQL",int(K.sql),"custo "+brl(custoSql),true,SM?"meta "+pct(META.sqlTx,0)+" dos leads":"meta "+int(metaAte*META.sqlTx),SM?tone(txSql,META.sqlTx,false):tone(K.sql,metaAte*META.sqlTx,false)));
-  return sec(GG?"Funil inbound · Meta":"Funil inbound",`${C.somado?"CPM, CTR e CPC pelas somas das campanhas (o Meta não filtra campanhas excluídas)":"CPM, CTR e CPC prontos do Gerenciador"} · leads e SQL pelo HubSpot · connect e conversão só nas campanhas de página`,f);
+    stage("SQL",int(K.sql),"custo "+brl(custoSql),true,"meta custo "+brl(META.custoSql),tone(custoSql,META.custoSql)));
+  return sec("Funil inbound",`mídia do Meta ${C.somado?"(CPM, CTR e CPC pelas somas das campanhas)":"(CPM, CTR e CPC prontos do Gerenciador)"} · leads, MQL e SQL só do HubSpot, todas as origens · connect e conversão da página só nas campanhas de página`,f);
 }
 
 // funil comercial pelo pipeline de vendas: metas entre etapas do plano do ciclo 45
@@ -408,14 +404,14 @@ function painelComercial(){
     const t=pouco?"cinza":tone(tx,m,false);
     return card(tit,n,[[taxaLab,pct(tx,1),t],["Meta",tx==null?pct(m,0):`${pct(m,0)} · ${pp(tx-m)}`,pouco?"cinza":""]],custoLab,n?brl(div(sp,n)):"sem "+tit.toLowerCase().split(" ")[0]);};
   const g=el("div",{class:"crm"},
-    card("Lead no CRM",c.lead_crm,[c.lead_fonte==="negocios"?["Contado por","negócios [FF]"]:["Leads no Meta",int(c.leads_meta)],["CPL no Meta",brl(div(sp,c.leads_meta))]],"Custo por lead",brl(div(sp,c.lead_crm))),
-    card("Lead no perfil (MQL)",c.mql,[["No perfil",pct(div(c.mql,c.lead_crm),1)],["+100k no formulário",int(K.lead)]],"Custo por MQL",brl(div(sp,c.mql))),
+    card("Lead no CRM",c.lead_crm,[["Pessoas","formulários PERPÉTUO"],["Origens","todas"]],"Custo por lead",brl(div(sp,c.lead_crm))),
+    card("Lead no perfil (MQL)",c.mql,[["No perfil",pct(div(c.mql,c.lead_crm),1)],["Meta de custo",brl(META.cpl),tone(div(sp,c.mql),META.cpl)]],"Custo por MQL",brl(div(sp,c.mql))),
     etapa("Contato efetivo","contato","mql","Conexão","Custo por contato"),
     etapa("SQL","sql","contato","Qualificação","Custo por SQL"),
     etapa("Agendamento marcado","marcado","sql","Agendamento","Custo por ag. marcado"),
     etapa("Agendamento realizado","realizado","marcado","Comparecimento","Custo por ag. realizado"),
     etapa("Venda","venda","realizado","Fechamento","Custo por venda (CAC)"));
-  return sec("Funil comercial",`pipeline de vendas do HubSpot · negócios ${GG?"[FF] e Google Ads":"[FF]"} criados no ${FECH?"ciclo":"ciclo até "+dBR(DATA.ate)}${GG?" · custos com o investimento Meta + Google":""} · cada etapa conta quem chegou nela ou passou dela · taxa sobre a etapa anterior`,g);
+  return sec("Funil comercial",`pipeline de vendas do HubSpot · MQL = negócios do relatório [CICLO] MQL - PERPÉTUO criados no ${FECH?"ciclo":"ciclo até "+dBR(DATA.ate)}, todas as origens · custos com o investimento ${GG?"Meta + Google":"do Meta"} · cada etapa conta quem chegou nela ou passou dela · taxa sobre a etapa anterior`,g);
 }
 
 function painelVendas(){
@@ -445,19 +441,17 @@ function painelVendas(){
 function comoLer(){
   const L=[
     ["Investimento","Gasto no Meta Ads da conta Perpétuo RGV no ciclo, só das campanhas com [FF] no nome (captação), mais o Google Ads do Perpétuo quando houver. Distribuição e remarketing sem lead ficam de fora."],
-    ["Origem dos leads","Todos os envios dos formulários PERPÉTUO no HubSpot, de qualquer origem, 1 por e-mail por dia e sem testes. Mídia paga (Meta e Google) é a mesma do resto do painel e fecha no topo; Instagram orgânico, Live, Sem UTM e outras aparecem só nesse quadro. Quem veio pago e orgânico no mesmo dia conta só na mídia paga."],
-    ["Google Ads","Campanhas de Search e YouTube da conta Método RGV (568-341-4595), todas do Perpétuo. O gasto é lido à mão no Google Ads, sem quebra por dia; leads e SQL vêm do HubSpot pela UTM (utm_source google/youtube ou campanha [SEARCH]/[YT]). Entra no topo, no funil comercial, nas linhas próprias de cada tabela e nos totais \"Meta + Google\". CPM, CTR, connect e as metas de mídia continuam só do Meta."],
-    ["Lead no CRM","Envios de formulário PERPÉTUO no HubSpot vindos do Meta pago (página ou Lead Ads), em todas as faixas de faturamento, 1 por e-mail por dia. Do RGV 29 ao 33, antes dos formulários PERPÉTUO, conta os negócios [FF] de qualquer faixa. \"Leads no Meta\" é o que o pixel/formulário do Meta reportou: ele subconta, por isso nunca é a base."],
-    ["Lead +100k","O mesmo envio, quando o faturamento declarado é de R$ 100 mil por mês ou mais. Até o RGV 35 o formulário perguntava por ano: conta de R$ 1 milhão por ano para cima. É a base do CPL e do % SQL das tabelas."],
-    ["MQL (funil comercial)","Negócio dos pipelines Vendas Principal (RGV), Boletos ou padrão, criado no ciclo, com campanha [FF] na UTM e faturamento de R$ 100 mil por mês ou mais. RGV Processos fica de fora."],
-    ["Etapas","Contato efetivo = chegou em Em Qualificação; SQL = Em Agendamento; agendamento marcado = DIAG. Agendado (NoShow e Reagendado contam); agendamento realizado = DIAG. Realizado; venda = Ganho no Principal ou no Boletos. No pipeline padrão dos ciclos antigos: Contato Efetivo, Em Qualificação, Diagnóstico Agendado, Diagnóstico Realizado e Ganho. Negócio no Boletos conta até o realizado; venda só no Ganho de lá."],
-    ["Etapa alcançada","Cada etapa conta o negócio que chegou nela ou passou dela, mesmo perdido depois. Reentrada não duplica. Negócios recentes ainda estão sendo trabalhados, então as etapas finais do ciclo atual sobem com o tempo."],
-    ["Taxas e metas","No funil comercial, cada taxa é sobre a etapa anterior, contra as metas do plano do ciclo 45: conexão 33%, qualificação 45%, agendamento 76%, comparecimento 72% e fechamento 32%. Com menos de 5 casos na etapa anterior, a taxa fica cinza."],
-    ["SQL das tabelas","Nas tabelas de público, página, criativo, dia e ciclo, SQL é a pessoa (lead +100k) cujo negócio chegou em Em Qualificação ou depois, uma vez por pessoa. No funil comercial essa mesma fase aparece como contato efetivo."],
+    ["Leads","Só do HubSpot: pessoas que preencheram formulário PERPÉTUO no ciclo, de qualquer origem (Meta, Google, Instagram orgânico, live, sem UTM...), contadas uma vez cada, sem envios de teste e sem e-mails @grupor1.com. Nada vem do pixel nem dos leads que o Meta reporta."],
+    ["MQL","Só do HubSpot: negócios do relatório \"[CICLO] MQL - PERPÉTUO\" criados no ciclo (pipelines padrão, Boletos e Vendas Principal; fora as origens de evento, indicação e outbound do filtro do relatório), de todas as origens. É o mesmo número do relatório do HubSpot."],
+    ["SQL","MQL que chegou em Em Agendamento ou depois no pipeline Vendas Principal (no padrão, Em Qualificação em diante), mesmo que perdido depois."],
+    ["Origem e anúncio","Cada lead e cada MQL é ligado ao formulário da pessoa (o último antes de o negócio nascer) e, pela UTM, à origem, à campanha, ao público, à página e ao criativo. Quem não veio de anúncio entra em \"Sem anúncio (orgânico e outras origens)\"; MQL cujo contato não preencheu formulário no ciclo entra em \"Sem formulário PERPÉTUO\". Assim toda tabela fecha no total do topo."],
+    ["Google Ads","Campanhas de Search e YouTube da conta Método RGV (568-341-4595), todas do Perpétuo. O gasto é lido à mão no Google Ads, sem quebra por dia, e entra no investimento total; leads e MQL do Google já estão no total pela origem do formulário."],
+    ["Funil comercial","Lead no CRM = leads; MQL = negócios do relatório; contato efetivo = chegou em Em Qualificação; SQL = Em Agendamento; agendamento marcado = DIAG. Agendado (NoShow e Reagendado contam); realizado = DIAG. Realizado; venda = Ganho no Principal ou no Boletos. Cada etapa conta quem chegou nela ou passou dela; taxas contra as metas do plano (conexão 33%, qualificação 45%, agendamento 76%, comparecimento 72%, fechamento 32%)."],
+    ["Metas","Custo por MQL R$ 330, SQL 15% dos MQL e custo por SQL R$ 2.200. Volume de MQL só no ciclo com rampa cadastrada."],
     ["Custos por etapa","Investimento do ciclo dividido pela quantidade da etapa: custo por lead, por MQL, por contato, por SQL, por agendamento, por reunião realizada e por venda (CAC)."],
     ["Metas da mídia","CPM: média das campanhas [FF] nos 30 dias antes do ciclo 45. CTR link 2%, connect 80% e conversão da página 5% (leads de todas as faixas ÷ visitas) são as metas do time. Volume de leads: rampa \"Operação 3.000 leads\", só no ciclo atual."],
     ["Público","Todos os conjuntos [FF] são de público quente; o quadro separa pela janela de envolvimento no nome do conjunto (até 30 dias + listas, 60 a 180, 365 a 730, mix validados). Lead Ads não traz o conjunto na UTM: o lead é repartido pelos leads que o Meta contou em cada conjunto."],
-    ["Detalhe do criativo","Na aba Criativos, clicar num cartão abre o detalhe: performance, retenção do vídeo (visualizações de 3 s e 25/50/75/95/100% do Meta), clique, lead +100k e SQL. Hook = 3 s ÷ impressões. O diagnóstico compara o criativo com a mediana dos criativos de vídeo do ciclo com pelo menos 1.000 impressões; o momento crítico é a passagem em que ele mais perde em relação a essa mediana."],
+    ["Detalhe do criativo","Na aba Criativos, clicar num cartão abre o detalhe: performance, retenção do vídeo (visualizações de 3 s e 25/50/75/95/100% do Meta), clique, lead, MQL e SQL. Hook = 3 s ÷ impressões. O diagnóstico compara o criativo com a mediana dos criativos de vídeo do ciclo com pelo menos 1.000 impressões; o momento crítico é a passagem em que ele mais perde em relação a essa mediana."],
     ["Página","Endereço de destino sem UTM, somando campanhas e anúncios. Formulário nativo do Meta fica em linha própria. Connect e visita → lead só valem nas campanhas de página."],
     ["Criativo","Anúncios com o mesmo nome somados em todos os conjuntos. O lead é ligado pelo nome do anúncio na UTM (utm_term ou utm_content), comparando só letras e números. O olho abre o post no Instagram."],
     ["Datas","O ciclo atual vai até hoje: o dia de hoje entra parcial, até a hora da última atualização (a cada 3 horas, das 6h17 às 21h17, ou pelo botão Atualizar agora). Médias por dia contam o dia de hoje pela fração já passada; o ritmo usa só os 7 últimos dias fechados. Ciclos encerrados foram coletados uma vez e não mudam; neles CPM, CTR e CPC saem das somas das campanhas."],
@@ -469,15 +463,15 @@ function comoLer(){
 
 function painelGoogle(){
   if(!GG) return null;
-  const H=["Campanha","Tipo","Investimento","Impressões","Cliques","CPC","Leads","Leads +100k","CPL +100k","SQL","Custo SQL"];
-  const linha=(r,nome,tag)=>el("tr",{},td(nome??r.nome,"","pg"),td(r.tipo||"—",H[1]),td(GG.sem_gasto?"—":brl(r.spend||0),H[2]),td(r.imp?int(r.imp):"—",H[3]),td(r.clk?int(r.clk):"—",H[4]),
-    td(brl(div(r.spend,r.clk),2),H[5]),td(int(r.lead_tot||0),H[6]),td(int(r.lead||0),H[7]),td(brl(div(r.spend,r.lead)),H[8],tone(div(r.spend,r.lead),META.cpl)),td(int(r.sql||0),H[9]),td(brl(div(r.spend,r.sql)),H[10]));
+  const H=["Campanha","Tipo","Investimento","Impressões","Cliques","CPC","Leads","MQL","Custo MQL","SQL","Custo SQL"];
+  const linha=(r,nome)=>el("tr",{},td(nome??r.nome,"","pg"),td(r.tipo||"—",H[1]),td(GG.sem_gasto?"—":brl(r.spend||0),H[2]),td(r.imp?int(r.imp):"—",H[3]),td(r.clk?int(r.clk):"—",H[4]),
+    td(brl(div(r.spend,r.clk),2),H[5]),td(int(r.lead||0),H[6]),td(int(r.mql||0),H[7]),td(brl(div(r.spend,r.mql)),H[8],tone(div(r.spend,r.mql),META.cpl)),td(int(r.sql||0),H[9]),td(brl(div(r.spend,r.sql)),H[10]));
   const tb=el("tbody"); GG.campanhas.forEach(r=>tb.append(linha(r)));
-  return sec("Google Ads",`Search e YouTube da conta Método RGV · investimento lido no Google Ads · leads e SQL pela UTM do formulário no HubSpot`,
+  return sec("Google Ads",`Search e YouTube da conta Método RGV · investimento lido no Google Ads · leads e MQL do HubSpot pela UTM do formulário`,
     el("div",{class:"kpis",style:"grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:12px"},
       kpi("Investimento",GG.sem_gasto?"não lido":brl(GG.spend),GG.sem_gasto?"gasto deste ciclo ainda não foi lido no Google Ads":pct(div(GG.spend,SPT),1)+" do total do ciclo"),
-      kpi("Leads +100k",int(GG.lead),`${int(GG.lead_tot)} leads em todas as faixas`),
-      kpi("CPL +100k",GG.sem_gasto?"—":brl(div(GG.spend,GG.lead)),"meta "+brl(META.cpl)),
+      kpi("Leads",int(GG.lead),"pela UTM do formulário"),
+      kpi("MQL",int(GG.mql),GG.sem_gasto?"custo depois da leitura do gasto":"custo "+brl(div(GG.spend,GG.mql))),
       kpi("SQL",int(GG.sql),GG.sem_gasto?"custo depois da leitura do gasto":"custo "+brl(div(GG.spend,GG.sql)))),
     el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb,el("tfoot",{},linha({...GG,tipo:""},"Total Google")))),
     el("p",{class:"note",text:"O Google Ads não tem acesso por API aqui: o investimento é lido à mão no relatório de campanhas e não muda nas rodadas automáticas. As UTMs do Google chegam sem o [RGV] do nome da campanha; a ligação é pelo restante do nome."}));
@@ -485,38 +479,38 @@ function painelGoogle(){
 
 function painelOrigens(){
   const O=DATA.origens; if(!O||!O.length) return null;
-  const H=["Origem","Leads","Leads +100k","% +100k","SQL","% SQL","Investimento","CPL +100k","Custo SQL","% dos +100k"];
+  const H=["Origem","Leads","MQL","% MQL","SQL","% SQL","Investimento","Custo MQL","Custo SQL","% dos MQL"];
   const tot=sumRows(O), pago=O.filter(o=>o.pago), org=O.filter(o=>!o.pago), sp=sumRows(pago), so=sumRows(org);
   const semG=GG&&GG.sem_gasto;
   const linha=(nome,r,cls,paga)=>{const g=nome==="Google Ads"&&semG, inv=paga&&!g&&r.spend?r.spend:null;
-    return el("tr",cls?{class:cls}:{},td(nome,"","pg"),td(int(r.lead_tot||0),H[1]),td(int(r.lead||0),H[2]),td(pct(div(r.lead,r.lead_tot),0),H[3]),
-      td(int(r.sql||0),H[4]),td(pct(div(r.sql,r.lead),0),H[5]),td(paga?(g?"não lido":brl(inv||0)):"—",H[6]),
-      td(inv?brl(div(inv,r.lead)):"—",H[7],inv?tone(div(inv,r.lead),META.cpl):""),td(inv&&r.sql?brl(div(inv,r.sql)):"—",H[8]),td(pct(div(r.lead,tot.lead),0),H[9]));};
+    return el("tr",cls?{class:cls}:{},td(nome,"","pg"),td(int(r.lead||0),H[1]),td(int(r.mql||0),H[2]),td(pct(div(r.mql,r.lead),0),H[3]),
+      td(int(r.sql||0),H[4]),td(pct(div(r.sql,r.mql),0),H[5]),td(paga?(g?"não lido":brl(inv||0)):"—",H[6]),
+      td(inv&&r.mql?brl(div(inv,r.mql)):"—",H[7],inv?tone(div(inv,r.mql),META.cpl):""),td(inv&&r.sql?brl(div(inv,r.sql)):"—",H[8]),td(pct(div(r.mql,tot.mql),0),H[9]));};
   const tb=el("tbody");
   pago.forEach(o=>tb.append(linha(o.nome,o,"",true)));
-  tb.append(linha("Mídia paga · total do topo",sp,"sub",true));
+  tb.append(linha("Mídia paga · total",sp,"sub",true));
   org.forEach(o=>tb.append(linha(o.nome,o,"",false)));
   if(org.length) tb.append(linha("Orgânico e outras · total",so,"sub",false));
-  return sec("Origem dos leads",`todos os envios dos formulários PERPÉTUO no HubSpot, 1 por e-mail por dia, sem testes · a mídia paga é o que o resto do painel mostra; as outras origens entram só aqui${DATA.origens_obs?" · "+DATA.origens_obs:""}`,
+  return sec("Origem dos leads e MQL",`HubSpot: leads = pessoas que preencheram formulário PERPÉTUO; MQL = negócios do relatório, ligados ao formulário da pessoa pela UTM${DATA.origens_obs?" · "+DATA.origens_obs:""}`,
     el("div",{class:"kpis",style:"grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px"},
-      kpi("Leads +100k em todas as origens",int(tot.lead),`${int(tot.lead_tot)} leads em todas as faixas · ${int(tot.sql)} SQL`,true),
-      kpi("Mídia paga",int(sp.lead),`${pct(div(sp.lead,tot.lead),0)} dos leads +100k · ${int(sp.sql)} SQL`),
-      kpi("Orgânico e outras",int(so.lead),`${pct(div(so.lead,tot.lead),0)} dos leads +100k · ${int(so.sql)} SQL`)),
+      kpi("MQL em todas as origens",int(tot.mql),`${int(tot.lead)} leads · ${int(tot.sql)} SQL`,true),
+      kpi("Mídia paga",int(sp.mql),`${pct(div(sp.mql,tot.mql),0)} dos MQL · ${int(sp.lead)} leads · ${int(sp.sql)} SQL`),
+      kpi("Orgânico e outras",int(so.mql),`${pct(div(so.mql,tot.mql),0)} dos MQL · ${int(so.lead)} leads · ${int(so.sql)} SQL`)),
     el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb,el("tfoot",{},linha("Todas as origens",tot,"",false)))),
-    el("p",{class:"note",text:"Origem pela UTM do formulário: Meta pago (página ou Lead Ads) e Google Ads como no resto do painel; Instagram orgânico = utm_source instagram, bio ou stories; Live = utm_source live; Sem UTM = formulário sem utm_source e utm_medium. Quem veio pago e orgânico no mesmo dia conta só na mídia paga. SQL conta uma vez por pessoa, na primeira origem +100k do ciclo, começando pela mídia paga."}));
+    el("p",{class:"note",text:"Origem pela UTM do formulário: Meta pago (página ou Lead Ads), Google Ads, Instagram orgânico (utm_source instagram, bio ou stories), Live, Sem UTM. O MQL vai para a origem do formulário que a pessoa preencheu antes de o negócio nascer; \"Sem formulário PERPÉTUO\" são negócios do relatório cujo contato não preencheu formulário no ciclo."}));
 }
 
 function painelKpis(){
-  const tot=K.lead_tot, pagCpl=div(K.pg.spend,K.lead_pag), natCpl=div(K.nat.spend,K.lead_nativo);
+  const pagCpl=div(K.pg.spend,K.lead_pag), natCpl=div(K.nat.spend,K.lead_nativo);
   return sec("Resultado",null,el("div",{class:"kpis"},
-    kpi("CPL +100k",brl(cpl),"meta "+brl(META.cpl)+" · "+tlabel(tone(cpl,META.cpl)),true),
+    kpi("Custo por MQL",brl(cmql),"meta "+brl(META.cpl)+" · "+tlabel(tone(cmql,META.cpl)),true),
     kpi("Custo por SQL",brl(custoSql),"meta "+brl(META.custoSql)+" · "+tlabel(tone(custoSql,META.custoSql)),true),
-    kpi("Leads de todas as faixas",int(tot),pct(div(K.lead,tot),0)+" declaram +100k/mês · CPL geral "+brl(div(K.spend,tot))),
-    kpi("SQL por dia",dec(K.sql/diasCorr),"média no ciclo"),
-    kpi("Página",brl(pagCpl),`CPL +100k · ${int(K.lead_pag)} leads · ${brl(K.pg.spend)}`),
-    kpi("Lead Ads",brl(natCpl),`CPL +100k · ${int(K.lead_nativo)} leads · ${brl(K.nat.spend)}`),
+    kpi("CPL",brl(cpl),`${int(K.lead)} leads de todas as origens`),
+    kpi("MQL por dia",dec(K.mql/diasCorr),`${dec(K.sql/diasCorr)} SQL por dia`),
+    kpi("Página",brl(pagCpl),`CPL · ${int(K.lead_pag)} leads de anúncio de página · ${brl(K.pg.spend)}`),
+    kpi("Lead Ads",brl(natCpl),`CPL · ${int(K.lead_nativo)} leads de Lead Ads · ${brl(K.nat.spend)}`),
     kpi("CPC link",brl(BM.cpc,2),"do Gerenciador"),
-    kpi("Lead no pixel",int(K.pix),"referência · o HubSpot conta "+dec(div(tot,K.pix),2)+"× mais (todas as faixas)")));
+    kpi("MQL sobre leads",pct(div(K.mql,K.lead),0),`${int(K.mql)} de ${int(K.lead)}`)));
 }
 
 // ritmo: média dos últimos 7 dias fechados × o que falta por dia até o fim do ciclo
@@ -525,10 +519,10 @@ function painelRitmo(){
   wrap.append(el("div",{class:"sec-t"},el("h4",{text:"Ritmo até o fim do ciclo"}),
     el("small",{text:diasRest?`faltam ${dec(diasRest)} dia${Math.round(diasRest)===1?"":"s"} até ${dBR(C.fim)} · ritmo atual = média dos últimos 7 dias fechados`:"ciclo encerrado"})));
   const u7=DF.slice(-7), n7=u7.length||1;
-  const l7=u7.reduce((a,r)=>a+r[5],0), s7=u7.reduce((a,r)=>a+r[6],0), g7=u7.reduce((a,r)=>a+r[1],0);
+  const l7=u7.reduce((a,r)=>a+(r[12]||0),0), s7=u7.reduce((a,r)=>a+r[6],0), g7=u7.reduce((a,r)=>a+r[1],0);
   const ritmoL=l7/n7, ritmoS=s7/n7, gastoDia=g7/n7, cpl7=l7?g7/l7:cpl, tx7=l7?s7/l7:txSql;
   const metaL=C.meta_leads, metaS=Math.round(metaL*META.sqlTx), rest=Math.max(1,diasRest);
-  const linhas=[{tit:"Leads +100k",atual:K.lead,meta:metaL,ritmo:ritmoL,verbo:"trazer"},
+  const linhas=[{tit:"MQL",atual:K.mql,meta:metaL,ritmo:ritmoL,verbo:"trazer"},
                 {tit:"SQL",atual:K.sql,meta:metaS,ritmo:ritmoS,verbo:"trazer"}];
   const grid=el("div",{class:"ritmo-grid"});
   linhas.forEach(L=>{
@@ -544,22 +538,22 @@ function painelRitmo(){
       el("p",{class:"ritmo-txt"},el("b",{class:"num",text:int(L.atual)}),` de ${int(L.meta)} no ciclo · faltam ${int(falta)}. `,
         falta?`No ritmo atual, fecha o ciclo com ${int(proj)} (${pct(proj/L.meta,0)} da meta)`+(vezes&&vezes>1.05?`; precisa ${L.verbo} ${dec(vezes)}× o ritmo de hoje.`:"."):"Meta do ciclo já alcançada.")));
   });
-  const faltaL=Math.max(0,metaL-K.lead), verbaPrecisa=faltaL/rest*cpl7, okV=gastoDia>=verbaPrecisa;
+  const faltaL=Math.max(0,metaL-K.mql), verbaPrecisa=faltaL/rest*cpl7, okV=gastoDia>=verbaPrecisa;
   grid.append(el("div",{class:"ritmo-card"},
     el("div",{class:"ritmo-h"},el("span",{class:"cap",text:"Investimento"}),el("span",{class:"pill "+(faltaL?(okV?"ok":"warn"):"ok"),text:faltaL?(okV?"verba suficiente":"verba abaixo do necessário"):"meta batida"})),
     el("div",{class:"ritmo-nums"},
       el("div",{},el("b",{class:"num",text:brl(gastoDia)+"/dia"}),el("span",{text:"gasto atual"})),
       el("div",{},el("b",{class:"num",text:faltaL?brl(verbaPrecisa)+"/dia":"—"}),el("span",{text:"necessário ao CPL atual"}))),
-    el("p",{class:"ritmo-txt"},"CPL +100k nos últimos 7 dias: ",el("b",{class:"num",text:brl(cpl7)}),faltaL?`. Para os ${int(faltaL)} leads que faltam, são cerca de ${brl(faltaL*cpl7)} até ${dBR(C.fim)}.`:".")));
+    el("p",{class:"ritmo-txt"},"Custo por MQL nos últimos 7 dias: ",el("b",{class:"num",text:brl(cpl7)}),faltaL?`. Para os ${int(faltaL)} MQL que faltam, são cerca de ${brl(faltaL*cpl7)} até ${dBR(C.fim)}.`:".")));
   wrap.append(grid);
-  const lFim=K.lead+ritmoL*diasRest, sFim=K.sql+ritmoS*diasRest, gFim=K.spend+gastoDia*diasRest;
+  const lFim=K.mql+ritmoL*diasRest, sFim=K.sql+ritmoS*diasRest, gFim=K.spend+gastoDia*diasRest;
   wrap.append(el("div",{class:"cenario"},
     el("div",{class:"cenario-t"},el("span",{class:"cap",text:"Cenário no ritmo atual"}),el("small",{text:`se mantiver a média dos últimos 7 dias até ${dBR(C.fim)} · CPL ${brl(cpl7)} · ${pct(tx7,1)} viram SQL`})),
     el("div",{class:"cenario-k"},
-      ...[["Leads +100k",int(lFim),`meta ${int(metaL)} · ${pct(lFim/metaL,0)}`,tone(lFim,metaL,false)],
+      ...[["MQL",int(lFim),`meta ${int(metaL)} · ${pct(lFim/metaL,0)}`,tone(lFim,metaL,false)],
           ["SQL",int(sFim),`meta ${int(metaS)} · ${pct(sFim/metaS,0)}`,tone(sFim,metaS,false)],
           ["Investimento no ciclo",brl(gFim),`hoje ${brl(K.spend)} · +${brl(gFim-K.spend)}`,""],
-          ["CPL +100k no ciclo",brl(div(gFim,lFim)),`custo por SQL ${brl(div(gFim,sFim))}`,tone(div(gFim,lFim),META.cpl)]]
+          ["Custo por MQL no ciclo",brl(div(gFim,lFim)),`custo por SQL ${brl(div(gFim,sFim))}`,tone(div(gFim,lFim),META.cpl)]]
         .map(([l,v,s,t])=>el("div",{},el("span",{text:l}),el("b",{class:"num "+t,text:v}),el("small",{text:s}))))));
   wrap.append(ritmoGrafico(ritmoL));
   return wrap;
@@ -572,12 +566,12 @@ function ritmoGrafico(ritmoL){
   const box=el("div",{class:"chart",style:"margin-top:14px"});
   const W=largura(), H=230, P={l:48,r:72,t:16,b:26};
   const total=C.dias, dx=i=>P.l+(W-P.l-P.r)*(i/(total-1));
-  let acc=0; const real=D.map(r=>acc+=r[5]);
+  let acc=0; const real=D.map(r=>acc+=(r[12]||0));
   // meta acumulada: rampa diária até o fim do ciclo
   let ma=0; const metaAcc=C.meta_dias.map(m=>ma+=m);
   const proj=acc+ritmoL*diasRest, maxY=Math.max(C.meta_leads,proj,acc)*1.06;
   const dy=v=>P.t+(H-P.t-P.b)*(1-v/maxY);
-  const [s,add]=svgBase(W,H,"Leads +100k acumulados, meta do ciclo e projeção");
+  const [s,add]=svgBase(W,H,"MQL acumulados, meta do ciclo e projeção");
   [0,.5,1].forEach(f=>{const v=Math.round(maxY*f/100)*100,y=dy(v); add("line",{x1:P.l,x2:W-P.r,y1:y,y2:y,style:"stroke:rgba(var(--ink-rgb),.08)"}); add("text",{x:P.l-8,y:y+4,"text-anchor":"end","font-size":10,style:"fill:var(--faint)"},int(v));});
   add("path",{d:"M"+metaAcc.map((v,i)=>`${dx(i)},${dy(v)}`).join("L"),fill:"none",style:"stroke:var(--muted)","stroke-width":1.5,"stroke-dasharray":"6 4"});
   add("text",{x:W-P.r+6,y:dy(metaAcc.at(-1))+4,"font-size":11,"font-weight":700,style:"fill:var(--muted)"},"meta "+int(metaAcc.at(-1)));
@@ -589,7 +583,7 @@ function ritmoGrafico(ritmoL){
   add("text",{x:dx(0),y:H-8,"font-size":10,style:"fill:var(--faint)"},dBR(C.ini));
   add("text",{x:hx,y:H-8,"text-anchor":"middle","font-size":10,style:"fill:var(--muted)"},dBR(DATA.ate));
   add("text",{x:ex,y:H-8,"text-anchor":"end","font-size":10,style:"fill:var(--faint)"},dBR(C.fim));
-  box.append(s, el("div",{class:"lg",style:"margin-top:6px"},el("span",{},el("i",{style:"background:var(--red)"}),"leads +100k acumulados"),el("span",{},el("i",{style:"background:var(--muted)"}),"meta acumulada (rampa)"),el("span",{},el("i",{style:"background:rgba(var(--red-rgb),.45)"}),"projeção no ritmo atual")));
+  box.append(s, el("div",{class:"lg",style:"margin-top:6px"},el("span",{},el("i",{style:"background:var(--red)"}),"MQL acumulados"),el("span",{},el("i",{style:"background:var(--muted)"}),"meta acumulada (rampa)"),el("span",{},el("i",{style:"background:rgba(var(--red-rgb),.45)"}),"projeção no ritmo atual")));
   return box;
 }
 
@@ -603,47 +597,44 @@ function painelFaixas(){
     hb.append(el("div",{class:"hrow"},el("span",{class:"hlab",title:n,text:n.replace(" por mês","").replace(" por ano","/ano")}),
       el("div",{class:"htrack"},el("i",{style:`width:${v/max*100}%;background:${menor?"rgba(var(--ink-rgb),.22)":"var(--red)"}`})),
       el("span",{class:"hval num"},el("b",{text:int(v)}),` · ${pct(v/tot,0)}`)));});
-  return sec("Faturamento declarado no formulário",`${int(tot)} leads pagos do Meta no HubSpot · em vermelho, os que contam como lead (+100k/mês${DATA.faixas.some(([n])=>/por ano|Acima de 50/.test(n))?"; na pergunta por ano, de R$ 1 mi/ano para cima":""})`,hb);
+  return sec("Faturamento declarado no formulário",`${int(tot)} leads no HubSpot, todas as origens · em vermelho, quem declara +100k/mês, o perfil do MQL${DATA.faixas.some(([n])=>/por ano|Acima de 50/.test(n))?" (na pergunta por ano, de R$ 1 mi/ano para cima)":""}`,hb);
 }
 
 const OLHO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
-const rc=r=>{const sp=r.spend||0,l=r.lead||0,s=r.sql||0;return {sp,l,s,cpl:(l&&sp)?sp/l:null,csql:(s&&sp)?sp/s:null,tx:div(s,l),connect:div(r.lpv,r.clkp??r.clk),conv:div(l,r.lpv),imp:r.imp||0,clk:r.clk||0,lpv:r.lpv||0,cpm:div(sp*1000,r.imp),ctr:div(r.clk,r.imp),cpc:div(sp,r.clk)};};
+const rc=r=>{const sp=r.spend||0,l=r.lead||0,m=r.mql||0,s=r.sql||0;return {sp,l,m,s,cpl:(l&&sp)?sp/l:null,cmql:(m&&sp)?sp/m:null,csql:(s&&sp)?sp/s:null,tx:div(s,m),connect:div(r.lpv,r.clkp??r.clk),conv:div(l,r.lpv),imp:r.imp||0,clk:r.clk||0,lpv:r.lpv||0,cpm:div(sp*1000,r.imp),ctr:div(r.clk,r.imp),cpc:div(sp,r.clk)};};
 const sumRows=rows=>rows.reduce((a,r)=>{for(const[k,v]of Object.entries(r)) if(typeof v==="number") a[k]=(a[k]||0)+v; return a;},{});
 const grp=(t,n,cls)=>el("th",{colspan:String(n),class:"grp"+(cls?" "+cls:""),text:t});
 
 function painelPublico(){
-  const H=["Público","Investimento","Leads +100k","CPL","SQL","% SQL","Custo SQL","CPM","CTR link","Connect","Impressões","Cliques","CPC link"];
+  const H=["Público","Investimento","Leads","MQL","Custo MQL","SQL","% SQL","Custo SQL","CPM","CTR link","Connect","Impressões","Cliques"];
+  const SEMM={cpm:NaN,ctr_link:NaN,cpc:NaN};
   const linha=(nome,r,m,tag)=>{const x=rc(r);m=m||{};return el(tag||"tr",{},td(nome),
-    td(x.sp?brl(x.sp):"—",H[1]),td(int(x.l),H[2]),td(brl(x.cpl),H[3],tone(x.cpl,META.cpl)),td(int(x.s),H[4]),td(pct(x.tx,0),H[5]),td(brl(x.csql),H[6],"sep"),
-    td(brl(m.cpm??x.cpm),H[7]),td(pct(m.ctr_link??x.ctr,2),H[8]),td(pct(x.connect,0),H[9],"sep"),td(x.imp?kfmt(x.imp):"—",H[10]),td(int(x.clk),H[11]),td(brl(m.cpc??x.cpc,2),H[12]));};
-  const tb=el("tbody"); DATA.publicos.forEach(r=>tb.append(linha(r.nome,r,r.bm)));
-  const SEM={cpm:NaN,ctr_link:NaN,cpc:NaN};
-  if(GR) tb.append(linha("Google Ads (Search e YouTube)",GR,SEM));
-  return sec("Público por janela de envolvimento",GG?"mídia por conjunto no Meta · leads pela UTM do formulário · Google em linha própria":"mídia por conjunto no Meta · leads pela UTM do formulário",
+    td(x.sp?brl(x.sp):"—",H[1]),td(int(x.l),H[2]),td(int(x.m),H[3]),td(brl(x.cmql),H[4],tone(x.cmql,META.cpl)),td(int(x.s),H[5]),td(pct(x.tx,0),H[6]),td(brl(x.csql),H[7],"sep"),
+    td(brl(m.cpm??x.cpm),H[8]),td(pct(m.ctr_link??x.ctr,2),H[9]),td(pct(x.connect,0),H[10],"sep"),td(x.imp?kfmt(x.imp):"—",H[11]),td(int(x.clk),H[12]));};
+  const tb=el("tbody"); DATA.publicos.forEach(r=>tb.append(linha(r.nome,r,r.bm||(/^Sem anúncio|^Google/.test(r.nome)?SEMM:null))));
+  return sec("Público por janela de envolvimento","mídia por conjunto no Meta · leads e MQL do HubSpot ligados pela UTM do formulário · Google e orgânico em linhas próprias",
     el("div",{class:"tw"},el("table",{},
-      el("thead",{},el("tr",{},el("th",{}),grp("Resultado",6,"sep"),grp("Mídia",3,"sep"),grp("Tráfego",3)),el("tr",{},...H.map((h,i)=>el("th",{class:[6,9].includes(i)?"sep":"",text:h})))),
-      tb, el("tfoot",{},linha(GR?"Total Meta":"Total",sumRows(DATA.publicos),BM),GR?linha("Total Meta + Google",sumRows([...DATA.publicos,GR]),SEM):null))),
-    el("p",{class:"note",text:"Todos os conjuntos [FF] do ciclo são de público quente (envolvimento), por isso a divisão é pela janela no nome do conjunto: até 30 dias com listas e CRM, morno de 60 a 180 dias, base ampla de 365 a 730 dias. Mix validados junta janelas. No Lead Ads a UTM não traz o conjunto: cada lead é repartido entre os públicos em que o anúncio rodou, na proporção dos leads do formulário nativo que o Meta contou em cada conjunto. Connect conta só os cliques que levam à página."}));
+      el("thead",{},el("tr",{},el("th",{}),grp("Resultado",7,"sep"),grp("Mídia",3,"sep"),grp("Tráfego",2)),el("tr",{},...H.map((h,i)=>el("th",{class:[7,10].includes(i)?"sep":"",text:h})))),
+      tb, el("tfoot",{},linha("Total",sumRows(DATA.publicos),SEMM)))),
+    el("p",{class:"note",text:"Todos os conjuntos [FF] do ciclo são de público quente (envolvimento), por isso a divisão é pela janela no nome do conjunto: até 30 dias com listas e CRM, morno de 60 a 180 dias, base ampla de 365 a 730 dias. Mix validados junta janelas. No Lead Ads a UTM não traz o conjunto: cada lead é repartido entre os públicos em que o anúncio rodou, na proporção dos leads do formulário nativo que o Meta contou. Quem não veio de anúncio fica em \"Sem anúncio\"."}));
 }
 
 function painelPaginas(){
-  const H=["Página","Leads +100k","SQL","% SQL","Visita → lead","Connect","Visitas","Investimento","CPL","Custo SQL"];
-  const linha=(r,tag)=>{const x=rc(r), nat=r.nome==="Formulário nativo (Lead Ads)";return el("tr",{},td(r.nome,"","pg"),
-    td(int(x.l),H[1]),td(int(x.s),H[2]),td(pct(x.tx,0),H[3]),td(nat?"—":pct(x.conv,2),H[4]),td(nat?"—":pct(x.connect,0),H[5],"sep"),
-    td(nat?"—":int(x.lpv),H[6]),td(x.sp?brl(x.sp):"—",H[7]),td(brl(x.cpl),H[8],tone(x.cpl,META.cpl)),td(brl(x.csql),H[9]));};
-  const rows=DATA.paginas.filter(r=>(r.spend||0)>=50||(r.lead||0)>0);
+  const H=["Página","Leads","MQL","Custo MQL","SQL","% SQL","Visita → lead","Connect","Visitas","Investimento","Custo SQL"];
+  const linha=(r,nome)=>{const x=rc(r), nat=r.nome==="Formulário nativo (Lead Ads)"||/^\(|^Google|^Total/.test(nome||r.nome||"");return el("tr",{},td(nome||r.nome,"","pg"),
+    td(int(x.l),H[1]),td(int(x.m),H[2]),td(brl(x.cmql),H[3],tone(x.cmql,META.cpl)),td(int(x.s),H[4]),td(pct(x.tx,0),H[5]),td(nat?"—":pct(x.conv,2),H[6]),td(nat?"—":pct(x.connect,0),H[7],"sep"),
+    td(nat?"—":int(x.lpv),H[8]),td(x.sp?brl(x.sp):"—",H[9]),td(brl(x.csql),H[10]));};
+  const rows=DATA.paginas.filter(r=>(r.spend||0)>=50||(r.lead||0)>0||(r.mql||0)>0);
   const tb=el("tbody"); rows.forEach(r=>tb.append(linha(r)));
-  if(GR) tb.append(el("tr",{},td("Google Ads (Search e YouTube)","","pg"),td(int(GR.lead),H[1]),td(int(GR.sql),H[2]),td(pct(div(GR.sql,GR.lead),0),H[3]),td("—",H[4]),td("—",H[5],"sep"),td("—",H[6]),td(brl(GR.spend),H[7]),td(brl(div(GR.spend,GR.lead)),H[8],tone(div(GR.spend,GR.lead),META.cpl)),td(brl(div(GR.spend,GR.sql)),H[9])));
-  const t=rc(sumRows(DATA.paginas)), tt=GR?rc(sumRows([...DATA.paginas,GR])):null;
-  return sec("Páginas que rodaram","investimento pela URL do anúncio · leads pela página do formulário no HubSpot",
+  const t=sumRows(DATA.paginas);
+  return sec("Páginas que rodaram","investimento pela URL do anúncio · leads e MQL do HubSpot pela página do formulário",
     el("div",{class:"kpis",style:"grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px"},
       kpi("Visitas na página",int(visitas),"landing page views no Meta"),
-      kpi("Conversão da página",pct(conv,2),"meta "+pct(META.conv,0)+" · leads da página (todas as faixas) ÷ visitas"),
+      kpi("Conversão da página",pct(conv,2),"meta "+pct(META.conv,0)+" · leads de anúncio de página ÷ visitas"),
       kpi("Connect rate",pct(connect,0),"meta "+pct(META.connect,0)+" · visitas ÷ cliques no link")),
-    el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map((h,i)=>el("th",{class:i===5?"sep":"",text:h})))),tb,
-      el("tfoot",{},el("tr",{},td(GR?"Total Meta":"Total"),td(int(t.l),H[1]),td(int(t.s),H[2]),td(pct(t.tx,0),H[3]),td(pct(div(t.l,visitas),2),H[4]),td(pct(connect,0),H[5],"sep"),td(int(visitas),H[6]),td(brl(t.sp),H[7]),td(brl(t.cpl),H[8]),td(brl(t.csql),H[9])),
-        tt?el("tr",{},td("Total Meta + Google"),td(int(tt.l),H[1]),td(int(tt.s),H[2]),td(pct(tt.tx,0),H[3]),td("—",H[4]),td("—",H[5],"sep"),td("—",H[6]),td(brl(tt.sp),H[7]),td(brl(tt.cpl),H[8]),td(brl(tt.csql),H[9])):null))),
-    el("p",{class:"note",text:"Página sem investimento recebeu lead de anúncio de outra URL ou de link antigo. Visita → lead e connect não se aplicam ao Lead Ads, que não passa pela página."}));
+    el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map((h,i)=>el("th",{class:i===7?"sep":"",text:h})))),tb,
+      el("tfoot",{},linha({...t,lpv:visitas,clkp:cliquesPag,nome:"Total"},"Total")))),
+    el("p",{class:"note",text:"Página sem investimento recebeu lead de anúncio de outra URL ou de link antigo. Visita → lead e connect não se aplicam ao Lead Ads, ao Google nem ao orgânico, que não passam pela contagem de visitas do Meta."}));
 }
 
 function painelCriativos(){
@@ -654,34 +645,34 @@ function painelCriativos(){
     return w;};
   const MIN=Math.max(1000,K.spend*.003);
   const cr=DATA.criativos.map(r=>({nome:r.nome,prev:r.prev,thumb:r.thumb,bm:r.bm,...rc(r)})).filter(r=>r.sp>=MIN);
-  const best=cr.filter(r=>r.l>0).sort((a,b)=>a.cpl-b.cpl).slice(0,8);
-  const worst=cr.filter(r=>!best.includes(r)).sort((a,b)=>(b.l?b.cpl:1e9+b.sp)-(a.l?a.cpl:1e9+a.sp)).slice(0,8);
-  const H=["Criativo","Investimento","CTR link","CPM","Leads +100k","CPL","SQL","Custo SQL"];
+  const best=cr.filter(r=>r.m>0).sort((a,b)=>a.cmql-b.cmql).slice(0,8);
+  const worst=cr.filter(r=>!best.includes(r)).sort((a,b)=>(b.m?b.cmql:1e9+b.sp)-(a.m?a.cmql:1e9+a.sp)).slice(0,8);
+  const H=["Criativo","Investimento","CTR link","Leads","MQL","Custo MQL","SQL","Custo SQL"];
   const tabela=(rows,titulo,tom)=>{const tb=el("tbody");
-    rows.forEach(x=>tb.append(el("tr",{},el("td",{class:"pg"},nomeC(x)),td(brl(x.sp),H[1]),td(pct(x.bm?.ctr_link??x.ctr,2),H[2]),td(brl(x.bm?.cpm??x.cpm),H[3]),td(int(x.l),H[4]),
-      td(x.l?brl(x.cpl):"sem lead",H[5],tone(x.cpl,META.cpl)),td(int(x.s),H[6]),td(brl(x.csql),H[7],tone(x.csql,META.custoSql)))));
+    rows.forEach(x=>tb.append(el("tr",{},el("td",{class:"pg"},nomeC(x)),td(brl(x.sp),H[1]),td(pct(x.bm?.ctr_link??x.ctr,2),H[2]),td(int(x.l),H[3]),td(int(x.m),H[4]),
+      td(x.m?brl(x.cmql):"sem MQL",H[5],tone(x.cmql,META.cpl)),td(int(x.s),H[6]),td(brl(x.csql),H[7],tone(x.csql,META.custoSql)))));
     if(!rows.length) tb.append(el("tr",{},el("td",{colspan:"8",style:"color:var(--faint)",text:"Nenhum criativo com investimento suficiente."})));
     return el("div",{class:"cre-box "+tom},el("h5",{text:titulo}),el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb)));};
-  const lig=DATA.criativos.filter(r=>r.nome!=="(sem anúncio na UTM)").reduce((a,r)=>a+(r.lead||0),0);
-  return sec("Melhores e piores criativos",`${int(lig)} de ${int(K.lead)} leads ligados a um criativo · mínimo ${brl(MIN)} investidos · ${int(cr.length)} criativos no ranking`,
-    el("div",{class:"cre-grid"},tabela(best,"Melhores · menor CPL +100k","bom"),tabela(worst,"Piores · maior CPL ou sem lead","ruim")),
-    el("p",{class:"note",text:"O mesmo criativo em vários conjuntos e campanhas vira uma linha só (pelo nome do anúncio). CTR e CPM do Gerenciador; o olho abre o post no Instagram."}));
+  const lig=DATA.criativos.filter(r=>r.nome!=="(sem anúncio na UTM)").reduce((a,r)=>a+(r.mql||0),0);
+  return sec("Melhores e piores criativos",`${int(lig)} de ${int(K.mql)} MQL ligados a um criativo (o resto veio sem anúncio na UTM, do Google ou do orgânico) · mínimo ${brl(MIN)} investidos · ${int(cr.length)} criativos no ranking`,
+    el("div",{class:"cre-grid"},tabela(best,"Melhores · menor custo por MQL","bom"),tabela(worst,"Piores · maior custo por MQL ou sem MQL","ruim")),
+    el("p",{class:"note",text:"O mesmo criativo em vários conjuntos e campanhas vira uma linha só (pelo nome do anúncio). Leads e MQL do HubSpot pela UTM do formulário; CTR do Gerenciador; o olho abre o post no Instagram."}));
 }
 
 function chartDia(){
   const wrap=el("div",{class:"chart"}), tip=el("div",{class:"tip",hidden:""});
   const W=largura(), H=250, P={l:58,r:44,t:14,b:28};
-  const maxS=Math.max(1,...D.map(r=>r[1])), maxL=Math.max(1,...D.map(r=>Math.max(r[5],r[11])));
+  const maxS=Math.max(1,...D.map(r=>r[1])), maxL=Math.max(1,...D.map(r=>Math.max(r[12]||0,r[11]||0)));
   const nS=Math.ceil(maxS/5000)*5000||5000, nL=Math.max(4,Math.ceil(maxL/20)*20);
   const iw=W-P.l-P.r, ih=H-P.t-P.b, bw=iw/D.length;
-  const [s,add]=svgBase(W,H,"Investimento, leads +100k e SQL por dia");
+  const [s,add]=svgBase(W,H,"Investimento, MQL e SQL por dia");
   for(let i=0;i<=4;i++){const y=P.t+ih-ih*i/4;
     add("line",{x1:P.l,x2:W-P.r,y1:y,y2:y,style:"stroke:rgba(var(--ink-rgb),.08)"});
     add("text",{x:P.l-8,y:y+4,"text-anchor":"end","font-size":10,style:"fill:var(--faint)"},"R$ "+kfmt(nS*i/4));
     add("text",{x:W-P.r+8,y:y+4,"font-size":10,style:"fill:var(--red)"},int(nL*i/4));}
   D.forEach((r,i)=>{const h=ih*r[1]/nS; add("rect",{x:P.l+i*bw+bw*.15,y:P.t+ih-h,width:Math.max(1,bw*.7),height:h,rx:2,style:"fill:rgba(var(--ink-rgb),.16)"});});
   const pt=k=>D.map((r,i)=>[P.l+i*bw+bw/2,P.t+ih-ih*r[k]/nL]);
-  const lp=pt(5), sp=pt(6), mp=pt(11);
+  const lp=pt(12), sp=pt(6), mp=pt(11);
   if(!SM) add("path",{d:"M"+mp.map(p=>p.join(",")).join("L"),fill:"none",style:"stroke:var(--muted)","stroke-width":1.4,"stroke-dasharray":"5 4"});
   add("path",{d:"M"+lp.map(p=>p.join(",")).join("L")+`L${lp.at(-1)[0]},${P.t+ih}L${lp[0][0]},${P.t+ih}Z`,style:"fill:rgba(var(--red-rgb),.12)"});
   add("path",{d:"M"+lp.map(p=>p.join(",")).join("L"),fill:"none",style:"stroke:var(--red)","stroke-width":2.2,"stroke-linejoin":"round"});
@@ -694,62 +685,61 @@ function chartDia(){
   hit.addEventListener("pointermove",ev=>{
     const b=s.getBoundingClientRect(), x=(ev.clientX-b.left)*W/b.width, i=Math.min(D.length-1,Math.max(0,Math.floor((x-P.l)/bw))), r=D[i];
     const gx=P.l+i*bw+bw/2; guide.setAttribute("x1",gx); guide.setAttribute("x2",gx); guide.setAttribute("visibility","visible");
-    tip.hidden=false; tip.textContent=`${dBR(r[0])}${PARC&&i===D.length-1?" · hoje até "+DATA.hora+" (parcial)":""}\nInvestimento ${brl(r[1])}\nLeads +100k ${int(r[5])}${SM?"":" · meta "+int(r[11])}\nSQL ${int(r[6])}\nCPL ${brl(div(r[1],r[5]))}`;
+    tip.hidden=false; tip.textContent=`${dBR(r[0])}${PARC&&i===D.length-1?" · hoje até "+DATA.hora+" (parcial)":""}\nInvestimento ${brl(r[1])}\nLeads ${int(r[5])} · MQL ${int(r[12])}${SM?"":" · meta "+int(r[11])}\nSQL ${int(r[6])}\nCusto por MQL ${brl(div(r[1],r[12]))}`;
     const px=gx*b.width/W; tip.style.left=Math.min(b.width-110,Math.max(110,px))+"px"; tip.style.top=((SM?lp[i][1]:Math.min(lp[i][1],mp[i][1]))*b.height/H)+"px";
   });
   hit.addEventListener("pointerleave",()=>{tip.hidden=true; guide.setAttribute("visibility","hidden");});
   wrap.append(s,tip);
-  return sec("Investimento, leads e SQL por dia",
-    el("div",{class:"lg"},el("span",{},el("i",{style:"background:rgba(var(--ink-rgb),.22)"}),"Investimento"),el("span",{},el("i",{style:"background:var(--red)"}),"Leads +100k"),SM?null:el("span",{},el("i",{style:"background:var(--muted)"}),"Meta do dia"),el("span",{},el("i",{style:"background:var(--ok)"}),"SQL")),wrap);
+  return sec("Investimento, MQL e SQL por dia",
+    el("div",{class:"lg"},el("span",{},el("i",{style:"background:rgba(var(--ink-rgb),.22)"}),"Investimento"),el("span",{},el("i",{style:"background:var(--red)"}),"MQL"),SM?null:el("span",{},el("i",{style:"background:var(--muted)"}),"Meta do dia"),el("span",{},el("i",{style:"background:var(--ok)"}),"SQL")),wrap);
 }
 
 function tabelaDia(){
-  const H=["Dia","Investimento","CPM","CTR link","CTR todos","Cliques","Visitas","Leads +100k","Meta","CPL","SQL","% SQL","Custo SQL"];
+  const H=["Dia","Investimento","CPM","CTR link","Cliques","Visitas","Leads","MQL","Meta MQL","Custo MQL","SQL","% SQL","Custo SQL"];
   const tb=el("tbody");
-  [...D].reverse().forEach((r,i)=>{const hj=PARC&&i===0; tb.append(el("tr",hj?{class:"hoje"}:{},td(dBR(r[0])+(hj?` · hoje até ${DATA.hora}`:""),"","num"),td(brl(r[1]),H[1]),td(brl(r[7],2),H[2],tone(r[7],META.cpm)),td(pct(r[8],2),H[3],tone(r[8],META.ctr,false)),td(pct(r[9],2),H[4]),
-    td(int(r[3]),H[5]),td(int(r[4]),H[6]),td(int(r[5]),H[7],hj?"":tone(r[5],r[11],false)),td(hj&&r[11]!=null?int(r[11]*FR):int(r[11]),H[8]),td(brl(div(r[1],r[5])),H[9],tone(div(r[1],r[5]),META.cpl)),td(int(r[6]),H[10]),td(pct(div(r[6],r[5]),0),H[11]),td(r[6]?brl(div(r[1],r[6])):"—",H[12],r[6]?tone(div(r[1],r[6]),META.custoSql):"")))});
-  const sm=k=>D.reduce((a,r)=>a+r[k],0);
-  return sec("Dia a dia",`mais recente primeiro · CPM e CTR do Gerenciador · SQL contado no dia do primeiro lead da pessoa${GG?" · o Google Ads não tem quebra por dia e entra no fim":""}`,
+  [...D].reverse().forEach((r,i)=>{const hj=PARC&&i===0, mq=r[12]||0; tb.append(el("tr",hj?{class:"hoje"}:{},td(dBR(r[0])+(hj?` · hoje até ${DATA.hora}`:""),"","num"),td(brl(r[1]),H[1]),td(brl(r[7],2),H[2],tone(r[7],META.cpm)),td(pct(r[8],2),H[3],tone(r[8],META.ctr,false)),
+    td(int(r[3]),H[4]),td(int(r[4]),H[5]),td(int(r[5]),H[6]),td(int(mq),H[7],hj?"":tone(mq,r[11],false)),td(hj&&r[11]!=null?int(r[11]*FR):int(r[11]),H[8]),
+    td(brl(div(r[1],mq)),H[9],tone(div(r[1],mq),META.cpl)),td(int(r[6]),H[10]),td(pct(div(r[6],mq),0),H[11]),td(r[6]?brl(div(r[1],r[6])):"—",H[12],r[6]?tone(div(r[1],r[6]),META.custoSql):"")))});
+  const sm=k=>D.reduce((a,r)=>a+(r[k]||0),0), gsp=GG&&!GG.sem_gasto?GG.spend:0;
+  return sec("Dia a dia",`mais recente primeiro · investimento do Meta por dia${gsp?"; o Google Ads não tem quebra por dia e entra no total":""} · leads, MQL e SQL do HubSpot no dia em que entraram (MQL e SQL pela criação do negócio)`,
     el("div",{class:"tw scroll"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb,
-      el("tfoot",{},el("tr",{},td(GR?"Total Meta":"Total"),td(brl(K.spend),H[1]),td(brl(BM.cpm,2),H[2]),td(pct(BM.ctr_link,2),H[3]),td(pct(BM.ctr_all,2),H[4]),td(int(K.clk),H[5]),td(int(K.lpv),H[6]),
-        td(int(K.lead),H[7]),td(SM?"—":int(sm(11)),H[8]),td(brl(cpl),H[9]),td(int(K.sql),H[10]),td(pct(txSql,0),H[11]),td(brl(custoSql),H[12],tone(custoSql,META.custoSql))),
-        GR?el("tr",{},td("Google Ads no ciclo"),td(brl(GR.spend),H[1]),td("—",H[2]),td("—",H[3]),td("—",H[4]),td(int(GR.clk),H[5]),td("—",H[6]),td(int(GR.lead),H[7]),td("—",H[8]),td(brl(div(GR.spend,GR.lead)),H[9]),td(int(GR.sql),H[10]),td(pct(div(GR.sql,GR.lead),0),H[11]),td(brl(div(GR.spend,GR.sql)),H[12])):null,
-        GR?el("tr",{},td("Total Meta + Google"),td(brl(SPT),H[1]),td("—",H[2]),td("—",H[3]),td("—",H[4]),td(int(K.clk+GR.clk),H[5]),td("—",H[6]),td(int(LT),H[7]),td("—",H[8]),td(brl(cplT),H[9],tone(cplT,META.cpl)),td(int(STT),H[10]),td(pct(txSqlT,0),H[11]),td(brl(custoSqlT),H[12],tone(custoSqlT,META.custoSql))):null))));
+      el("tfoot",{},gsp?el("tr",{},td("Google Ads no ciclo"),td(brl(gsp),H[1]),...H.slice(2).map(h=>td("—",h))):null,
+        el("tr",{},td("Total"),td(brl(SPT),H[1]),td(brl(BM.cpm,2),H[2]),td(pct(BM.ctr_link,2),H[3]),td(int(K.clk),H[4]),td(int(K.lpv),H[5]),
+        td(int(K.lead),H[6]),td(int(K.mql),H[7]),td(SM?"—":int(sm(11)),H[8]),td(brl(cmql),H[9],tone(cmql,META.cpl)),td(int(K.sql),H[10]),td(pct(txSql,0),H[11]),td(brl(custoSql),H[12],tone(custoSql,META.custoSql)))))));
 }
 
 function tabelaCiclos(){
-  const H=["Ciclo","Período","Dias","Investimento","CPM","CTR link","Leads +100k","Leads/dia","CPL","SQL","% SQL","Custo SQL"];
+  const H=["Ciclo","Período","Dias","Investimento","Leads","MQL","MQL/dia","Custo MQL","SQL","% SQL","Custo SQL"];
   const dA=iso=>iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(2,4);
   const nd=(a,b)=>Math.round((new Date(b)-new Date(a))/864e5)+1;
   const tb=el("tbody");
-  [...HIST].reverse().map(x=>x.g_lead!=null?{...x,spend:x.spend+x.g_spend,lead:x.lead+x.g_lead,sql:x.sql+x.g_sql}:x).forEach(x=>{const dias=nd(x.ini,x.atual?x.ate:x.fim), sem=!!x.sem_hs,
-      cl=sem||x.parcial?null:div(x.spend,x.lead), cs=sem||x.parcial?null:div(x.spend,x.sql), z=v=>sem?"—":int(v);
-    const tag=x.atual?el("span",{class:"st on",text:(x.ate<x.fim?"EM ANDAMENTO":"ENCERRADO")+(x.g_lead!=null?" · META + GOOGLE":"")}):sem?el("span",{class:"st off",text:"SEM FORM NO HUBSPOT"})
-      :x.parcial?el("span",{class:"st off",text:"FORMS DESDE "+dBR(x.parcial)}):null;
-    const tr=el("tr",{class:[x.atual?"atual":sem?"extra":"",x.nome===C.nome?"sel":"",LISTA.some(l=>l.nome===x.nome)?"clic":""].join(" ").trim()},
+  [...HIST].reverse().map(x=>x.g_spend?{...x,spend:x.spend+x.g_spend}:x).forEach(x=>{const dias=nd(x.ini,x.atual?x.ate:x.fim), sem=!!x.sem_hs,
+      cm=div(x.spend,x.mql), cs=div(x.spend,x.sql);
+    const tag=x.atual?el("span",{class:"st on",text:x.ate<x.fim?"EM ANDAMENTO":"ENCERRADO"}):sem?el("span",{class:"st off",text:"SEM FORM PERPÉTUO"}):null;
+    const tr=el("tr",{class:[x.atual?"atual":"",x.nome===C.nome?"sel":"",LISTA.some(l=>l.nome===x.nome)?"clic":""].join(" ").trim()},
       el("td",{"data-l":H[0]},x.nome,tag),
       td(dA(x.ini)+" a "+dA(x.fim),H[1]),td(x.atual?`${dias} de ${nd(x.ini,x.fim)}`:int(dias),H[2]),td(brl(x.spend),H[3]),
-      td(brl(x.cpm,2),H[4]),td(pct(x.ctr_link,2),H[5]),td(z(x.lead),H[6]),td(x.parcial||sem?"—":int(div(x.lead,dias)),H[7]),
-      td(brl(cl),H[8],x.parcial?"":tone(cl,META.cpl)),td(z(x.sql),H[9]),td(sem?"—":pct(div(x.sql,x.lead),0),H[10],tone(div(x.sql,x.lead),META.sqlTx,false)),
-      td(brl(cs),H[11],tone(cs,META.custoSql)));
+      td(sem?"—":int(x.lead),H[4]),td(int(x.mql),H[5]),td(dec(div(x.mql,dias)),H[6]),
+      td(brl(cm),H[7],tone(cm,META.cpl)),td(int(x.sql),H[8]),td(pct(div(x.sql,x.mql),0),H[9],tone(div(x.sql,x.mql),META.sqlTx,false)),
+      td(brl(cs),H[10],tone(cs,META.custoSql)));
     if(tr.classList.contains("clic")){ tr.title="Ver o painel do "+x.nome; tr.addEventListener("click",()=>trocaCiclo(x.nome,true)); }
     tb.append(tr);});
-  return sec("Ciclos anteriores","clique num ciclo para ver o painel dele · mesmas regras: [FF] no Meta, lead +100k e SQL pelo HubSpot · até o RGV 35 o form perguntava faturamento anual (conta de R$ 1 mi/ano para cima) · cores pelas metas do ciclo atual",
+  return sec("Ciclos anteriores","clique num ciclo para ver o painel dele · mesmas regras em todos: investimento Meta [FF] (+ Google quando lido); leads e MQL do HubSpot, todas as origens · cores pelas metas do ciclo atual",
     el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb)));
 }
 
 function tabelaCamps(){
-  const H=["Campanha","Investimento","Visitas","Leads +100k","CPL","SQL","Custo SQL","% da verba"];
+  const H=["Campanha","Investimento","Leads","MQL","Custo MQL","SQL","Custo SQL","% da verba"];
   const tb=el("tbody");
   DATA.camps.forEach(x=>{const r=rc(x);
     tb.append(el("tr",x.extra?{class:"extra"}:{},
-      el("td",{},el("span",{class:"st "+(x.status==="ACTIVE"?"on":"off"),text:x.extra?"SEM GASTO NO CICLO":FECH?"ENCERRADA":x.status==="ACTIVE"?"ATIVA":"PAUSADA"}),x.extra?(x.name||"Sem campanha na UTM"):x.name),
-      td(x.extra?"—":brl(r.sp),H[1]),td(x.extra?"—":int(r.lpv),H[2]),td(int(r.l),H[3]),td(x.extra?"—":brl(r.cpl),H[4],x.extra?"":tone(r.cpl,META.cpl)),td(int(r.s),H[5]),td(x.extra?"—":brl(r.csql),H[6]),td(x.extra?"—":pct(div(r.sp,SPT),0),H[7])));});
-  return sec("Campanhas [FF] do ciclo","ordenadas por investimento · leads ligados pela UTM de campanha do formulário",
+      el("td",{},el("span",{class:"st "+(x.status==="ACTIVE"?"on":"off"),text:x.extra?(/^Sem anúncio/.test(x.name||"")?"SEM ANÚNCIO":"SEM GASTO NO CICLO"):FECH?"ENCERRADA":x.status==="ACTIVE"?"ATIVA":"PAUSADA"}),x.extra?(x.name||"Sem campanha na UTM"):x.name),
+      td(x.extra?"—":brl(r.sp),H[1]),td(int(r.l),H[2]),td(int(r.m),H[3]),td(x.extra?"—":brl(r.cmql),H[4],x.extra?"":tone(r.cmql,META.cpl)),td(int(r.s),H[5]),td(x.extra?"—":brl(r.csql),H[6]),td(x.extra?"—":pct(div(r.sp,SPT),0),H[7])));});
+  if(GR) tb.append(el("tr",{},el("td",{},el("span",{class:"st on",text:"GOOGLE ADS"}),"Search e YouTube (detalhe na seção Google Ads)"),td(GR.spend!=null?brl(GR.spend):"não lido",H[1]),td(int(GR.lead),H[2]),td(int(GR.mql),H[3]),
+    td(GR.spend!=null?brl(div(GR.spend,GR.mql)):"—",H[4]),td(int(GR.sql),H[5]),td(GR.spend!=null?brl(div(GR.spend,GR.sql)):"—",H[6]),td(GR.spend!=null?pct(div(GR.spend,SPT),0):"—",H[7])));
+  return sec("Campanhas do ciclo","Meta [FF] ordenadas por investimento · leads e MQL do HubSpot pela UTM de campanha do formulário · quem não veio de anúncio fica em \"sem anúncio\"",
     el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb,
-      el("tfoot",{},el("tr",{},td(GR?"Total Meta":"Total"),td(brl(K.spend),H[1]),td(int(K.lpv),H[2]),td(int(K.lead),H[3]),td(brl(cpl),H[4]),td(int(K.sql),H[5]),td(brl(custoSql),H[6]),td(GR?pct(div(K.spend,SPT),0):"100%",H[7])),
-        GR?el("tr",{},td("Google Ads (detalhe na seção Google Ads)"),td(brl(GR.spend),H[1]),td("—",H[2]),td(int(GR.lead),H[3]),td(brl(div(GR.spend,GR.lead)),H[4]),td(int(GR.sql),H[5]),td(brl(div(GR.spend,GR.sql)),H[6]),td(pct(div(GR.spend,SPT),0),H[7])):null,
-        GR?el("tr",{},td("Total Meta + Google"),td(brl(SPT),H[1]),td("—",H[2]),td(int(LT),H[3]),td(brl(cplT),H[4]),td(int(STT),H[5]),td(brl(custoSqlT),H[6]),td("100%",H[7])):null))));
+      el("tfoot",{},el("tr",{},td("Total"),td(brl(SPT),H[1]),td(int(K.lead),H[2]),td(int(K.mql),H[3]),td(brl(cmql),H[4]),td(int(K.sql),H[5]),td(brl(custoSql),H[6]),td("100%",H[7]))))));
 }
 
 // painel de criativos: todos os criativos do ciclo em cartões, com busca, tipo e ordenação
@@ -761,7 +751,7 @@ function renderCriativos(){
   const todos=DATA.criativos.filter(r=>r.nome!=="(sem anúncio na UTM)").map(r=>({...r,...rc(r),tipo:tipoCri(r.nome)}));
   const semUtm=DATA.criativos.find(r=>r.nome==="(sem anúncio na UTM)");
   const comGasto=todos.filter(r=>r.sp>0), t=rc(sumRows(todos));
-  const ORD={spend:["Maior investimento",(a,b)=>b.sp-a.sp],lead:["Mais leads +100k",(a,b)=>b.l-a.l||b.sp-a.sp],cpl:["Menor CPL +100k",(a,b)=>(a.l?a.cpl:1e12-a.sp)-(b.l?b.cpl:1e12-b.sp)],
+  const ORD={spend:["Maior investimento",(a,b)=>b.sp-a.sp],lead:["Mais MQL",(a,b)=>b.m-a.m||b.l-a.l||b.sp-a.sp],cpl:["Menor custo por MQL",(a,b)=>(a.m?a.cmql:1e12-a.sp)-(b.m?b.cmql:1e12-b.sp)],
     sql:["Mais SQL",(a,b)=>b.s-a.s||b.l-a.l],csql:["Menor custo por SQL",(a,b)=>(a.s?a.csql:1e12-a.sp)-(b.s?b.csql:1e12-b.sp)],
     ctr:["Maior CTR link",(a,b)=>((b.bm?.ctr_link??b.ctr)||0)-((a.bm?.ctr_link??a.ctr)||0)],tx:["Maior % SQL",(a,b)=>(b.tx||0)-(a.tx||0)||b.s-a.s]};
   const q=CRI.q.trim().toLowerCase();
@@ -789,8 +779,8 @@ function renderCriativos(){
       const card=el("article",{class:"cri"+(r.sp?"":" sem"),tabindex:"0",role:"button","aria-label":"Ver detalhe de "+r.nome},th,el("div",{class:"bd"},nm,el("dl",{},
         ...m("Investimento",r.sp?brl(r.sp):"—"),...m("CPM",brl(cpm,2)),...m("CTR link",pct(ctr,2),tone(ctr,META.ctr,false)),
         ...m("Cliques",int(r.clk)),...m("Connect",r.connect>1.1?"—":pct(r.connect,0)),   // post impulsionado: o Meta conta mais visitas que cliques no link
-        ...m("Leads +100k",int(r.l)),
-        ...m("CPL +100k",r.l?brl(r.cpl):(r.sp?"sem lead":"—"),tone(r.cpl,META.cpl)),...m("SQL",int(r.s)),...m("Custo SQL",brl(r.csql),tone(r.csql,META.custoSql)))));
+        ...m("Leads",int(r.l)),...m("MQL",int(r.m)),
+        ...m("Custo MQL",r.m?brl(r.cmql):(r.sp?"sem MQL":"—"),tone(r.cmql,META.cpl)),...m("SQL",int(r.s)),...m("Custo SQL",brl(r.csql),tone(r.csql,META.custoSql)))));
       card.addEventListener("click",e=>{ if(!e.target.closest("a")) abreCriativo(r); });
       card.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); abreCriativo(r); } });
       return card;}));
@@ -801,8 +791,8 @@ function renderCriativos(){
     sec("Criativos do ciclo",`${C.nome} · Meta [FF] · o mesmo anúncio em vários conjuntos e campanhas vira um cartão só · leads e SQL pela UTM do formulário`,
       el("div",{class:"kpis",style:"grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:14px"},
         kpi("Criativos com investimento",int(comGasto.length),`${int(todos.length-comGasto.length)} só com lead (sem gasto no ciclo)`,true),
-        kpi("Leads +100k ligados a criativo",int(t.l),`de ${int(K.lead)} do Meta · ${int(semUtm?.lead||0)} sem anúncio na UTM`),
-        kpi("CPL +100k dos criativos",brl(t.cpl),"meta "+brl(META.cpl)),
+        kpi("MQL ligados a criativo",int(t.m),`de ${int(K.mql)} MQL · ${int(t.l)} leads · o resto veio sem anúncio, do Google ou do orgânico`),
+        kpi("Custo por MQL dos criativos",brl(t.cmql),"meta "+brl(META.cpl)),
         kpi("SQL ligados a criativo",int(t.s),`custo ${brl(t.csql)} · ${pct(t.tx,1)} dos leads`)),
       el("div",{class:"cri-ctl"},busca,seg,ord,cont),grade,
       el("p",{class:"note",text:"Tipo pelo nome do anúncio ([VD] vídeo, [IMG] imagem). CPM e CTR do Gerenciador; connect = visitas ÷ cliques. Cores pelas metas do painel. Miniaturas antigas podem não carregar (o Meta expira o link); o olho abre o post no Instagram."})));
@@ -831,8 +821,8 @@ function abreCriativo(r){
   const tit=el("h3",{},r.nome);
   if(r.prev){const a=el("a",{class:"ver",href:r.prev,target:"_blank",rel:"noopener",title:"Ver no Instagram","aria-label":"Ver no Instagram",style:"display:inline-flex;margin-left:10px;vertical-align:middle"}); a.innerHTML=OLHO; tit.append(a);}
   const k=(l,v,sm,cls)=>el("div",{},el("span",{text:l}),el("b",{class:cls||"",text:v}),sm?el("small",{text:sm}):null);
-  // funil do criativo: impressões → retenção → clique → lead +100k → SQL
-  const etapas=[["Impressões",r.imp],...(vid?P.map(([n,kk])=>[n==="3s"?"3 segundos":n,r[kk]]):[]),["Clique no link",r.clk],["Lead +100k",r.l],["SQL",r.s]];
+  // funil do criativo: impressões → retenção → clique → lead → MQL → SQL
+  const etapas=[["Impressões",r.imp],...(vid?P.map(([n,kk])=>[n==="3s"?"3 segundos":n,r[kk]]):[]),["Clique no link",r.clk],["Lead",r.l],["MQL",r.m],["SQL",r.s]];
   const ret=el("div",{class:"ret"},...etapas.map(([n,v],i)=>{const prox=etapas[i+1], semPerda=!prox||n==="100%";
     return el("div",{},el("div",{class:"t"},el("span",{text:n}),el("em",{text:`${int(v)} · ${pct(div(v,r.imp),1)}`})),
       el("div",{class:"bar"},el("i",{style:`width:${Math.min(100,(v||0)/Math.max(1,r.imp)*100)}%`})),
@@ -845,9 +835,9 @@ function abreCriativo(r){
       el("div",{class:"diag "+tomD},el("i"),rot),el("p",{class:"frase",text:frase}))),
     el("div",{},el("h4",{text:"Performance"}),el("div",{class:"kp"},
       k("Investimento",brl(r.sp,2)),k("Impressões",int(r.imp)),k("CTR link",pct(ctr,2),null,tone(ctr,META.ctr,false)),
-      k("CPL +100k",r.l?brl(r.cpl,2):"sem lead",`${int(r.l)} leads +100k`,tone(r.cpl,META.cpl)),
+      k("Custo por MQL",r.m?brl(r.cmql,2):"sem MQL",`${int(r.m)} MQL · ${int(r.l)} leads`,tone(r.cmql,META.cpl)),
       k("Custo por SQL",r.s?brl(r.csql,2):"sem SQL",`${int(r.s)} SQL`,tone(r.csql,META.custoSql)),
-      k("% SQL",pct(r.tx,1),"dos leads +100k",tone(r.tx,META.sqlTx,false)))),
+      k("% SQL",pct(r.tx,1),"dos MQL",tone(r.tx,META.sqlTx,false)))),
     vid?el("div",{class:"crit"},el("span",{class:"cap",text:"Momento crítico"}),el("b",{text:`${crit.de} → ${crit.para}`}),
       el("small",{text:`${int(crit.perda)} abandonos · ${pct(crit.pp,1)} de perda${crit.med!=null?` · na mediana dos criativos a perda é ${pct(1-crit.med,1)}`:""}`})):null,
     el("div",{},el("h4",{text:vid?"Retenção · funil do criativo":"Funil do criativo"}),ret),
@@ -859,8 +849,8 @@ function abreCriativo(r){
       el("div",{},el("span",{text:"Desenvolvimento"}),vid?el("p",{},...passos.slice(0,3).map(x=>el("div",{},`${x.de}→${x.para} `,el("b",{style:"display:inline;font:inherit",text:pct(x.ret,1)})))):el("b",{text:"—"}),
         vid?el("small",{text:"quanto fica de uma etapa para a outra"}):null),
       el("div",{},el("span",{text:"CTA"}),el("b",{text:pct(ctr,2)}),el("small",{text:`${int(r.clk)} cliques no link · meta CTR ${pct(META.ctr,1)}`})),
-      el("div",{},el("span",{text:"Conversão"}),el("p",{},el("div",{},`Clique → lead +100k `,el("b",{style:"display:inline;font:inherit",text:pct(div(r.l,r.clk),1)})),
-        el("div",{},`Lead → SQL `,el("b",{style:"display:inline;font:inherit",text:pct(r.tx,1)})),el("div",{},`Clique → SQL `,el("b",{style:"display:inline;font:inherit",text:pct(div(r.s,r.clk),2)})))))),
+      el("div",{},el("span",{text:"Conversão"}),el("p",{},el("div",{},`Clique → lead `,el("b",{style:"display:inline;font:inherit",text:pct(div(r.l,r.clk),1)})),el("div",{},`Lead → MQL `,el("b",{style:"display:inline;font:inherit",text:pct(div(r.m,r.l),1)})),
+        el("div",{},`MQL → SQL `,el("b",{style:"display:inline;font:inherit",text:pct(r.tx,1)})))))),
     !vid&&/\[VD\]/i.test(r.nome)?el("p",{class:"sem-v",text:"Sem dados de retenção do vídeo neste ciclo (ciclos encerrados coletados antes desta versão)."}):null));
   dlg.showModal(); dlg.scrollTop=0;
 }
@@ -887,9 +877,8 @@ function render(){
   d.replaceChildren(...[painelFunil(),painelComercial(),painelGoogle(),painelOrigens(),painelVendas(),painelKpis(),SM?null:painelRitmo(),painelFaixas(),painelPublico(),painelPaginas(),painelCriativos(),chartDia(),tabelaDia(),HIST.length>1?tabelaCiclos():null,tabelaCamps(),comoLer()].filter(Boolean));
   document.getElementById("foot").replaceChildren(
     el("p",{text:`Mídia: Meta Ads, conta Perpétuo RGV, campanhas com [FF] no nome e gasto no ciclo ${C.nome} (${dBR(C.ini)} a ${dBR(C.fim)}). ${C.somado?"Em ciclo encerrado, CPM, CTR (link e todos) e CPC saem das somas das campanhas, porque o filtro do Meta descarta campanhas excluídas":"CPM, CTR (link e todos) e CPC vêm prontos do Gerenciador"}; connect (visitas ÷ cliques), visita → lead, CPL e custo por SQL são divisões. O dia de hoje entra parcial, até a hora da última atualização; o ritmo usa só os dias fechados.`}),
-    el("p",{text:"Lead: envio de formulário PERPÉTUO no HubSpot vindo do Meta pago (página ou Lead Ads), 1 por e-mail por dia, com faturamento declarado de 100 mil por mês ou mais. O pixel subconta, por isso o lead nunca é o do pixel."}),
-    el("p",{text:"SQL: o contato tem negócio no pipeline Vendas Principal (RGV) que chegou em Em Qualificação ou numa fase depois dela (no pipeline padrão, Contato Efetivo em diante), depois do lead. Conta uma vez por pessoa. Leads dos últimos dias ainda estão sendo trabalhados pelo comercial, então o % SQL recente tende a subir."}),
-    el("p",{text:SM?`Metas: ${FECH?"no ciclo encerrado o volume não é comparado com rampa":"o ciclo "+C.nome+" ainda não tem rampa de volume cadastrada"}; CPL, % de SQL, custo por SQL e mídia são comparados com as metas do time.`:`Metas: leads +100k pela rampa "Operação 3.000 leads" do Instagram/Facebook (51 a 74 por dia a partir de 15/10; antes disso, 51 por dia), ${int(C.meta_leads)} no ciclo. CPL +100k R$ 330, 15% de SQL e custo por SQL R$ 2.200. CPM da meta = média das campanhas [FF] nos 30 dias antes do ciclo (${dBR(B.ini)} a ${dBR(B.fim)}). CTR link 2%, connect 80% e conversão da página 5% (leads de todas as faixas ÷ visitas) são as metas do time.`}));
+    el("p",{text:"Leads e MQL só do HubSpot, de todas as origens: lead = pessoa que preencheu formulário PERPÉTUO no ciclo (sem testes e sem @grupor1.com); MQL = negócio do relatório [CICLO] MQL - PERPÉTUO criado no ciclo; SQL = MQL que chegou em Em Agendamento ou depois. Do Meta vem só a mídia (investimento, impressões, cliques, CPM, CTR)."}),
+    el("p",{text:SM?`Metas: ${FECH?"no ciclo encerrado o volume não é comparado com rampa":"o ciclo "+C.nome+" ainda não tem rampa de volume cadastrada"}; custo por MQL, % de SQL, custo por SQL e mídia são comparados com as metas do time.`:`Metas: MQL pela rampa "Operação 3.000 leads" do Instagram/Facebook (51 a 74 por dia a partir de 15/10; antes disso, 51 por dia), ${int(C.meta_leads)} no ciclo. CPL +100k R$ 330, 15% de SQL e custo por SQL R$ 2.200. CPM da meta = média das campanhas [FF] nos 30 dias antes do ciclo (${dBR(B.ini)} a ${dBR(B.fim)}). CTR link 2%, connect 80% e conversão da página 5% (leads de todas as faixas ÷ visitas) são as metas do time.`}));
 }
 render();
 
