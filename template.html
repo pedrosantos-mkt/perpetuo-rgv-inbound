@@ -89,6 +89,8 @@ details.ler dd{margin:0;color:var(--muted);font-size:13.5px;line-height:1.55}
 .cri dd.ok{color:var(--ok)}.cri dd.warn{color:var(--warn)}.cri dd.bad{color:var(--bad)}
 .cri.sem{opacity:.72}
 .stamp{font-size:12px;color:var(--faint);text-align:right;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:8px;max-width:560px}
+/* desktop: título à esquerda e o bloco de controles encostado à direita, carimbo embaixo dos controles */
+@media (min-width:901px){.top{flex-wrap:nowrap}.top>div:first-child{flex:1 1 auto;min-width:0}.stamp{flex:0 0 auto;margin-left:auto}}
 /* controles numa linha (ciclo, tema, atualizar); carimbo e aviso embaixo */
 .stamp #stamp,.stamp #refresh-msg{order:10;flex-basis:100%}
 .stamp #refresh-msg:empty{display:none}
