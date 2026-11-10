@@ -88,6 +88,45 @@ details.ler dd{margin:0;color:var(--muted);font-size:13.5px;line-height:1.55}
 .cri dd{margin:2px 0 0;font:700 14px/1.2 var(--f-body);color:var(--fg)}
 .cri dd.ok{color:var(--ok)}.cri dd.warn{color:var(--warn)}.cri dd.bad{color:var(--bad)}
 .cri.sem{opacity:.72}
+.cri{cursor:pointer;transition:border-color .15s}
+.cri:hover{border-color:var(--line)}
+.cri:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+dialog.det{width:min(1080px,calc(100vw - 32px));max-height:calc(100vh - 32px);padding:0;border:1px solid var(--line-soft);border-radius:20px;background:var(--bg);color:var(--fg);overflow:auto}
+dialog.det::backdrop{background:rgba(0,0,0,.72)}
+.det .in{padding:28px 30px 30px;display:flex;flex-direction:column;gap:22px}
+.det .x{position:sticky;top:0;float:right;margin:14px 14px 0 0;appearance:none;border:0;background:transparent;color:var(--muted);font-size:26px;line-height:1;cursor:pointer;z-index:2}
+.det h3{margin:0;font:700 clamp(17px,2vw,22px)/1.25 var(--f-body);word-break:break-word;padding-right:30px}
+.det .cab{display:grid;grid-template-columns:150px 1fr;gap:18px;align-items:start}
+.det .cab .th{width:150px;aspect-ratio:1;border-radius:14px;background:var(--panel-2);overflow:hidden;position:relative}
+.det .cab .th img{width:100%;height:100%;object-fit:cover}
+.det .onde{margin:0;padding:0;list-style:none;color:var(--muted);font-size:13px;line-height:1.45;display:flex;flex-direction:column;gap:4px}
+.det .diag{display:flex;align-items:center;gap:8px;margin-top:10px;font:800 13px/1 var(--f-body);letter-spacing:.1em;text-transform:uppercase}
+.det .diag i{width:10px;height:10px;border-radius:50%;background:var(--warn)}
+.det .diag.ok i{background:var(--ok)}.det .diag.bad i{background:var(--bad)}
+.det .frase{margin:8px 0 0;font-size:15px;color:var(--fg)}
+.det h4{margin:0 0 10px;font:800 12px/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.det .kp{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.det .kp>div,.det .ab>div,.det .dg>div{background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;padding:14px 14px 12px;min-width:0}
+.det .kp span,.det .ab span,.det .dg span{display:block;font:800 10.5px/1.2 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.det .kp b{display:block;margin-top:8px;font:700 clamp(15px,1.6vw,19px)/1.2 var(--f-display)}
+.det .kp small,.det .ab small,.det .dg small{display:block;margin-top:5px;font-size:12px;color:var(--faint)}
+.det .crit{border:1px solid var(--line);background:var(--red-soft);border-radius:16px;padding:18px 20px}
+.det .crit b{display:block;margin:8px 0 6px;font:800 26px/1 var(--f-display);color:var(--red)}
+.det .ret{display:flex;flex-direction:column;gap:8px}
+.det .ret>div{background:var(--panel);border:1px solid var(--line-soft);border-radius:12px;padding:12px 16px}
+.det .ret .t{display:flex;justify-content:space-between;gap:12px;font:800 12px/1.2 var(--f-body);letter-spacing:.08em;text-transform:uppercase}
+.det .ret .t em{font-style:normal;letter-spacing:0;color:var(--fg);white-space:nowrap}
+.det .ret .bar{height:7px;border-radius:99px;background:rgba(var(--ink-rgb),.07);margin:9px 0 7px}
+.det .ret .bar i{display:block;height:100%;border-radius:99px;background:var(--red);min-width:4px}
+.det .ret small{font-size:12px;color:var(--muted)}
+.det .ab{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.det .ab b,.det .dg b{display:block;margin-top:8px;font:700 19px/1.2 var(--f-display)}
+.det .ab small{color:var(--warn)}
+.det .dg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.det .dg p{margin:8px 0 0;font:600 13.5px/1.6 var(--f-body)}
+.det .dg small.ok{color:var(--ok)}.det .dg small.bad{color:var(--bad)}
+.det .sem-v{color:var(--faint);font-size:13px}
+@media (max-width:820px){.det .in{padding:20px 16px}.det .cab{grid-template-columns:90px 1fr}.det .cab .th{width:90px}.det .kp{grid-template-columns:repeat(2,minmax(0,1fr))}.det .ab{grid-template-columns:repeat(2,minmax(0,1fr))}.det .dg{grid-template-columns:1fr}}
 .stamp{font-size:12px;color:var(--faint);text-align:right;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:8px;max-width:560px}
 /* desktop: título à esquerda e o bloco de controles encostado à direita, carimbo embaixo dos controles */
 @media (min-width:901px){.top{flex-wrap:nowrap}.top>div:first-child{flex:1 1 auto;min-width:0}.stamp{flex:0 0 auto;margin-left:auto}}
@@ -262,6 +301,7 @@ footer p{margin:0 0 8px}
   <section class="sum" id="sum"></section>
   <section class="detail" id="detail" aria-live="polite"></section>
   <section class="detail" id="cri" hidden></section>
+  <dialog class="det" id="det" aria-label="Detalhe do criativo"></dialog>
   <footer id="foot"></footer>
 </div>
 
@@ -417,6 +457,7 @@ function comoLer(){
     ["Custos por etapa","Investimento do ciclo dividido pela quantidade da etapa: custo por lead, por MQL, por contato, por SQL, por agendamento, por reunião realizada e por venda (CAC)."],
     ["Metas da mídia","CPM: média das campanhas [FF] nos 30 dias antes do ciclo 45. CTR link 2%, connect 80% e conversão da página 5% (leads de todas as faixas ÷ visitas) são as metas do time. Volume de leads: rampa \"Operação 3.000 leads\", só no ciclo atual."],
     ["Público","Todos os conjuntos [FF] são de público quente; o quadro separa pela janela de envolvimento no nome do conjunto (até 30 dias + listas, 60 a 180, 365 a 730, mix validados). Lead Ads não traz o conjunto na UTM: o lead é repartido pelos leads que o Meta contou em cada conjunto."],
+    ["Detalhe do criativo","Na aba Criativos, clicar num cartão abre o detalhe: performance, retenção do vídeo (visualizações de 3 s e 25/50/75/95/100% do Meta), clique, lead +100k e SQL. Hook = 3 s ÷ impressões. O diagnóstico compara o criativo com a mediana dos criativos de vídeo do ciclo com pelo menos 1.000 impressões; o momento crítico é a passagem em que ele mais perde em relação a essa mediana."],
     ["Página","Endereço de destino sem UTM, somando campanhas e anúncios. Formulário nativo do Meta fica em linha própria. Connect e visita → lead só valem nas campanhas de página."],
     ["Criativo","Anúncios com o mesmo nome somados em todos os conjuntos. O lead é ligado pelo nome do anúncio na UTM (utm_term ou utm_content), comparando só letras e números. O olho abre o post no Instagram."],
     ["Datas","O ciclo atual vai até hoje: o dia de hoje entra parcial, até a hora da última atualização (a cada 3 horas, das 6h17 às 21h17, ou pelo botão Atualizar agora). Médias por dia contam o dia de hoje pela fração já passada; o ritmo usa só os 7 últimos dias fechados. Ciclos encerrados foram coletados uma vez e não mudam; neles CPM, CTR e CPC saem das somas das campanhas."],
@@ -745,11 +786,14 @@ function renderCriativos(){
       if(r.prev){const a=el("a",{class:"ver",href:r.prev,target:"_blank",rel:"noopener",title:"Ver no Instagram","aria-label":"Ver o criativo no Instagram: "+r.nome}); a.innerHTML=OLHO; nm.append(a);}
       const m=(dtx,v,cls)=>[el("div",{},el("dt",{text:dtx}),el("dd",{class:cls||"",text:v}))];
       const ctr=r.bm?.ctr_link??r.ctr, cpm=r.bm?.cpm??r.cpm;
-      return el("article",{class:"cri"+(r.sp?"":" sem")},th,el("div",{class:"bd"},nm,el("dl",{},
+      const card=el("article",{class:"cri"+(r.sp?"":" sem"),tabindex:"0",role:"button","aria-label":"Ver detalhe de "+r.nome},th,el("div",{class:"bd"},nm,el("dl",{},
         ...m("Investimento",r.sp?brl(r.sp):"—"),...m("CPM",brl(cpm,2)),...m("CTR link",pct(ctr,2),tone(ctr,META.ctr,false)),
         ...m("Cliques",int(r.clk)),...m("Connect",r.connect>1.1?"—":pct(r.connect,0)),   // post impulsionado: o Meta conta mais visitas que cliques no link
         ...m("Leads +100k",int(r.l)),
-        ...m("CPL +100k",r.l?brl(r.cpl):(r.sp?"sem lead":"—"),tone(r.cpl,META.cpl)),...m("SQL",int(r.s)),...m("Custo SQL",brl(r.csql),tone(r.csql,META.custoSql)))));}));
+        ...m("CPL +100k",r.l?brl(r.cpl):(r.sp?"sem lead":"—"),tone(r.cpl,META.cpl)),...m("SQL",int(r.s)),...m("Custo SQL",brl(r.csql),tone(r.csql,META.custoSql)))));
+      card.addEventListener("click",e=>{ if(!e.target.closest("a")) abreCriativo(r); });
+      card.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); abreCriativo(r); } });
+      return card;}));
     if(!vis.length) grade.append(el("p",{class:"note",text:"Nenhum criativo com esse filtro."}));
   }
   desenhaGrade();
@@ -763,6 +807,65 @@ function renderCriativos(){
       el("div",{class:"cri-ctl"},busca,seg,ord,cont),grade,
       el("p",{class:"note",text:"Tipo pelo nome do anúncio ([VD] vídeo, [IMG] imagem). CPM e CTR do Gerenciador; connect = visitas ÷ cliques. Cores pelas metas do painel. Miniaturas antigas podem não carregar (o Meta expira o link); o olho abre o post no Instagram."})));
 }
+// detalhe do criativo: performance, retenção do vídeo (3 s → 100%), abandono por etapa e diagnóstico contra a mediana dos criativos do ciclo
+const mediana=a=>{const v=a.filter(x=>x!=null&&isFinite(x)).sort((x,y)=>x-y); if(!v.length) return null; const m=Math.floor(v.length/2); return v.length%2?v[m]:(v[m-1]+v[m])/2;};
+function abreCriativo(r){
+  const dlg=document.getElementById("det");
+  const P=[["3s","v3s"],["25%","p25"],["50%","p50"],["75%","p75"],["95%","p95"],["100%","p100"]];
+  const vid=(r.v3s||0)>0;
+  // base da operação: criativos de vídeo do ciclo com pelo menos 1.000 impressões
+  const base=DATA.criativos.filter(x=>(x.v3s||0)>0&&(x.imp||0)>=1000);
+  const hookOf=x=>div(x.v3s,x.imp), passo=(x,a,b)=>div(x[b],x[a]);
+  const hook=hookOf(r), hookMed=mediana(base.map(hookOf));
+  const hooks=base.map(hookOf).filter(isFinite).sort((a,b)=>b-a), pos=hook!=null&&hooks.length?hooks.filter(h=>h>hook).length+1:null;
+  const passos=P.slice(0,-1).map(([n,k],i)=>{const [n2,k2]=P[i+1]; const ret=passo(r,k,k2), med=mediana(base.map(x=>passo(x,k,k2)));
+    return {de:n,para:n2,ret,med,perda:(r[k]||0)-(r[k2]||0),pp:ret==null?null:1-ret, rel:ret!=null&&med?ret/med:null};});
+  const crit=vid?passos.reduce((a,b)=>(b.rel??9)<(a.rel??9)?b:a,passos[0]):null;
+  const hookBom=hook!=null&&hookMed!=null&&hook>=hookMed, desBom=passos[0].ret!=null&&passos[0].med!=null&&passos[0].ret>=passos[0].med;
+  const rot=!vid?"Criativo sem vídeo":(hookBom?"Hook bom":"Hook fraco")+" / "+(desBom?"desenvolvimento bom":"desenvolvimento fraco");
+  const tomD=!vid?"":hookBom&&desBom?"ok":!hookBom&&!desBom?"bad":"";
+  const frase=!vid?"Imagem ou carrossel: sem curva de retenção; o funil vai de impressões a SQL.":
+    `${hookBom?"Hook forte":"Hook abaixo da mediana"}. Maior problema entre ${crit.de} e ${crit.para}${crit.med!=null?` (retém ${pct(crit.ret,1)}; a mediana dos criativos é ${pct(crit.med,1)})`:""}.`;
+  const ctr=r.bm?.ctr_link??r.ctr;
+  const th=el("div",{class:"th"}); if(r.thumb){const img=el("img",{src:r.thumb,alt:"",referrerpolicy:"no-referrer"}); img.addEventListener("error",()=>img.remove()); th.append(img);}
+  const tit=el("h3",{},r.nome);
+  if(r.prev){const a=el("a",{class:"ver",href:r.prev,target:"_blank",rel:"noopener",title:"Ver no Instagram","aria-label":"Ver no Instagram",style:"display:inline-flex;margin-left:10px;vertical-align:middle"}); a.innerHTML=OLHO; tit.append(a);}
+  const k=(l,v,sm,cls)=>el("div",{},el("span",{text:l}),el("b",{class:cls||"",text:v}),sm?el("small",{text:sm}):null);
+  // funil do criativo: impressões → retenção → clique → lead +100k → SQL
+  const etapas=[["Impressões",r.imp],...(vid?P.map(([n,kk])=>[n==="3s"?"3 segundos":n,r[kk]]):[]),["Clique no link",r.clk],["Lead +100k",r.l],["SQL",r.s]];
+  const ret=el("div",{class:"ret"},...etapas.map(([n,v],i)=>{const prox=etapas[i+1], semPerda=!prox||n==="100%";
+    return el("div",{},el("div",{class:"t"},el("span",{text:n}),el("em",{text:`${int(v)} · ${pct(div(v,r.imp),1)}`})),
+      el("div",{class:"bar"},el("i",{style:`width:${Math.min(100,(v||0)/Math.max(1,r.imp)*100)}%`})),
+      semPerda?null:el("small",{text:`Perda para a próxima etapa: ${int((v||0)-(prox[1]||0))} (${pct(div((v||0)-(prox[1]||0),v),1)})`}));}));
+  const fechar=el("button",{class:"x",type:"button","aria-label":"Fechar",text:"×"}); fechar.addEventListener("click",()=>dlg.close());
+  dlg.replaceChildren(fechar,el("div",{class:"in"},
+    tit,
+    el("div",{class:"cab"},th,el("div",{},
+      el("ul",{class:"onde"},...(r.onde||[]).map(o=>el("li",{text:o}))),
+      el("div",{class:"diag "+tomD},el("i"),rot),el("p",{class:"frase",text:frase}))),
+    el("div",{},el("h4",{text:"Performance"}),el("div",{class:"kp"},
+      k("Investimento",brl(r.sp,2)),k("Impressões",int(r.imp)),k("CTR link",pct(ctr,2),null,tone(ctr,META.ctr,false)),
+      k("CPL +100k",r.l?brl(r.cpl,2):"sem lead",`${int(r.l)} leads +100k`,tone(r.cpl,META.cpl)),
+      k("Custo por SQL",r.s?brl(r.csql,2):"sem SQL",`${int(r.s)} SQL`,tone(r.csql,META.custoSql)),
+      k("% SQL",pct(r.tx,1),"dos leads +100k",tone(r.tx,META.sqlTx,false)))),
+    vid?el("div",{class:"crit"},el("span",{class:"cap",text:"Momento crítico"}),el("b",{text:`${crit.de} → ${crit.para}`}),
+      el("small",{text:`${int(crit.perda)} abandonos · ${pct(crit.pp,1)} de perda${crit.med!=null?` · na mediana dos criativos a perda é ${pct(1-crit.med,1)}`:""}`})):null,
+    el("div",{},el("h4",{text:vid?"Retenção · funil do criativo":"Funil do criativo"}),ret),
+    vid?el("div",{},el("h4",{text:"Abandono por etapa"}),el("div",{class:"ab"},...passos.map(x=>k(`${x.de} → ${x.para}`,int(x.perda),`${pct(x.pp,1)} de perda`)))):null,
+    el("div",{},el("h4",{text:"Diagnóstico"}),el("div",{class:"dg"},
+      el("div",{},el("span",{text:"Hook"}),el("b",{text:vid?pct(hook,1):"—"}),
+        vid&&pos?el("small",{class:hookBom?"ok":"bad",text:`${pos}º de ${hooks.length} criativos de vídeo do ciclo`}):null,
+        el("small",{text:vid?`Mediana da operação: ${pct(hookMed,1)} · 3 s ÷ impressões`:"sem vídeo"})),
+      el("div",{},el("span",{text:"Desenvolvimento"}),vid?el("p",{},...passos.slice(0,3).map(x=>el("div",{},`${x.de}→${x.para} `,el("b",{style:"display:inline;font:inherit",text:pct(x.ret,1)})))):el("b",{text:"—"}),
+        vid?el("small",{text:"quanto fica de uma etapa para a outra"}):null),
+      el("div",{},el("span",{text:"CTA"}),el("b",{text:pct(ctr,2)}),el("small",{text:`${int(r.clk)} cliques no link · meta CTR ${pct(META.ctr,1)}`})),
+      el("div",{},el("span",{text:"Conversão"}),el("p",{},el("div",{},`Clique → lead +100k `,el("b",{style:"display:inline;font:inherit",text:pct(div(r.l,r.clk),1)})),
+        el("div",{},`Lead → SQL `,el("b",{style:"display:inline;font:inherit",text:pct(r.tx,1)})),el("div",{},`Clique → SQL `,el("b",{style:"display:inline;font:inherit",text:pct(div(r.s,r.clk),2)})))))),
+    !vid&&/\[VD\]/i.test(r.nome)?el("p",{class:"sem-v",text:"Sem dados de retenção do vídeo neste ciclo (ciclos encerrados coletados antes desta versão)."}):null));
+  dlg.showModal(); dlg.scrollTop=0;
+}
+document.getElementById("det").addEventListener("click",e=>{ if(e.target.id==="det") e.target.close(); });
+
 function mostra(v,push){
   VIEW=v;
   document.querySelectorAll("#menu button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.v===v)));

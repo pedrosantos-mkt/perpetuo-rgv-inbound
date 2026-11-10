@@ -5,6 +5,8 @@ from comum import *
 INI, FIM = CICLO['ini'].isoformat(), ate().isoformat()
 TR = json.dumps({'since': INI, 'until': FIM})
 BM = 'spend,impressions,inline_link_clicks,clicks,cpm,ctr,inline_link_click_ctr,cost_per_inline_link_click,actions'
+# retenção do vídeo por anúncio (3 s = action video_view; 25/50/75/95/100% = campos video_pXX_watched_actions)
+VID = 'video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p95_watched_actions,video_p100_watched_actions'
 filtro = lambda campo, ids: json.dumps([{'field': campo, 'operator': 'IN', 'value': ids}])
 
 
@@ -72,8 +74,8 @@ pub_bm = etapa('m_pub.json', _pub)
 print(len(adsets), 'conjuntos', {g: len(l) for g, l in grupos.items()})
 
 # 4. anúncios com gasto: métricas e dados do criativo (URL, post do Instagram, miniatura), em lotes de 50
-ads_ins = etapa('m_ads_ins.json', lambda: sem_filtro('ad', 'campaign_id,adset_id,adset_name,ad_id,ad_name') if FECHADO else meta_all(
-    f'{ACT}/insights', {'level': 'ad', 'fields': 'campaign_id,adset_id,adset_name,ad_id,ad_name,' + BM, 'time_range': TR, 'filtering': fc, 'limit': 500}))
+ads_ins = etapa('m_ads_ins.json', lambda: sem_filtro('ad', 'campaign_id,adset_id,adset_name,ad_id,ad_name,' + VID) if FECHADO else meta_all(
+    f'{ACT}/insights', {'level': 'ad', 'fields': 'campaign_id,adset_id,adset_name,ad_id,ad_name,' + VID + ',' + BM, 'time_range': TR, 'filtering': fc, 'limit': 500}))
 def _ads():
     out, l = [], sorted({a['ad_id'] for a in ads_ins})
     campos = ('id,name,adset_id,campaign_id,preview_shareable_link,creative{instagram_permalink_url,thumbnail_url,object_type,'

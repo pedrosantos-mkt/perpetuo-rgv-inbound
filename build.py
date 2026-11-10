@@ -71,7 +71,7 @@ for a in M['ads_ins']:
     pesos[(camp_nome.get(a['campaign_id']), a['ad_name'])][adset_tag.get(a['adset_id'], 'Outros')] += A(a, 'lead') or float(a['spend']) / 1e6
 
 # ---------- mídia por público, página, criativo e campanha ----------
-pub, pag, cre, cmp = (collections.defaultdict(collections.Counter) for _ in range(4))
+pub, pag, cre, cmp, onde = (collections.defaultdict(collections.Counter) for _ in range(5))
 prev = {}
 for a in M['ads_ins']:
     m = midia(a); i = info_ad.get(a['ad_id'], {})
@@ -79,6 +79,11 @@ for a in M['ads_ins']:
     pub[adset_tag.get(a['adset_id'], 'Outros')] += m
     pag[i.get('page', '(sem URL)')] += m
     cre[a['ad_name']] += m
+    # retenção do vídeo (3 s e 25/50/75/95/100%) e onde o criativo rodou (campanha · conjunto), para o detalhe do criativo
+    cre[a['ad_name']]['v3s'] += A(a, 'video_view')
+    for q in (25, 50, 75, 95, 100):
+        cre[a['ad_name']][f'p{q}'] += sum(float(x['value']) for x in a.get(f'video_p{q}_watched_actions') or [])
+    onde[a['ad_name']][f"{camp_nome.get(a['campaign_id'], '')} · {a.get('adset_name', '')}"] += float(a['spend'])
     if a['ad_name'] not in prev and i.get('prev'): prev[a['ad_name']] = {'prev': i['prev'], 'thumb': i.get('thumb')}
 for c in M['camps']:
     m = midia(c); m['clkp'] = 0 if 'FORMS_NATIVO' in c['campaign_name'] else m['clk']
@@ -193,7 +198,8 @@ data = {
     'daily': daily,
     'publicos': [{'nome': n, **limpa(pub[n]), 'bm': bm(M['pub_bm'].get(n))} for n in ORDEM_PUBLICO if n in pub],
     'paginas': sorted([{'nome': n, **limpa(v)} for n, v in pag.items()], key=lambda r: (-r.get('spend', 0), -r.get('lead', 0))),
-    'criativos': [{'nome': n, **limpa(v), **prev.get(n, {}), 'bm': bm(M['cre_bm'].get(n)) if n in M['cre_bm'] else None}
+    'criativos': [{'nome': n, **limpa(v), **prev.get(n, {}), 'bm': bm(M['cre_bm'].get(n)) if n in M['cre_bm'] else None,
+                   'onde': [x for x, _ in onde[n].most_common(3)] if n in onde else []}
                   for n, v in cre.items() if v.get('spend', 0) > 0 or v.get('lead', 0) > 0],
     'camps': camps_out,
     'faixas': faixas.most_common(),
