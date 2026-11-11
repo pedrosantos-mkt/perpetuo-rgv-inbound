@@ -130,31 +130,49 @@ def origem_de(l):
     return l.get('origem') or 'Outras origens'
 
 
-def soma(l, chave, v=1):
-    """Põe 1 lead ou 1 MQL (chave) em todos os quadros, pela origem e pela UTM do envio l."""
-    ORIG[origem_de(l)][chave] += v
+def atrib(l):
+    """Para onde vai 1 lead ou 1 MQL: origem, públicos (com peso), página, criativo, campanha e campanha do Google."""
+    o = origem_de(l)
     if l is None or l['canal'] == 'organico':
-        pub[SEM][chave] += v; pag['(orgânico e outras origens)'][chave] += v; cmp['·' + SEM][chave] += v
-        return
+        return {'o': o, 't': {SEM: 1.0}, 'p': '(orgânico e outras origens)', 'c': None, 'm': '·' + SEM, 'g': None}
     if l['canal'] == 'google':
         k = sem_rgv(l['camp']) or 'SEMCAMPANHA'
         G_NOME.setdefault(k, l['camp'].strip())
-        G[chave] += v; G_CAMP.setdefault(k, collections.Counter())[chave] += v
-        pub['Google Ads (Search e YouTube)'][chave] += v; pag['Google Ads (Search e YouTube)'][chave] += v
-        return
+        return {'o': o, 't': {'Google Ads (Search e YouTube)': 1.0}, 'p': 'Google Ads (Search e YouTube)', 'c': None, 'm': None, 'g': k}
     a = atribui(l)
-    for g, w in a['tags'].items(): pub[g][chave] += v * w
-    pag[a['page']][chave] += v
-    cre[a['ad'] or '(sem anúncio na UTM)'][chave] += v
-    cmp[a['camp'] if a['camp'] in cmp else ('·' + a['camp'] if a['camp'] else '·')][chave] += v
+    return {'o': o, 't': {g: round(w, 6) for g, w in a['tags'].items()}, 'p': a['page'], 'c': a['ad'] or '(sem anúncio na UTM)',
+            'm': a['camp'] if a['camp'] in cmp else ('·' + a['camp'] if a['camp'] else '·'), 'g': None}
 
 
+ATTR, ATTR_IX = [], {}   # atribuições únicas: o filtro de datas no navegador refaz os quadros a partir delas
+def ix(a):
+    k = json.dumps(a, sort_keys=True, ensure_ascii=False)
+    if k not in ATTR_IX: ATTR_IX[k] = len(ATTR); ATTR.append(a)
+    return ATTR_IX[k]
+
+
+def soma(a, chave, v=1):
+    """Põe 1 lead ou 1 MQL (chave) em todos os quadros, pela atribuição a."""
+    ORIG[a['o']][chave] += v
+    for g, w in a['t'].items(): pub[g][chave] += v * w
+    pag[a['p']][chave] += v
+    if a['c']: cre[a['c']][chave] += v
+    if a['m']: cmp[a['m']][chave] += v
+    if a['g']: G[chave] += v; G_CAMP.setdefault(a['g'], collections.Counter())[chave] += v
+
+
+DIA_IX = {(CICLO['ini'] + dt.timedelta(i)).isoformat(): i for i in range((CICLO['fim'] - CICLO['ini']).days + 1)}
+FAIXAS_IX = {}
+GL, GQ = [], []   # granular: [dia, atribuição, faixa, tipo] por lead; [dia, atribuição, sql, contato, marcado, realizado, venda] por MQL
 for l in HS['leads']:
     faixas[l['faixa'] or '(sem resposta)'] += 1
     dia_leads[l['dia']]['lead'] += 1
+    tipo = 0
     if l['canal'] == 'meta':
-        dia_leads[l['dia']]['lead_nativo' if 'LEAD ADS' in l['form'] else 'lead_pag'] += 1
-    soma(l, 'lead')
+        tipo = 2 if 'LEAD ADS' in l['form'] else 1
+        dia_leads[l['dia']]['lead_nativo' if tipo == 2 else 'lead_pag'] += 1
+    a = atrib(l); soma(a, 'lead')
+    GL.append([DIA_IX.get(l['dia'], 0), ix(a), FAIXAS_IX.setdefault(l['faixa'] or '(sem resposta)', len(FAIXAS_IX)), tipo])
 
 # MQL → formulário da pessoa: o último envio até 10 min depois de o negócio nascer (ou o primeiro do ciclo)
 env_de = collections.defaultdict(list)
@@ -162,10 +180,11 @@ for e in HS.get('envios', HS['leads']): env_de[e['email']].append(e)
 for d in CRM['deals']:
     ev = sorted((e for m in d.get('emails', []) for e in env_de.get(m, [])), key=lambda e: e['ts'])
     antes = [e for e in ev if e['ts'] <= d.get('ts', 0) + 600000]
-    l = (antes or ev or [None])[-1] if antes else (ev[0] if ev else None)
-    soma(l, 'mql')
-    if d.get('sql'): soma(l, 'sql')
+    l = antes[-1] if antes else (ev[0] if ev else None)
+    a = atrib(l); soma(a, 'mql')
+    if d.get('sql'): soma(a, 'sql')
     dia_leads[d['dia']]['mql'] += 1; dia_leads[d['dia']]['sql'] += bool(d.get('sql'))
+    GQ.append([DIA_IX.get(d['dia'], 0), ix(a)] + [int(bool(d.get(e))) for e in ('sql', 'contato', 'marcado', 'realizado', 'venda')])
 
 # Google em linha própria nos quadros de público e página, com o gasto lido no google.json
 if _gc:
@@ -248,6 +267,22 @@ data = {
                      'lead_tot': len(HS['leads']), 'lead': len(HS['leads']), 'mql': len(CRM['deals']), 'sql': sum(1 for d in CRM['deals'] if d.get('sql')),
                      'hubspot': True, **({'g_spend': round(sum(c['spend'] for c in _gc['campanhas']), 2)} if _gc else {})}],
 }
+# ---------- dados granulares para o filtro de datas dentro do ciclo ----------
+ad_info = {}
+for a in M['ads_ins']:
+    i = info_ad.get(a['ad_id'], {})
+    ad_info.setdefault(a['ad_id'], {'c': a['ad_name'], 't': adset_tag.get(a['adset_id'], 'Outros'), 'p': i.get('page', '(sem URL)'),
+                                    'm': camp_nome.get(a['campaign_id'], ''), 'n': int(i.get('page') == NATIVO)})
+ADS = sorted(ad_info); AD_IX = {x: n for n, x in enumerate(ADS)}
+vid = lambda r, q: sum(float(x['value']) for x in r.get(f'video_p{q}_watched_actions') or [])
+MD = [[DIA_IX[r['date_start']], AD_IX[r['ad_id']], round(float(r.get('spend', 0)), 2), int(r.get('impressions', 0)), int(r.get('inline_link_clicks', 0)),
+       int(r.get('clicks', 0)), int(A(r, 'landing_page_view')), int(A(r, 'video_view'))] + [int(vid(r, q)) for q in (25, 50, 75, 95, 100)]
+      for r in M.get('ad_dia', []) if r.get('ad_id') in AD_IX and r['date_start'] in DIA_IX]
+data['gran'] = M.get('ad_dia') and {
+    'ads': [ad_info[x] for x in ADS],   # c = criativo, t = público, p = página, m = campanha, n = Lead Ads
+    'md': MD,                           # [dia, anúncio, gasto, impressões, cliques no link, cliques, visitas, 3 s, 25, 50, 75, 95, 100%]
+    'attr': ATTR, 'leads': GL, 'mql': GQ, 'faixas': list(FAIXAS_IX)}
+
 saida = os.path.join(AQUI, 'site', 'c', slug(CICLO['nome']) + '.json') if FECHADO else os.path.join(AQUI, 'data.json')
 os.makedirs(os.path.dirname(saida), exist_ok=True)
 json.dump(data, open(saida, 'w'), ensure_ascii=False, separators=(',', ':'))

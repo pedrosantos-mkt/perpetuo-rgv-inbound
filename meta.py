@@ -115,5 +115,11 @@ def _cre():
 cre_bm = etapa('m_cre.json', _cre)
 print(len(cre_bm), 'criativos com métricas do Gerenciador')
 
+# 6. mídia por anúncio e por dia (base do filtro de datas dentro do ciclo)
+AD_DIA = 'ad_id,spend,impressions,inline_link_clicks,clicks,actions,' + VID
+ad_dia = etapa('m_ad_dia.json', lambda: sem_filtro('ad', 'ad_id,' + VID, time_increment=1) if FECHADO else meta_all(
+    f'{ACT}/insights', {'level': 'ad', 'fields': AD_DIA, 'time_range': TR, 'filtering': fc, 'time_increment': 1, 'limit': 500}))
+print(len(ad_dia), 'linhas de anúncio × dia')
+
 salva('meta.json', {'ini': INI, 'fim': FIM, 'somado': FECHADO, 'camps': camps, 'total': total[0] if total else {}, 'dia': dia,
-                    'adsets': adsets, 'pub_bm': pub_bm, 'ads_ins': ads_ins, 'ads': ads, 'cre_bm': cre_bm})
+                    'adsets': adsets, 'pub_bm': pub_bm, 'ads_ins': ads_ins, 'ads': ads, 'cre_bm': cre_bm, 'ad_dia': ad_dia})

@@ -39,6 +39,11 @@ h1 span,h2 span{color:var(--red)}
 .sel-ciclo{display:inline-flex;align-items:center;gap:8px;font:600 12px/1 var(--f-body);color:var(--muted)}
 .sel-ciclo select{appearance:none;border:1px solid var(--line-soft);background:var(--panel);color:var(--fg);font:600 13px/1 var(--f-body);padding:8px 30px 8px 12px;border-radius:999px;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 15px) 50%,calc(100% - 10px) 50%;background-size:5px 5px;background-repeat:no-repeat}
 .sel-ciclo select:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.per input{appearance:none;border:1px solid var(--line-soft);background:var(--panel);color:var(--fg);font:600 13px/1 var(--f-body);padding:7px 10px;border-radius:999px;color-scheme:dark}
+:root[data-theme="light"] .per input{color-scheme:light}
+.per input:focus-visible,.per-x:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.per-x{appearance:none;border:1px solid var(--line-soft);background:transparent;color:var(--muted);font:600 12px/1 var(--f-body);padding:8px 12px;border-radius:999px;cursor:pointer}
+.per.ativo input{border-color:var(--red)}
 tr.clic{cursor:pointer}
 tr.clic:hover td{background:rgba(var(--ink-rgb),.04)}
 tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--red)}
@@ -295,7 +300,7 @@ footer p{margin:0 0 8px}
       <h1>Funil <span>inbound</span> do ciclo</h1>
       <p id="sub"></p>
     </div>
-    <div class="stamp"><label class="sel-ciclo" id="sel-wrap" hidden><span>Ciclo</span><select id="ciclo"></select></label><button class="tema" id="tema" type="button" aria-pressed="false"><span class="tema-ico" aria-hidden="true"></span><span id="tema-txt">Tema claro</span></button><span id="stamp"></span><button class="refresh" id="refresh" type="button" hidden>Atualizar agora</button><span class="refresh-msg" id="refresh-msg" aria-live="polite"></span></div>
+    <div class="stamp"><label class="sel-ciclo" id="sel-wrap" hidden><span>Ciclo</span><select id="ciclo"></select></label><span class="sel-ciclo per" id="per-wrap" hidden><span>De</span><input type="date" id="per-de" aria-label="Data inicial"><span>até</span><input type="date" id="per-ate" aria-label="Data final"><button type="button" class="per-x" id="per-limpa" hidden>Ciclo inteiro</button></span><button class="tema" id="tema" type="button" aria-pressed="false"><span class="tema-ico" aria-hidden="true"></span><span id="tema-txt">Tema claro</span></button><span id="stamp"></span><button class="refresh" id="refresh" type="button" hidden>Atualizar agora</button><span class="refresh-msg" id="refresh-msg" aria-live="polite"></span></div>
   </header>
   <nav class="menu" id="menu" role="tablist" aria-label="Painéis"><button type="button" role="tab" data-v="funil" aria-selected="true">Funil</button><button type="button" role="tab" data-v="criativos" aria-selected="false">Criativos</button></nav>
   <section class="sum" id="sum"></section>
@@ -359,10 +364,10 @@ const td = (t,l,cls) => el("td",{class:(cls||""),"data-l":l||"",text:t});
 function renderTop(){
   document.getElementById("sub").textContent=FECH
     ? `Ciclo ${C.nome} · ${dAno(C.ini)} a ${dAno(C.fim)} (${C.dias} dias) · campanhas [FF] de captação no Meta · ciclo encerrado${C.hs_desde?(C.fim<C.hs_desde?" · sem formulário PERPÉTUO no HubSpot: leads indisponíveis (MQL e SQL pelos negócios)":` · formulários PERPÉTUO só a partir de ${dAno(C.hs_desde)}: leads parciais (MQL e SQL pelos negócios)`):""}`
-    : `Ciclo ${C.nome} · ${dBR(C.ini)} a ${dBR(C.fim)} · investimento Meta [FF]${GG?" + Google Ads":""} · leads e MQL do HubSpot, todas as origens · ${PARC?`dados até hoje, ${dBR(DATA.ate)}, às ${DATA.hora} (parcial)`:`dados até ${dBR(DATA.ate)}`} · dia ${D.length} de ${C.dias}`;
+    : `Ciclo ${C.nome} · ${dBR(C.ini)} a ${dBR(C.fim)} · investimento Meta [FF]${GG?" + Google Ads":""} · leads e MQL do HubSpot, todas as origens · ${DATA.recorte?`período de ${dBR(DATA.recorte.ini)} a ${dBR(DATA.recorte.fim)} (${D.length} dia${D.length>1?"s":""})${PARC?` · hoje até ${DATA.hora}`:""}`:PARC?`dados até hoje, ${dBR(DATA.ate)}, às ${DATA.hora} (parcial) · dia ${D.length} de ${C.dias}`:`dados até ${dBR(DATA.ate)} · dia ${D.length} de ${C.dias}`}`;
   carimbo();
   const s=document.getElementById("sum");
-  const it=[["Investimento",brl(SPT),GG?`Meta ${brl(K.spend)} · Google ${GG.sem_gasto?"gasto ainda não lido":brl(GG.spend)}`:brl(SPT/diasCorr)+" por dia",""],
+  const it=[["Investimento",brl(SPT),GG?`Meta ${brl(K.spend)} · Google ${GG.recorte?"sem gasto por dia (fora do período)":GG.sem_gasto?"gasto ainda não lido":brl(GG.spend)}`:brl(SPT/diasCorr)+" por dia",""],
     ["Leads",int(K.lead),`pessoas no HubSpot · CPL ${brl(cpl)}`,""],
     ["MQL",int(K.mql),SM?`${pct(div(K.mql,K.lead),0)} dos leads`:`meta até ${dBR(DATA.ate)}: ${int(metaAte)} · ${pct(K.mql/metaAte,0)}`,SM?"":tone(K.mql,metaAte,false)],
     ["Custo por MQL",brl(cmql),"meta "+brl(META.cpl),tone(cmql,META.cpl)],
@@ -454,6 +459,7 @@ function comoLer(){
     ["Detalhe do criativo","Na aba Criativos, clicar num cartão abre o detalhe: performance, retenção do vídeo (visualizações de 3 s e 25/50/75/95/100% do Meta), clique, lead, MQL e SQL. Hook = 3 s ÷ impressões. O diagnóstico compara o criativo com a mediana dos criativos de vídeo do ciclo com pelo menos 1.000 impressões; o momento crítico é a passagem em que ele mais perde em relação a essa mediana."],
     ["Página","Endereço de destino sem UTM, somando campanhas e anúncios. Formulário nativo do Meta fica em linha própria. Connect e visita → lead só valem nas campanhas de página."],
     ["Criativo","Anúncios com o mesmo nome somados em todos os conjuntos. O lead é ligado pelo nome do anúncio na UTM (utm_term ou utm_content), comparando só letras e números. O olho abre o post no Instagram."],
+    ["Filtro De / Até","No menu do topo dá para escolher um período dentro do ciclo atual: o painel inteiro é refeito só com aqueles dias (mídia do Meta por anúncio e por dia; leads e MQL do HubSpot pela data de entrada). No período, CPM, CTR e CPC saem das somas, e o Google Ads fica fora do investimento porque não tem gasto por dia. \"Ciclo inteiro\" volta ao ciclo todo."],
     ["Datas","O ciclo atual vai até hoje: o dia de hoje entra parcial, até a hora da última atualização (a cada 3 horas, das 6h17 às 21h17, ou pelo botão Atualizar agora). Médias por dia contam o dia de hoje pela fração já passada; o ritmo usa só os 7 últimos dias fechados. Ciclos encerrados foram coletados uma vez e não mudam; neles CPM, CTR e CPC saem das somas das campanhas."],
     ["Vendas","Vendas do Perpétuo na Planilha Comercial do time: o canal Perpétuo (fechou na call) mais as vendas de outras ações em que o contato veio do Perpétuo. Tráfego pago ou orgânico pela UTM do formulário PERPÉTUO que levou à venda; sem UTM nele, vale a UTM do negócio, a fonte do contato no HubSpot e a origem do negócio. A planilha é privada, então esta parte é atualizada à mão."],
     ["Cores","Verde dentro da meta, amarelo até 15% fora, vermelho além disso. Sem meta, o número fica neutro."],
@@ -469,7 +475,7 @@ function painelGoogle(){
   const tb=el("tbody"); GG.campanhas.forEach(r=>tb.append(linha(r)));
   return sec("Google Ads",`Search e YouTube da conta Método RGV · investimento lido no Google Ads · leads e MQL do HubSpot pela UTM do formulário`,
     el("div",{class:"kpis",style:"grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:12px"},
-      kpi("Investimento",GG.sem_gasto?"não lido":brl(GG.spend),GG.sem_gasto?"gasto deste ciclo ainda não foi lido no Google Ads":pct(div(GG.spend,SPT),1)+" do total do ciclo"),
+      kpi("Investimento",GG.recorte?"—":GG.sem_gasto?"não lido":brl(GG.spend),GG.recorte?"o Google não tem gasto por dia: só no ciclo inteiro":GG.sem_gasto?"gasto deste ciclo ainda não foi lido no Google Ads":pct(div(GG.spend,SPT),1)+" do total do ciclo"),
       kpi("Leads",int(GG.lead),"pela UTM do formulário"),
       kpi("MQL",int(GG.mql),GG.sem_gasto?"custo depois da leitura do gasto":"custo "+brl(div(GG.spend,GG.mql))),
       kpi("SQL",int(GG.sql),GG.sem_gasto?"custo depois da leitura do gasto":"custo "+brl(div(GG.spend,GG.sql)))),
@@ -790,10 +796,10 @@ function renderCriativos(){
   box.replaceChildren(
     sec("Criativos do ciclo",`${C.nome} · Meta [FF] · o mesmo anúncio em vários conjuntos e campanhas vira um cartão só · leads e SQL pela UTM do formulário`,
       el("div",{class:"kpis",style:"grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:14px"},
-        kpi("Criativos com investimento",int(comGasto.length),`${int(todos.length-comGasto.length)} só com lead (sem gasto no ciclo)`,true),
+        kpi("Criativos com investimento",int(comGasto.length),`${int(todos.length-comGasto.length)} só com lead ou MQL (sem gasto no período)`,true),
         kpi("MQL ligados a criativo",int(t.m),`de ${int(K.mql)} MQL · ${int(t.l)} leads · o resto veio sem anúncio, do Google ou do orgânico`),
         kpi("Custo por MQL dos criativos",brl(t.cmql),"meta "+brl(META.cpl)),
-        kpi("SQL ligados a criativo",int(t.s),`custo ${brl(t.csql)} · ${pct(t.tx,1)} dos leads`)),
+        kpi("SQL ligados a criativo",int(t.s),`custo ${brl(t.csql)} · ${pct(t.tx,1)} dos MQL`)),
       el("div",{class:"cri-ctl"},busca,seg,ord,cont),grade,
       el("p",{class:"note",text:"Tipo pelo nome do anúncio ([VD] vídeo, [IMG] imagem). CPM e CTR do Gerenciador; connect = visitas ÷ cliques. Cores pelas metas do painel. Miniaturas antigas podem não carregar (o Meta expira o link); o olho abre o post no Instagram."})));
 }
@@ -870,6 +876,53 @@ function atualizaHash(){
 }
 document.querySelectorAll("#menu button").forEach(b=>b.addEventListener("click",()=>{mostra(b.dataset.v); window.scrollTo({top:0});}));
 
+// filtro de datas dentro do ciclo: refaz os quadros a partir dos dados por anúncio × dia (Meta) e dos leads/MQL com data (HubSpot);
+// devolve um objeto no mesmo formato do DATA. CPM/CTR/CPC saem das somas; o Google não tem gasto por dia e fica fora num período parcial.
+function recorta(F, i0, i1){
+  const G=F.gran, inteiro=i0===0&&i1===F.daily.length-1;
+  const zero=()=>({spend:0,imp:0,clk:0,clk_all:0,lpv:0,clkp:0,v3s:0,p25:0,p50:0,p75:0,p95:0,p100:0,lead:0,mql:0,sql:0});
+  const mapa=()=>{const m=new Map(); return {g:k=>{if(!m.has(k)) m.set(k,zero()); return m.get(k);}, m};};
+  const pub=mapa(), pag=mapa(), cre=mapa(), cmp=mapa(), ori=mapa();
+  const tot=zero(), pg=zero(), nat=zero();
+  const somaM=(o,r,ad)=>{o.spend+=r[2];o.imp+=r[3];o.clk+=r[4];o.clk_all+=r[5];o.lpv+=r[6];o.v3s+=r[7];o.p25+=r[8];o.p50+=r[9];o.p75+=r[10];o.p95+=r[11];o.p100+=r[12];if(!ad.n)o.clkp+=r[4];};
+  G.md.forEach(r=>{ if(r[0]<i0||r[0]>i1) return; const ad=G.ads[r[1]];
+    [tot,ad.n?nat:pg,pub.g(ad.t),pag.g(ad.p),cre.g(ad.c),cmp.g(ad.m)].forEach(o=>somaM(o,r,ad)); });
+  const poe=(a,ch,v)=>{ori.g(a.o)[ch]+=v; for(const [t,w] of Object.entries(a.t)) pub.g(t)[ch]+=v*w; pag.g(a.p)[ch]+=v; if(a.c) cre.g(a.c)[ch]+=v; if(a.m) cmp.g(a.m)[ch]+=v;};
+  let lead=0, lpag=0, lnat=0, glead=0, gmql=0, gsql=0; const fx={}; const st={mql:0,contato:0,sql:0,marcado:0,realizado:0,venda:0};
+  G.leads.forEach(([d,ai,fi,tp])=>{ if(d<i0||d>i1) return; const a=G.attr[ai]; lead++; if(tp===1) lpag++; if(tp===2) lnat++; if(a.g) glead++;
+    poe(a,"lead",1); const f=G.faixas[fi]; fx[f]=(fx[f]||0)+1; });
+  G.mql.forEach(([d,ai,sq,ct,mc,rz,vd])=>{ if(d<i0||d>i1) return; const a=G.attr[ai]; st.mql++; st.sql+=sq; st.contato+=ct; st.marcado+=mc; st.realizado+=rz; st.venda+=vd;
+    poe(a,"mql",1); if(sq) poe(a,"sql",1); if(a.g){gmql++; gsql+=sq;} });
+  const bmDe=o=>({cpm:o.imp?o.spend/o.imp*1000:null,ctr_link:o.imp?o.clk/o.imp:null,ctr_all:o.imp?o.clk_all/o.imp:null,cpc:o.clk?o.spend/o.clk:null});
+  const lista=(mp,ordem)=>[...mp.m.entries()].map(([nome,o])=>({nome,...o}));
+  const porNome=(arr)=>Object.fromEntries((arr||[]).map(x=>[x.nome??x.name,x]));
+  const gF=F.google, gsp=inteiro&&gF&&!gF.sem_gasto?gF.spend:0;
+  // público: mesma ordem do ciclo inteiro; Google com o gasto só no ciclo inteiro
+  const pubs=lista(pub); const ordP=(F.publicos||[]).map(x=>x.nome);
+  pubs.sort((a,b)=>(ordP.indexOf(a.nome)+1||99)-(ordP.indexOf(b.nome)+1||99));
+  pubs.forEach(x=>{ if(/^Google/.test(x.nome)&&gsp){x.spend=gsp; x.imp=gF.imp; x.clk=gF.clk;} });
+  const pags=lista(pag); pags.forEach(x=>{ if(/^Google/.test(x.nome)&&gsp) x.spend=gsp; }); pags.sort((a,b)=>(b.spend-a.spend)||(b.lead-a.lead));
+  const cF=porNome(F.criativos);
+  const cres=lista(cre).filter(x=>x.spend>0||x.lead>0||x.mql>0).map(x=>{const f=cF[x.nome]||{}; return {...x,prev:f.prev,thumb:f.thumb,onde:f.onde,bm:inteiro?f.bm:null};});
+  const kF=porNome(F.camps);
+  const camps=lista(cmp).filter(x=>x.spend>0||x.lead>0||x.mql>0).map(x=>{const ex=x.nome.startsWith("·"), f=kF[ex?x.nome.slice(1)||null:x.nome]||{};
+    return ex?{...x,name:x.nome.slice(1)||null,extra:true}:{...x,name:x.nome,status:f.status};}).sort((a,b)=>(!!a.extra-!!b.extra)||(b.spend-a.spend)||(b.lead-a.lead));
+  const oF=porNome(F.origens);
+  const oris=lista(ori).map(x=>({...x,pago:/^Meta|^Google/.test(x.nome),spend:x.nome==="Meta · página"?pg.spend:x.nome==="Meta · Lead Ads"?nat.spend:x.nome==="Google Ads"?gsp:0}));
+  const ordO=(F.origens||[]).map(x=>x.nome); oris.sort((a,b)=>(ordO.indexOf(a.nome)+1||99)-(ordO.indexOf(b.nome)+1||99));
+  const D=F.daily.slice(i0,i1+1), fimIso=D[D.length-1][0];
+  return {...F, recorte:inteiro?null:{ini:D[0][0],fim:fimIso},
+    ate:fimIso, parcial:F.parcial&&i1===F.daily.length-1,
+    ciclo:{...F.ciclo, meta_leads:inteiro?F.ciclo.meta_leads:null},
+    k:{...F.k, spend:tot.spend, imp:tot.imp, clk:tot.clk, lpv:tot.lpv, lead, mql:st.mql, sql:st.sql, lead_tot:lead, lead_pag:lpag, lead_tot_pag:lpag, lead_nativo:lnat,
+       pg:{spend:pg.spend,clk:pg.clk,lpv:pg.lpv}, nat:{spend:nat.spend,clk:nat.clk,lpv:nat.lpv}},
+    bm:inteiro?F.bm:bmDe(tot), daily:D, publicos:pubs, paginas:pags, criativos:cres, camps, origens:oris,
+    crm:F.crm&&{...F.crm, lead_crm:lead, ...st},
+    faixas:Object.entries(fx).sort((a,b)=>b[1]-a[1]),
+    google:gF?(inteiro?gF:{...gF, sem_gasto:true, recorte:true, spend:0, imp:0, clk:0, lead:glead, mql:gmql, sql:gsql, campanhas:[]}):(glead||gmql?{sem_gasto:true,recorte:true,spend:0,imp:0,clk:0,lead:glead,mql:gmql,sql:gsql,campanhas:[]}:null),
+    vendas:inteiro?F.vendas:null};
+}
+
 function render(){
   renderTop();
   if(VIEW==="criativos") renderCriativos();
@@ -882,6 +935,26 @@ function render(){
 }
 render();
 
+// filtro De/Até dentro do ciclo (só nos ciclos com dados por dia: o atual e os que tiverem "gran")
+function preparaPeriodo(){
+  const w=document.getElementById("per-wrap"), de=document.getElementById("per-de"), ate=document.getElementById("per-ate"), F=DATA;
+  w.classList.remove("ativo"); document.getElementById("per-limpa").hidden=true;
+  if(!F.gran||!F.daily.length){ w.hidden=true; return; }
+  const ini=F.daily[0][0], fim=F.daily[F.daily.length-1][0];
+  de.min=ate.min=ini; de.max=ate.max=fim; de.value=ini; ate.value=fim; w.hidden=false;
+}
+function aplicaPeriodo(){
+  const de=document.getElementById("per-de").value, ate=document.getElementById("per-ate").value;
+  const F=CACHE_C[DATA.ciclo.nome]||DATA, dias=F.daily.map(r=>r[0]);
+  let i0=dias.indexOf(de), i1=dias.indexOf(ate); if(i0<0) i0=0; if(i1<0) i1=dias.length-1; if(i1<i0) [i0,i1]=[i1,i0];
+  const inteiro=i0===0&&i1===dias.length-1;
+  DATA=inteiro?F:recorta(F,i0,i1); deriva(); render();
+  document.getElementById("per-wrap").classList.toggle("ativo",!inteiro); document.getElementById("per-limpa").hidden=inteiro;
+}
+["per-de","per-ate"].forEach(id=>document.getElementById(id).addEventListener("change",aplicaPeriodo));
+document.getElementById("per-limpa").addEventListener("click",()=>{const F=CACHE_C[DATA.ciclo.nome]||DATA; DATA=F; preparaPeriodo(); deriva(); render();});
+preparaPeriodo();
+
 // seletor de ciclo: o atual vem embutido; os fechados são lidos de c/<ciclo>.json e guardados aqui
 const CACHE_C = {[DATA0.ciclo.nome]: DATA0};
 async function trocaCiclo(nome, rolar){
@@ -889,7 +962,7 @@ async function trocaCiclo(nome, rolar){
   try{
     if(!CACHE_C[nome]){ sel.disabled=true;
       const r=await fetch("c/"+nome.replace(" ","-")+".json"); if(!r.ok) throw new Error(r.status); CACHE_C[nome]=await r.json(); }
-    DATA=CACHE_C[nome]; deriva(); render();
+    DATA=CACHE_C[nome]; preparaPeriodo(); deriva(); render();
     atualizaHash();
     if(rolar) window.scrollTo({top:0,behavior:"smooth"});
   }catch(e){ sel.value=C.nome; alert("Não consegui abrir o "+nome+" agora."); }
