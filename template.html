@@ -485,13 +485,13 @@ function painelGoogle(){
 
 function painelOrigens(){
   const O=DATA.origens; if(!O||!O.length) return null;
-  const H=["Origem","Leads","MQL","% MQL","SQL","% SQL","Investimento","Custo MQL","Custo SQL","% dos MQL"];
+  const H=["Origem","Leads","MQL","% MQL","SQL","% SQL","Vendas","Investimento","Custo MQL","Custo SQL","CAC","% dos MQL"];
   const tot=sumRows(O), pago=O.filter(o=>o.pago), org=O.filter(o=>!o.pago), sp=sumRows(pago), so=sumRows(org);
   const semG=GG&&GG.sem_gasto;
   const linha=(nome,r,cls,paga)=>{const g=nome==="Google Ads"&&semG, inv=paga&&!g&&r.spend?r.spend:null;
     return el("tr",cls?{class:cls}:{},td(nome,"","pg"),td(int(r.lead||0),H[1]),td(int(r.mql||0),H[2]),td(pct(div(r.mql,r.lead),0),H[3]),
-      td(int(r.sql||0),H[4]),td(pct(div(r.sql,r.mql),0),H[5]),td(paga?(g?"não lido":brl(inv||0)):"—",H[6]),
-      td(inv&&r.mql?brl(div(inv,r.mql)):"—",H[7],inv?tone(div(inv,r.mql),META.cpl):""),td(inv&&r.sql?brl(div(inv,r.sql)):"—",H[8]),td(pct(div(r.mql,tot.mql),0),H[9]));};
+      td(int(r.sql||0),H[4]),td(pct(div(r.sql,r.mql),0),H[5]),td(int(r.venda||0),H[6]),td(paga?(g?"não lido":brl(inv||0)):"—",H[7]),
+      td(inv&&r.mql?brl(div(inv,r.mql)):"—",H[8],inv?tone(div(inv,r.mql),META.cpl):""),td(inv&&r.sql?brl(div(inv,r.sql)):"—",H[9]),td(inv&&r.venda?brl(div(inv,r.venda)):"—",H[10]),td(pct(div(r.mql,tot.mql),0),H[11]));};
   const tb=el("tbody");
   pago.forEach(o=>tb.append(linha(o.nome,o,"",true)));
   tb.append(linha("Mídia paga · total",sp,"sub",true));
@@ -499,16 +499,16 @@ function painelOrigens(){
   if(org.length) tb.append(linha("Orgânico e outras · total",so,"sub",false));
   return sec("Origem dos leads e MQL",`HubSpot: leads = pessoas que preencheram formulário PERPÉTUO; MQL = negócios do relatório, ligados ao formulário da pessoa pela UTM${DATA.origens_obs?" · "+DATA.origens_obs:""}`,
     el("div",{class:"kpis",style:"grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px"},
-      kpi("MQL em todas as origens",int(tot.mql),`${int(tot.lead)} leads · ${int(tot.sql)} SQL`,true),
-      kpi("Mídia paga",int(sp.mql),`${pct(div(sp.mql,tot.mql),0)} dos MQL · ${int(sp.lead)} leads · ${int(sp.sql)} SQL`),
-      kpi("Orgânico e outras",int(so.mql),`${pct(div(so.mql,tot.mql),0)} dos MQL · ${int(so.lead)} leads · ${int(so.sql)} SQL`)),
+      kpi("MQL em todas as origens",int(tot.mql),`${int(tot.lead)} leads · ${int(tot.sql)} SQL · ${int(tot.venda||0)} vendas`,true),
+      kpi("Mídia paga",int(sp.mql),`${pct(div(sp.mql,tot.mql),0)} dos MQL · ${int(sp.sql)} SQL · ${int(sp.venda||0)} vendas`),
+      kpi("Orgânico e outras",int(so.mql),`${pct(div(so.mql,tot.mql),0)} dos MQL · ${int(so.sql)} SQL · ${int(so.venda||0)} vendas`)),
     el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb,el("tfoot",{},linha("Todas as origens",tot,"",false)))),
-    el("p",{class:"note",text:"Origem pela UTM do formulário: Meta pago (página ou Lead Ads), Google Ads, Instagram orgânico (utm_source instagram, bio ou stories), Live, Sem UTM. O MQL vai para a origem do formulário que a pessoa preencheu antes de o negócio nascer; \"Sem formulário PERPÉTUO\" são negócios do relatório cujo contato não preencheu formulário no ciclo."}));
+    el("p",{class:"note",text:"Origem pela UTM do formulário: Meta pago (página ou Lead Ads), Google Ads, Instagram orgânico (utm_source instagram, bio ou stories), Live, Sem UTM. O MQL vai para a origem do formulário que a pessoa preencheu antes de o negócio nascer; \"Sem formulário PERPÉTUO\" são negócios do relatório cujo contato não preencheu formulário no ciclo. Vendas da Planilha Comercial (canal Perpétuo, produto RGV), ligadas à origem pelo negócio no HubSpot, do mesmo jeito que o MQL; CAC = investimento ÷ vendas."}));
 }
 
 function painelKpis(){
   const pagCpl=div(K.pg.spend,K.lead_pag), natCpl=div(K.nat.spend,K.lead_nativo);
-  return sec("Resultado",null,el("div",{class:"kpis"},
+  return sec("Resultado",null,el("div",{class:"kpis",style:"grid-template-columns:repeat(3,minmax(0,1fr))"},
     kpi("Custo por MQL",brl(cmql),"meta "+brl(META.cpl)+" · "+tlabel(tone(cmql,META.cpl)),true),
     kpi("Custo por SQL",brl(custoSql),"meta "+brl(META.custoSql)+" · "+tlabel(tone(custoSql,META.custoSql)),true),
     kpi("CPL",brl(cpl),`${int(K.lead)} leads de todas as origens`),
@@ -516,7 +516,8 @@ function painelKpis(){
     kpi("Página",brl(pagCpl),`CPL · ${int(K.lead_pag)} leads de anúncio de página · ${brl(K.pg.spend)}`),
     kpi("Lead Ads",brl(natCpl),`CPL · ${int(K.lead_nativo)} leads de Lead Ads · ${brl(K.nat.spend)}`),
     kpi("CPC link",brl(BM.cpc,2),"do Gerenciador"),
-    kpi("MQL sobre leads",pct(div(K.mql,K.lead),0),`${int(K.mql)} de ${int(K.lead)}`)));
+    kpi("MQL sobre leads",pct(div(K.mql,K.lead),0),`${int(K.mql)} de ${int(K.lead)}`),
+    kpi("Vendas",int(K.venda||0),`${brl(K.receita||0)} · CAC ${brl(div(SPT,K.venda))} · Planilha Comercial`,true)));
 }
 
 // ritmo: média dos últimos 7 dias fechados × o que falta por dia até o fim do ciclo
@@ -607,7 +608,7 @@ function painelFaixas(){
 }
 
 const OLHO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
-const rc=r=>{const sp=r.spend||0,l=r.lead||0,m=r.mql||0,s=r.sql||0;return {sp,l,m,s,cpl:(l&&sp)?sp/l:null,cmql:(m&&sp)?sp/m:null,csql:(s&&sp)?sp/s:null,tx:div(s,m),connect:div(r.lpv,r.clkp??r.clk),conv:div(l,r.lpv),imp:r.imp||0,clk:r.clk||0,lpv:r.lpv||0,cpm:div(sp*1000,r.imp),ctr:div(r.clk,r.imp),cpc:div(sp,r.clk)};};
+const rc=r=>{const sp=r.spend||0,l=r.lead||0,m=r.mql||0,s=r.sql||0,v=r.venda||0;return {sp,l,m,s,v,rec:r.receita||0,cac:(v&&sp)?sp/v:null,cpl:(l&&sp)?sp/l:null,cmql:(m&&sp)?sp/m:null,csql:(s&&sp)?sp/s:null,tx:div(s,m),connect:div(r.lpv,r.clkp??r.clk),conv:div(l,r.lpv),imp:r.imp||0,clk:r.clk||0,lpv:r.lpv||0,cpm:div(sp*1000,r.imp),ctr:div(r.clk,r.imp),cpc:div(sp,r.clk)};};
 const sumRows=rows=>rows.reduce((a,r)=>{for(const[k,v]of Object.entries(r)) if(typeof v==="number") a[k]=(a[k]||0)+v; return a;},{});
 const grp=(t,n,cls)=>el("th",{colspan:String(n),class:"grp"+(cls?" "+cls:""),text:t});
 
@@ -701,21 +702,21 @@ function chartDia(){
 }
 
 function tabelaDia(){
-  const H=["Dia","Investimento","CPM","CTR link","Cliques","Visitas","Leads","MQL","Meta MQL","Custo MQL","SQL","% SQL","Custo SQL"];
+  const H=["Dia","Investimento","CPM","CTR link","Cliques","Visitas","Leads","MQL","Meta MQL","Custo MQL","SQL","% SQL","Custo SQL","Vendas"];
   const tb=el("tbody");
   [...D].reverse().forEach((r,i)=>{const hj=PARC&&i===0, mq=r[12]||0; tb.append(el("tr",hj?{class:"hoje"}:{},td(dBR(r[0])+(hj?` · hoje até ${DATA.hora}`:""),"","num"),td(brl(r[1]),H[1]),td(brl(r[7],2),H[2],tone(r[7],META.cpm)),td(pct(r[8],2),H[3],tone(r[8],META.ctr,false)),
     td(int(r[3]),H[4]),td(int(r[4]),H[5]),td(int(r[5]),H[6]),td(int(mq),H[7],hj?"":tone(mq,r[11],false)),td(hj&&r[11]!=null?int(r[11]*FR):int(r[11]),H[8]),
-    td(brl(div(r[1],mq)),H[9],tone(div(r[1],mq),META.cpl)),td(int(r[6]),H[10]),td(pct(div(r[6],mq),0),H[11]),td(r[6]?brl(div(r[1],r[6])):"—",H[12],r[6]?tone(div(r[1],r[6]),META.custoSql):"")))});
+    td(brl(div(r[1],mq)),H[9],tone(div(r[1],mq),META.cpl)),td(int(r[6]),H[10]),td(pct(div(r[6],mq),0),H[11]),td(r[6]?brl(div(r[1],r[6])):"—",H[12],r[6]?tone(div(r[1],r[6]),META.custoSql):""),td(r[13]?int(r[13]):"—",H[13])))});
   const sm=k=>D.reduce((a,r)=>a+(r[k]||0),0), gsp=GG&&!GG.sem_gasto?GG.spend:0;
-  return sec("Dia a dia",`mais recente primeiro · investimento do Meta por dia${gsp?"; o Google Ads não tem quebra por dia e entra no total":""} · leads, MQL e SQL do HubSpot no dia em que entraram (MQL e SQL pela criação do negócio)`,
+  return sec("Dia a dia",`mais recente primeiro · investimento do Meta por dia${gsp?"; o Google Ads não tem quebra por dia e entra no total":""} · leads, MQL e SQL do HubSpot no dia em que entraram (MQL e SQL pela criação do negócio) · vendas da Planilha Comercial pela data da venda`,
     el("div",{class:"tw scroll"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb,
       el("tfoot",{},gsp?el("tr",{},td("Google Ads no ciclo"),td(brl(gsp),H[1]),...H.slice(2).map(h=>td("—",h))):null,
         el("tr",{},td("Total"),td(brl(SPT),H[1]),td(brl(BM.cpm,2),H[2]),td(pct(BM.ctr_link,2),H[3]),td(int(K.clk),H[4]),td(int(K.lpv),H[5]),
-        td(int(K.lead),H[6]),td(int(K.mql),H[7]),td(SM?"—":int(sm(11)),H[8]),td(brl(cmql),H[9],tone(cmql,META.cpl)),td(int(K.sql),H[10]),td(pct(txSql,0),H[11]),td(brl(custoSql),H[12],tone(custoSql,META.custoSql)))))));
+        td(int(K.lead),H[6]),td(int(K.mql),H[7]),td(SM?"—":int(sm(11)),H[8]),td(brl(cmql),H[9],tone(cmql,META.cpl)),td(int(K.sql),H[10]),td(pct(txSql,0),H[11]),td(brl(custoSql),H[12],tone(custoSql,META.custoSql)),td(int(K.venda||0),H[13]))))));
 }
 
 function tabelaCiclos(){
-  const H=["Ciclo","Período","Dias","Investimento","Leads","MQL","MQL/dia","Custo MQL","SQL","% SQL","Custo SQL"];
+  const H=["Ciclo","Período","Dias","Investimento","Leads","MQL","MQL/dia","Custo MQL","SQL","% SQL","Custo SQL","Vendas","CAC"];
   const dA=iso=>iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(2,4);
   const nd=(a,b)=>Math.round((new Date(b)-new Date(a))/864e5)+1;
   const tb=el("tbody");
@@ -727,10 +728,10 @@ function tabelaCiclos(){
       td(dA(x.ini)+" a "+dA(x.fim),H[1]),td(x.atual?`${dias} de ${nd(x.ini,x.fim)}`:int(dias),H[2]),td(brl(x.spend),H[3]),
       td(sem?"—":int(x.lead),H[4]),td(int(x.mql),H[5]),td(dec(div(x.mql,dias)),H[6]),
       td(brl(cm),H[7],tone(cm,META.cpl)),td(int(x.sql),H[8]),td(pct(div(x.sql,x.mql),0),H[9],tone(div(x.sql,x.mql),META.sqlTx,false)),
-      td(brl(cs),H[10],tone(cs,META.custoSql)));
+      td(brl(cs),H[10],tone(cs,META.custoSql)),td(x.venda!=null&&x.venda!==undefined&&(x.venda||x.nome>="RGV 39")?int(x.venda):"—",H[11]),td(x.venda?brl(div(x.spend,x.venda)):"—",H[12]));
     if(tr.classList.contains("clic")){ tr.title="Ver o painel do "+x.nome; tr.addEventListener("click",()=>trocaCiclo(x.nome,true)); }
     tb.append(tr);});
-  return sec("Ciclos anteriores","clique num ciclo para ver o painel dele · mesmas regras em todos: investimento Meta [FF] (+ Google quando lido); leads e MQL do HubSpot, todas as origens · cores pelas metas do ciclo atual",
+  return sec("Ciclos anteriores","clique num ciclo para ver o painel dele · mesmas regras em todos: investimento Meta [FF] (+ Google quando lido); leads e MQL do HubSpot, todas as origens; vendas da Planilha Comercial (canal Perpétuo, produto RGV), que começa no RGV 39 · cores pelas metas do ciclo atual",
     el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb)));
 }
 
@@ -880,7 +881,7 @@ document.querySelectorAll("#menu button").forEach(b=>b.addEventListener("click",
 // devolve um objeto no mesmo formato do DATA. CPM/CTR/CPC saem das somas; o Google não tem gasto por dia e fica fora num período parcial.
 function recorta(F, i0, i1){
   const G=F.gran, inteiro=i0===0&&i1===F.daily.length-1;
-  const zero=()=>({spend:0,imp:0,clk:0,clk_all:0,lpv:0,clkp:0,v3s:0,p25:0,p50:0,p75:0,p95:0,p100:0,lead:0,mql:0,sql:0});
+  const zero=()=>({spend:0,imp:0,clk:0,clk_all:0,lpv:0,clkp:0,v3s:0,p25:0,p50:0,p75:0,p95:0,p100:0,lead:0,mql:0,sql:0,venda:0,receita:0});
   const mapa=()=>{const m=new Map(); return {g:k=>{if(!m.has(k)) m.set(k,zero()); return m.get(k);}, m};};
   const pub=mapa(), pag=mapa(), cre=mapa(), cmp=mapa(), ori=mapa();
   const tot=zero(), pg=zero(), nat=zero();
@@ -893,6 +894,8 @@ function recorta(F, i0, i1){
     poe(a,"lead",1); const f=G.faixas[fi]; fx[f]=(fx[f]||0)+1; });
   G.mql.forEach(([d,ai,sq,ct,mc,rz,vd])=>{ if(d<i0||d>i1) return; const a=G.attr[ai]; st.mql++; st.sql+=sq; st.contato+=ct; st.marcado+=mc; st.realizado+=rz; st.venda+=vd;
     poe(a,"mql",1); if(sq) poe(a,"sql",1); if(a.g){gmql++; gsql+=sq;} });
+  let vendas=0, receita=0;
+  (G.vendas||[]).forEach(([d,ai,n,val])=>{ if(d<i0||d>i1) return; const a=G.attr[ai]; vendas+=n; receita+=val; poe(a,"venda",n); poe(a,"receita",val); });
   const bmDe=o=>({cpm:o.imp?o.spend/o.imp*1000:null,ctr_link:o.imp?o.clk/o.imp:null,ctr_all:o.imp?o.clk_all/o.imp:null,cpc:o.clk?o.spend/o.clk:null});
   const lista=(mp,ordem)=>[...mp.m.entries()].map(([nome,o])=>({nome,...o}));
   const porNome=(arr)=>Object.fromEntries((arr||[]).map(x=>[x.nome??x.name,x]));
@@ -914,10 +917,10 @@ function recorta(F, i0, i1){
   return {...F, recorte:inteiro?null:{ini:D[0][0],fim:fimIso},
     ate:fimIso, parcial:F.parcial&&i1===F.daily.length-1,
     ciclo:{...F.ciclo, meta_leads:inteiro?F.ciclo.meta_leads:null},
-    k:{...F.k, spend:tot.spend, imp:tot.imp, clk:tot.clk, lpv:tot.lpv, lead, mql:st.mql, sql:st.sql, lead_tot:lead, lead_pag:lpag, lead_tot_pag:lpag, lead_nativo:lnat,
+    k:{...F.k, venda:vendas, receita, spend:tot.spend, imp:tot.imp, clk:tot.clk, lpv:tot.lpv, lead, mql:st.mql, sql:st.sql, lead_tot:lead, lead_pag:lpag, lead_tot_pag:lpag, lead_nativo:lnat,
        pg:{spend:pg.spend,clk:pg.clk,lpv:pg.lpv}, nat:{spend:nat.spend,clk:nat.clk,lpv:nat.lpv}},
     bm:inteiro?F.bm:bmDe(tot), daily:D, publicos:pubs, paginas:pags, criativos:cres, camps, origens:oris,
-    crm:F.crm&&{...F.crm, lead_crm:lead, ...st},
+    crm:F.crm&&{...F.crm, lead_crm:lead, ...st, venda:vendas},
     faixas:Object.entries(fx).sort((a,b)=>b[1]-a[1]),
     google:gF?(inteiro?gF:{...gF, sem_gasto:true, recorte:true, spend:0, imp:0, clk:0, lead:glead, mql:gmql, sql:gsql, campanhas:[]}):(glead||gmql?{sem_gasto:true,recorte:true,spend:0,imp:0,clk:0,lead:glead,mql:gmql,sql:gsql,campanhas:[]}:null),
     vendas:inteiro?F.vendas:null};

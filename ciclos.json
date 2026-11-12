@@ -14,6 +14,8 @@
    "mql": 3116,
    "sql": 718,
    "hubspot": true,
+   "venda": null,
+   "receita": null,
    "sem_hs": true
   },
   {
@@ -30,6 +32,8 @@
    "mql": 2957,
    "sql": 857,
    "hubspot": true,
+   "venda": null,
+   "receita": null,
    "sem_hs": true
   },
   {
@@ -46,6 +50,8 @@
    "mql": 2571,
    "sql": 659,
    "hubspot": true,
+   "venda": null,
+   "receita": null,
    "sem_hs": true
   },
   {
@@ -62,6 +68,8 @@
    "mql": 3060,
    "sql": 758,
    "hubspot": true,
+   "venda": null,
+   "receita": null,
    "sem_hs": true
   },
   {
@@ -78,6 +86,8 @@
    "mql": 4093,
    "sql": 1055,
    "hubspot": true,
+   "venda": null,
+   "receita": null,
    "parcial": "2025-07-15"
   },
   {
@@ -93,7 +103,9 @@
    "lead_tot": 5911,
    "mql": 2811,
    "sql": 573,
-   "hubspot": true
+   "hubspot": true,
+   "venda": null,
+   "receita": null
   },
   {
    "nome": "RGV 35",
@@ -108,7 +120,9 @@
    "lead_tot": 9496,
    "mql": 4603,
    "sql": 667,
-   "hubspot": true
+   "hubspot": true,
+   "venda": null,
+   "receita": null
   },
   {
    "nome": "RGV 36",
@@ -123,7 +137,9 @@
    "lead_tot": 8941,
    "mql": 4028,
    "sql": 660,
-   "hubspot": true
+   "hubspot": true,
+   "venda": null,
+   "receita": null
   },
   {
    "nome": "RGV 37",
@@ -138,7 +154,9 @@
    "lead_tot": 7595,
    "mql": 4259,
    "sql": 744,
-   "hubspot": true
+   "hubspot": true,
+   "venda": null,
+   "receita": null
   },
   {
    "nome": "RGV 38",
@@ -153,7 +171,9 @@
    "lead_tot": 7513,
    "mql": 5281,
    "sql": 804,
-   "hubspot": true
+   "hubspot": true,
+   "venda": null,
+   "receita": null
   },
   {
    "nome": "RGV 39",
@@ -168,7 +188,9 @@
    "lead_tot": 9470,
    "mql": 6496,
    "sql": 915,
-   "hubspot": true
+   "hubspot": true,
+   "venda": 98,
+   "receita": 1466997
   },
   {
    "nome": "RGV 40",
@@ -183,7 +205,9 @@
    "lead_tot": 7026,
    "mql": 3347,
    "sql": 554,
-   "hubspot": true
+   "hubspot": true,
+   "venda": 69,
+   "receita": 1045570
   },
   {
    "nome": "RGV 41",
@@ -198,7 +222,9 @@
    "lead_tot": 7425,
    "mql": 3696,
    "sql": 469,
-   "hubspot": true
+   "hubspot": true,
+   "venda": 58,
+   "receita": 917289
   },
   {
    "nome": "RGV 42",
@@ -213,7 +239,9 @@
    "lead_tot": 6255,
    "mql": 3548,
    "sql": 460,
-   "hubspot": true
+   "hubspot": true,
+   "venda": 88,
+   "receita": 1431927
   },
   {
    "nome": "RGV 43",
@@ -228,7 +256,9 @@
    "lead_tot": 7329,
    "mql": 2974,
    "sql": 392,
-   "hubspot": true
+   "hubspot": true,
+   "venda": 30,
+   "receita": 450840
   },
   {
    "nome": "RGV 44",
@@ -243,7 +273,9 @@
    "lead_tot": 9440,
    "mql": 2838,
    "sql": 285,
-   "hubspot": true
+   "hubspot": true,
+   "venda": 36,
+   "receita": 559832
   },
   {
    "nome": "RGV 45",
@@ -259,6 +291,8 @@
    "mql": 2788,
    "sql": 300,
    "hubspot": true,
+   "venda": 27,
+   "receita": 443806,
    "g_spend": 9093.38
   }
  ]

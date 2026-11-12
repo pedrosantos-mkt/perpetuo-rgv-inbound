@@ -15,7 +15,7 @@ for nome, ini, fim in CICLOS:
     k, g = d['k'], d.get('google') or {}
     out.append({'nome': nome, 'ini': ini, 'fim': fim, 'spend': round(k['spend'], 2), 'imp': k['imp'], 'clk': k['clk'],
                 'cpm': d['bm'].get('cpm'), 'ctr_link': d['bm'].get('ctr_link'),
-                'lead': k['lead'], 'lead_tot': k['lead'], 'mql': k['mql'], 'sql': k['sql'], 'hubspot': True,
+                'lead': k['lead'], 'lead_tot': k['lead'], 'mql': k['mql'], 'sql': k['sql'], 'hubspot': True, 'venda': k.get('venda'), 'receita': k.get('receita'),
                 **({'g_spend': g['spend']} if g.get('spend') and not g.get('sem_gasto') else {}),
                 **({'sem_hs': True} if fim < INICIO_FORMS else {'parcial': INICIO_FORMS} if ini < INICIO_FORMS else {})})
     print(nome, round(k['spend']), 'leads', k['lead'], 'MQL', k['mql'], 'SQL', k['sql'])

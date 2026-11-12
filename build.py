@@ -186,6 +186,37 @@ for d in CRM['deals']:
     dia_leads[d['dia']]['mql'] += 1; dia_leads[d['dia']]['sql'] += bool(d.get('sql'))
     GQ.append([DIA_IX.get(d['dia'], 0), ix(a)] + [int(bool(d.get(e))) for e in ('sql', 'contato', 'marcado', 'realizado', 'venda')])
 
+# vendas (Planilha Comercial, canal Perpétuo + produto RGV): origem pelo formulário da pessoa, como o MQL; dia = data da venda
+# (venda com data fora do ciclo entra no dia mais próximo, para o dia a dia fechar no total)
+GV = []
+ult = max(DIA_IX.values()) if DIA_IX else 0
+# venda de ticket alto demora: se o comprador não preencheu formulário no ciclo, procura o formulário PERPÉTUO em todo o
+# histórico baixado (raw/c_subs.json desde o RGV 29 + raw/subs_mql.json do último mês)
+_hist = None
+def hist_de(email):
+    global _hist
+    if _hist is None:
+        import hs
+        _hist = collections.defaultdict(list)
+        for arq in ('c_subs.json', 'subs_mql.json'):
+            p_ = os.path.join(RAW_ATUAL, arq)
+            if not os.path.exists(p_): continue
+            for s_ in json.load(open(p_)):
+                em_ = (s_['v'].get('email') or '').strip().lower()
+                if not em_ or hs.teste(s_, em_): continue
+                d_ = dt.datetime.fromtimestamp(s_['ts'] / 1000, TZ).date()
+                canal = 'meta' if hs.pago_meta(s_) else 'google' if hs.pago_google(s_) else 'organico'
+                _hist[em_].append(hs.lead(s_, em_, d_, canal, None if canal != 'organico' else hs.origem_organica(s_)))
+    return _hist.get(email, [])
+for v in CRM.get('vendas', []):
+    ev = sorted((e for m in v.get('emails', []) for e in (env_de.get(m) or hist_de(m))), key=lambda e: e['ts'])
+    antes = [e for e in ev if e['ts'] <= (v.get('ts') or 9e15) + 600000]
+    l = antes[-1] if antes else (ev[0] if ev else None)
+    a = atrib(l); soma(a, 'venda', v['vendas']); soma(a, 'receita', v['valor'])
+    di = DIA_IX.get(v['data'], 0 if v['data'] < CICLO['ini'].isoformat() else ult)
+    dia_leads[next(k for k, i in DIA_IX.items() if i == di)]['venda'] += v['vendas']
+    GV.append([di, ix(a), v['vendas'], v['valor']])
+
 # Google em linha própria nos quadros de público e página, com o gasto lido no google.json
 if _gc:
     gs = {'spend': sum(c['spend'] for c in _gc['campanhas']), 'imp': sum(c['imp'] for c in _gc['campanhas']), 'clk': sum(c['clk'] for c in _gc['campanhas'])}
@@ -199,9 +230,9 @@ dm = {r['date_start']: r for r in M['dia']}
 daily = []
 for d in dias:
     r = dm.get(d.isoformat(), {}); m = midia(r); L = dia_leads.get(d.isoformat(), {})
-    # [dia, investimento, impressões, cliques, visitas, leads, SQL, CPM, CTR link, CTR todos, leads, meta do dia, MQL]
+    # [dia, investimento, impressões, cliques, visitas, leads, SQL, CPM, CTR link, CTR todos, leads, meta do dia, MQL, vendas]
     daily.append([d.isoformat(), round(m['spend'], 2), m['imp'], m['clk'], m['lpv'], L.get('lead', 0), L.get('sql', 0),
-                  f(r, 'cpm'), f(r, 'inline_link_click_ctr', 100), f(r, 'ctr', 100), L.get('lead', 0), meta_do_dia(d), L.get('mql', 0)])
+                  f(r, 'cpm'), f(r, 'inline_link_click_ctr', 100), f(r, 'ctr', 100), L.get('lead', 0), meta_do_dia(d), L.get('mql', 0), L.get('venda', 0)])
 
 # connect e conversão de página só nas campanhas de página (Lead Ads não passa pela página)
 pg_m = sum((v for n, v in pag.items() if n != NATIVO), collections.Counter())
@@ -228,7 +259,7 @@ data = {
     'parcial': (not FECHADO) and M['fim'] == hoje().isoformat(),
     'hora': dt.datetime.now(TZ).strftime('%Hh%M'),
     'frac': round((dt.datetime.now(TZ).hour * 60 + dt.datetime.now(TZ).minute) / 1440, 4),
-    'k': {**limpa(k), 'lead': len(HS['leads']), 'mql': len(CRM['deals']), 'sql': sum(1 for d in CRM['deals'] if d.get('sql')), 'lead_tot': len(HS['leads']),
+    'k': {**limpa(k), 'venda': sum(x[2] for x in GV), 'receita': sum(x[3] for x in GV), 'lead': len(HS['leads']), 'mql': len(CRM['deals']), 'sql': sum(1 for d in CRM['deals'] if d.get('sql')), 'lead_tot': len(HS['leads']),
           'lead_pag': sum(L.get('lead_pag', 0) for L in dia_leads.values()), 'lead_tot_pag': sum(L.get('lead_pag', 0) for L in dia_leads.values()), 'lead_nativo': sum(L.get('lead_nativo', 0) for L in dia_leads.values()),
           'pg': limpa(pg_m), 'nat': limpa(nat_m), 'ativas': sum(1 for c in M['camps'] if c.get('status') == 'ACTIVE')},
     'bm': bm(T),
@@ -256,7 +287,8 @@ data = {
     # funil comercial (crm.py): MQL e etapas pelos negócios [FF] criados no ciclo; lead no CRM = leads pagos de todas as faixas
     # antes dos forms PERPÉTUO (até o RGV 33) o lead no CRM é o negócio [FF] de qualquer faixa
     'crm': CRM.get('gerado') and {'lead_crm': len(HS['leads']), 'lead_fonte': 'forms', 'gerado': CRM['gerado'],
-                                  **{e: sum(1 for x in CRM['deals'] if e == 'mql' or x.get(e)) for e in ('mql', 'contato', 'sql', 'marcado', 'realizado', 'venda')}},
+                                  **{e: sum(1 for x in CRM['deals'] if e == 'mql' or x.get(e)) for e in ('mql', 'contato', 'sql', 'marcado', 'realizado')},
+                                  'venda': sum(x[2] for x in GV) if 'vendas' in CRM else sum(1 for x in CRM['deals'] if x.get('venda'))},   # venda = Planilha Comercial
     # vendas da Planilha Comercial com tráfego × orgânico pela UTM (vendas.json, gerado à mão no debriefing-ciclo45/exporta_vendas.py)
     'vendas': (lambda v: v if v and v.get('ciclo') == CICLO['nome'] else None)(
         json.load(open(os.path.join(AQUI, 'vendas.json'))) if os.path.exists(os.path.join(AQUI, 'vendas.json')) else None),
@@ -265,7 +297,7 @@ data = {
                  + [{'nome': CICLO['nome'], 'ini': CICLO['ini'].isoformat(), 'fim': CICLO['fim'].isoformat(), 'atual': True, 'ate': M['fim'],
                      'spend': round(k['spend'], 2), 'imp': k['imp'], 'clk': k['clk'], 'cpm': bm(T)['cpm'], 'ctr_link': bm(T)['ctr_link'],
                      'lead_tot': len(HS['leads']), 'lead': len(HS['leads']), 'mql': len(CRM['deals']), 'sql': sum(1 for d in CRM['deals'] if d.get('sql')),
-                     'hubspot': True, **({'g_spend': round(sum(c['spend'] for c in _gc['campanhas']), 2)} if _gc else {})}],
+                     'hubspot': True, 'venda': sum(x[2] for x in GV), 'receita': sum(x[3] for x in GV), **({'g_spend': round(sum(c['spend'] for c in _gc['campanhas']), 2)} if _gc else {})}],
 }
 # ---------- dados granulares para o filtro de datas dentro do ciclo ----------
 ad_info = {}
@@ -281,7 +313,7 @@ MD = [[DIA_IX[r['date_start']], AD_IX[r['ad_id']], round(float(r.get('spend', 0)
 data['gran'] = M.get('ad_dia') and {
     'ads': [ad_info[x] for x in ADS],   # c = criativo, t = público, p = página, m = campanha, n = Lead Ads
     'md': MD,                           # [dia, anúncio, gasto, impressões, cliques no link, cliques, visitas, 3 s, 25, 50, 75, 95, 100%]
-    'attr': ATTR, 'leads': GL, 'mql': GQ, 'faixas': list(FAIXAS_IX)}
+    'attr': ATTR, 'leads': GL, 'mql': GQ, 'vendas': GV, 'faixas': list(FAIXAS_IX)}
 
 saida = os.path.join(AQUI, 'site', 'c', slug(CICLO['nome']) + '.json') if FECHADO else os.path.join(AQUI, 'data.json')
 os.makedirs(os.path.dirname(saida), exist_ok=True)
