@@ -969,9 +969,9 @@ function renderFrentes(){
   const soma=l=>l.reduce((a,o)=>({lead:a.lead+o.lead,mql:a.mql+o.mql,sql:a.sql+o.sql,venda:a.venda+o.venda}),z());
   const totF=Object.fromEntries(FRENTES.map(([fr])=>[fr,soma(Object.values(por[fr]||{}))])), T=soma(Object.values(totF));
   const metaF=(METAS[C.nome]||{}).frentes||{};
-  const H=["Canal","Leads","MQL","% MQL","SQL","Vendas","% dos MQL da frente","% de todos os MQL","Como é identificado (UTM)"];
+  const H=["Canal","Leads","MQL","% MQL","SQL","Vendas","% de todos os MQL","Como é identificado (UTM)"];
   const linha=(nome,o,t,cls,utm)=>el("tr",cls?{class:cls}:{},td(nome,"","pg"),td(int(o.lead),H[1]),td(int(o.mql),H[2]),td(o.lead?pct(div(o.mql,o.lead),0):"—",H[3]),
-    td(int(o.sql),H[4]),td(int(o.venda),H[5]),td(t.mql?pct(div(o.mql,t.mql),0):"—",H[6]),td(mqlTodos?pct(div(o.mql,mqlTodos),1):"—",H[7]),el("td",{class:"utm","data-l":H[8],text:utm||""}));
+    td(int(o.sql),H[4]),td(int(o.venda),H[5]),td(mqlTodos?pct(div(o.mql,mqlTodos),1):"—",H[6]),el("td",{class:"utm","data-l":H[7],text:utm||""}));
   // gráfico: MQL por dia no ciclo inteiro (dias fora do período em cinza), hoje parcial mais claro, meta por dia tracejada
   const grafico=fr=>{const W=Math.max(320,(box.clientWidth||900)-40), Hh=96, P={l:4,r:4,t:8,b:20}, N=C.dias, bw=(W-P.l-P.r)/N, dd=dia[fr]||{}, md=metaF[fr]?metaF[fr]/N:null;
     const vals=dias.map((_,i)=>dd[i]||0), mx=Math.max(1,...vals,md||0)*1.15, y=v=>P.t+(Hh-P.t-P.b)*(1-v/mx);
@@ -987,7 +987,7 @@ function renderFrentes(){
   const blocos=FRENTES.map(([fr,canais])=>{const t=totF[fr], tb=el("tbody");
     canais.forEach(([ca,utm])=>{const o=(por[fr]||{})[ca]; if(!o&&/^Outr/.test(ca)) return; tb.append(linha(ca,o||z(),t,"",utm));});
     return el("div",{class:"fr-bloco"},el("h5",{},fr,el("small",{text:`${int(t.mql)} MQL · ${pct(div(t.mql,mqlTodos),1)} de todos os MQL`})),
-      el("div",{class:"tw",style:"border-radius:12px 12px 0 0"},el("table",{},el("thead",{},el("tr",{},...H.map((h,i)=>el("th",i===8?{class:"utm",text:h}:{text:h})))),tb,
+      el("div",{class:"tw",style:"border-radius:12px 12px 0 0"},el("table",{},el("thead",{},el("tr",{},...H.map((h,i)=>el("th",i===7?{class:"utm",text:h}:{text:h})))),tb,
         el("tfoot",{},linha("Total da frente",t,t,"sub","")))),grafico(fr));});
   box.replaceChildren(sec("MQL diários frentes",`${C.nome} · leads e MQL das redes sociais e das bases, pela UTM do formulário PERPÉTUO no HubSpot${DATA.recorte?` · período de ${dBR(DATA.recorte.ini)} a ${dBR(DATA.recorte.fim)}`:""}`,
     el("div",{class:"kpis"},
