@@ -149,7 +149,7 @@ dialog.det::backdrop{background:rgba(0,0,0,.72)}
 .mt .ln b{color:var(--fg);font-weight:700;white-space:nowrap}
 .mt .lin{border-top:1px dashed var(--line-soft);padding-top:10px;display:flex;flex-direction:column;gap:6px}
 .mt .lin .ln span:first-child{color:var(--fg)}
-@media (max-width:980px){.mt-grid{grid-template-columns:1fr}.mt-top{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:980px){.mt-grid{grid-template-columns:1fr!important}.mt-top{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .stamp{font-size:12px;color:var(--faint);text-align:right;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:8px;max-width:560px}
 /* desktop: título à esquerda e o bloco de controles encostado à direita, carimbo embaixo dos controles */
 @media (min-width:901px){.top{flex-wrap:nowrap}.top>div:first-child{flex:1 1 auto;min-width:0}.stamp{flex:0 0 auto;margin-left:auto}}
@@ -883,6 +883,21 @@ function abreCriativo(r){
 document.getElementById("det").addEventListener("click",e=>{ if(e.target.id==="det") e.target.close(); });
 
 // painel de metas: MQL do HubSpot por origem contra a meta do ciclo (metas.json); muda com o ciclo e com o período escolhido
+// metas fixas do ciclo: só os números da meta (sem realizado), por bloco, por dia e por semana
+function painelMetasFixas(M){
+  const dias=C.dias, sem=dias/7, princ=M.blocos.filter(b=>!b.extra), tot=M.total||princ.reduce((a,b)=>a+b.meta,0);
+  const linha=(l,v)=>el("div",{class:"ln"},el("span",{text:l}),el("b",{text:v}));
+  const card=(nome,meta,linhas,extra,nota)=>el("div",{class:"mt"+(extra?" extra":"")},
+    el("h5",{},nome,el("small",{text:extra?"extra · fora do total":nota||"meta do ciclo"})),
+    el("div",{class:"big"},int(meta),el("span",{text:"MQL"})),
+    linha("por dia",dec(meta/dias)), linha("por semana",int(Math.round(meta/sem))),
+    linhas?el("div",{class:"lin"},...linhas.map(x=>el("div",{class:"ln"},el("span",{text:x}),el("b",{text:""})))):null);
+  return sec("Metas fixas do ciclo",`${C.nome} · ${dAno(C.ini)} a ${dAno(C.fim)} (${dias} dias) · metas de MQL definidas para o ciclo; não mudam com o período nem com o realizado`,
+    el("div",{class:"mt-grid",style:"grid-template-columns:repeat(4,minmax(0,1fr))"},
+      card("Total",tot,princ.map(b=>`${b.nome}: ${int(b.meta)}`),false,"orgânico + tráfego pago"),
+      ...M.blocos.map(b=>card(b.nome,b.meta,b.linhas.map(l=>l.nome),b.extra))));
+}
+
 function renderMetas(){
   const box=document.getElementById("metas"), M=METAS[C.nome];
   if(!M){ box.replaceChildren(sec("Metas do ciclo",C.nome,el("p",{class:"note",text:`Ainda não há metas cadastradas para o ${C.nome}. Quando as metas deste ciclo forem passadas, este painel mostra o realizado contra elas.`}))); return; }
@@ -908,7 +923,7 @@ function renderMetas(){
       el("div",{class:"ln"},el("span",{text:rec?"no ritmo do período":"projeção no ritmo atual"}),el("b",{class:tom(proj(b.r),b.meta*1/fr*fr),text:`${int(proj(b.r))} · ${pct(div(proj(b.r),b.meta),0)}`})),
       fim?null:el("div",{class:"ln"},el("span",{text:"precisa por dia até o fim"}),el("b",{text:dec(div(Math.max(0,b.meta-b.r),diasFalta))+"/dia"})),
       el("div",{class:"lin"},...b.linhas.map(l=>{const v=soma(l.origens); return el("div",{class:"ln"},el("span",{text:l.nome}),el("b",{text:`${int(v)} · ${pct(div(v,b.r),0)}`}));})));};
-  box.replaceChildren(sec("Metas do ciclo",`${C.nome} · meta de MQL (negócios do relatório [CICLO] MQL - PERPÉTUO), por origem do formulário da pessoa${rec?` · período de ${dBR(DATA.recorte.ini)} a ${dBR(DATA.recorte.fim)}: o esperado é proporcional aos dias`:""}`,
+  box.replaceChildren(painelMetasFixas(M),sec("Metas do ciclo",`${C.nome} · meta de MQL (negócios do relatório [CICLO] MQL - PERPÉTUO), por origem do formulário da pessoa${rec?` · período de ${dBR(DATA.recorte.ini)} a ${dBR(DATA.recorte.fim)}: o esperado é proporcional aos dias`:""}`,
     el("div",{class:"mt-top kpis"},
       kpi("MQL na meta",`${int(rT)} de ${int(mT)}`,`${pct(div(rT,mT),0)} da meta · ${princ.map(b=>b.nome.toLowerCase()).join(" + ")}${rFora?" + "+int(rFora)+" sem bloco":""}`,true),
       kpi(fim?"Resultado do ciclo":"Esperado até agora",fim?pct(div(rT,mT),0):int(esper(mT)),fim?"realizado ÷ meta":`${dec(diasCorr)} de ${C.dias} dias · ${rT>=esper(mT)?"acima":"abaixo"} em ${int(Math.abs(rT-esper(mT)))}`),
