@@ -962,9 +962,11 @@ function renderFrentes(){
   const z=()=>({lead:0,mql:0,sql:0,venda:0}), por={}, dia={}, tot=z();
   const pega=a=>{ if(!a.f) return null; const [fr,ca]=a.f.split("|"); por[fr]=por[fr]||{}; return por[fr][ca]=por[fr][ca]||z(); };
   let mqlTodos=0;
-  G.leads.forEach(([d,ai])=>{ if(d<i0||d>i1) return; const o=pega(G.attr[ai]); if(o){o.lead++;} });
+  const dc={};   // frente → dia → canal → {mql, lead}: detalhe do dia ao passar o mouse
+  const poeDia=(a,d,ch)=>{const [fr,ca]=a.f.split("|"), x=((dc[fr]=dc[fr]||{})[d]=dc[fr][d]||{}); (x[ca]=x[ca]||{mql:0,lead:0})[ch]++;};
+  G.leads.forEach(([d,ai])=>{ if(d<i0||d>i1) return; const a=G.attr[ai], o=pega(a); if(o){o.lead++; poeDia(a,d,"lead");} });
   G.mql.forEach(([d,ai,sq])=>{ if(d<i0||d>i1) return; mqlTodos++; const a=G.attr[ai], o=pega(a); if(!o) return; o.mql++; o.sql+=sq;
-    const fr=a.f.split("|")[0]; (dia[fr]=dia[fr]||{})[d]=(dia[fr][d]||0)+1; });
+    const fr=a.f.split("|")[0]; (dia[fr]=dia[fr]||{})[d]=(dia[fr][d]||0)+1; poeDia(a,d,"mql"); });
   (G.vendas||[]).forEach(([d,ai,n])=>{ if(d<i0||d>i1) return; const o=pega(G.attr[ai]); if(o) o.venda+=n; });
   const soma=l=>l.reduce((a,o)=>({lead:a.lead+o.lead,mql:a.mql+o.mql,sql:a.sql+o.sql,venda:a.venda+o.venda}),z());
   const totF=Object.fromEntries(FRENTES.map(([fr])=>[fr,soma(Object.values(por[fr]||{}))])), T=soma(Object.values(totF));
@@ -979,11 +981,26 @@ function renderFrentes(){
     add("line",{x1:P.l,x2:W-P.r,y1:y(0),y2:y(0),style:"stroke:rgba(var(--ink-rgb),.15)"});
     vals.forEach((v,i)=>{ if(!v) return; const fora=i<i0||i>i1, hj=i===hoje;
       const r=add("rect",{x:P.l+i*bw+bw*.12,y:y(v),width:Math.max(1,bw*.76),height:y(0)-y(v),rx:2,style:`fill:${fora?"rgba(var(--ink-rgb),.18)":"var(--red)"};opacity:${hj?.45:1}`});
-      const tt=document.createElementNS("http://www.w3.org/2000/svg","title"); tt.textContent=`${dBR(dias[i])}: ${v} MQL${hj?" (hoje, parcial)":""}`; r.append(tt); });
+    });
     if(md) add("line",{x1:P.l,x2:W-P.r,y1:y(md),y2:y(md),style:"stroke:rgba(var(--ink-rgb),.55);stroke-dasharray:4 4"});
     for(let i=0;i<N;i+=7){ const d=new Date(C.ini+"T12:00:00"); d.setDate(d.getDate()+i); add("text",{x:P.l+i*bw+bw/2,y:Hh-5,"text-anchor":"middle","font-size":10,style:"fill:var(--faint)"},d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})); }
     const t=totF[fr], nd=i1-i0+(PARC?FR:1);
-    return el("div",{class:"fr-dia"},el("div",{class:"t"},"MQL por dia",el("small",{text:`${int(t.mql)} MQL · ${dec(div(t.mql,nd))}/dia${md?` · meta ${dec(md)}/dia (${int(metaF[fr])} no ciclo)`:" · sem meta por dia cadastrada"}`})),s);};
+    // passar o mouse: MQL do dia e quanto veio de cada canal da frente
+    const tip=el("div",{class:"tip",hidden:""}), wrap=el("div",{class:"chart"},s,tip), iw=W-P.l-P.r;
+    const hit=add("rect",{x:P.l,y:0,width:iw,height:Hh,fill:"transparent"});
+    const guia=add("line",{y1:P.t,y2:Hh-P.b,style:"stroke:rgba(var(--ink-rgb),.35)","stroke-dasharray":"3 3",visibility:"hidden"});
+    hit.addEventListener("pointermove",ev=>{
+      const b=s.getBoundingClientRect(), x=(ev.clientX-b.left)*W/b.width, i=Math.min(N-1,Math.max(0,Math.floor((x-P.l)/bw)));
+      const gx=P.l+i*bw+bw/2; guia.setAttribute("x1",gx); guia.setAttribute("x2",gx); guia.setAttribute("visibility","visible");
+      const det=(dc[fr]||{})[i]||{}, nomes=(FRENTES.find(f=>f[0]===fr)||[,[]])[1].map(c=>c[0]);
+      const linhas=nomes.filter(c=>det[c]&&(det[c].mql||det[c].lead)).map(c=>`${c}: ${det[c].mql} MQL · ${det[c].lead} lead${det[c].lead===1?"":"s"}`);
+      const tl=Object.values(det).reduce((a,o)=>a+o.lead,0);
+      tip.hidden=false;
+      tip.textContent=`${dBR(dias[i])}${i===hoje?` · hoje até ${DATA.hora} (parcial)`:""}\n${i<i0||i>i1?(!FECH&&dias[i]>DATA0.ate?"ainda não chegou":"fora do período escolhido"):`${vals[i]} MQL · ${tl} lead${tl===1?"":"s"}${linhas.length?"\n"+linhas.join("\n"):""}`}`;
+      tip.style.left=Math.min(b.width-130,Math.max(130,gx*b.width/W))+"px"; tip.style.top=(y(vals[i])*b.height/Hh)+"px";
+    });
+    hit.addEventListener("pointerleave",()=>{tip.hidden=true; guia.setAttribute("visibility","hidden");});
+    return el("div",{class:"fr-dia"},el("div",{class:"t"},"MQL por dia",el("small",{text:`${int(t.mql)} MQL · ${dec(div(t.mql,nd))}/dia${md?` · meta ${dec(md)}/dia (${int(metaF[fr])} no ciclo)`:" · sem meta por dia cadastrada"}`})),wrap);};
   const blocos=FRENTES.map(([fr,canais])=>{const t=totF[fr], tb=el("tbody");
     canais.forEach(([ca,utm])=>{const o=(por[fr]||{})[ca]; if(!o&&/^Outr/.test(ca)) return; tb.append(linha(ca,o||z(),t,"",utm));});
     return el("div",{class:"fr-bloco"},el("h5",{},fr,el("small",{text:`${int(t.mql)} MQL · ${pct(div(t.mql,mqlTodos),1)} de todos os MQL`})),
