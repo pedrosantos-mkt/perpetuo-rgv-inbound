@@ -133,9 +133,10 @@ def origem_de(l):
 def frente(l):
     """Frente e canal (aba MQL diários frentes) de quem não veio de mídia paga, pela UTM do formulário; None = fora das frentes."""
     if l is None or l['canal'] != 'organico' or 'src' not in l: return None
-    s, m, c, k = (l.get(x, '').strip().lower() for x in ('src', 'med', 'content', 'camp'))
+    s, m, c, k, tm = (l.get(x, '').strip().lower() for x in ('src', 'med', 'content', 'camp', 'term'))
     tem = lambda *ws: any(w in x for w in ws for x in (s, m, c))
     if not s and not m: return None
+    if 'manychat' in tm or 'manychat' in s or 'manychat' in m: return 'Instagram orgânico|Comentários ManyChat'   # link da DM do ManyChat: utm_term manychat_comentarios
     if 'youtube' in s or s == 'yt':
         return 'YouTube orgânico|' + ('Shorts' if tem('short') else 'Podcast / vlogs' if tem('podcast', 'vlog') else 'Outros do YouTube')
     if tem('whats', 'wpp', 'zap'):

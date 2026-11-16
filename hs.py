@@ -63,9 +63,9 @@ def origem_organica(s):
     v = s['v']
     src = (v.get('utm_source') or '').strip().lower(); med = (v.get('utm_medium') or '').strip().lower()
     if not src and not med: return 'Sem UTM'
+    if 'manychat' in src or 'manychat' in med or 'manychat' in (v.get('utm_term') or '').lower(): return 'ManyChat'   # link da DM: utm_term manychat_comentarios
     if src == 'live' or 'live' in med: return 'Live'
     if src in ('instagram', 'ig', 'bio', 'stories', 'reels', 'direct') or 'instagram' in src: return 'Instagram orgânico'
-    if 'manychat' in src or 'manychat' in med: return 'ManyChat'
     if 'youtube' in src or src == 'yt': return 'YouTube orgânico'
     # CRM: disparos para a base (e-mail, WhatsApp, SMS, HubSpot/RD)
     if any(k in src or k in med for k in ('crm', 'hubspot', 'email', 'e-mail', 'whats', 'disparo', 'sms', 'rdstation', 'base')): return 'CRM'
