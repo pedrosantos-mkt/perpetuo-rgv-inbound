@@ -62,7 +62,6 @@ def origem_organica(s):
     """Origem de quem não veio de mídia paga, pela UTM do formulário."""
     v = s['v']
     src = (v.get('utm_source') or '').strip().lower(); med = (v.get('utm_medium') or '').strip().lower()
-    if 'raiox' in (s.get('page') or '').lower() or 'xequemate' in (s.get('page') or '').lower(): return 'Raio X Xeque-Mate'   # página da ação Raio X, com form PERPÉTUO
     if not src and not med: return 'Sem UTM'
     if src == 'live' or 'live' in med: return 'Live'
     if src in ('instagram', 'ig', 'bio', 'stories', 'reels', 'direct') or 'instagram' in src: return 'Instagram orgânico'
@@ -72,6 +71,12 @@ def origem_organica(s):
     if any(k in src or k in med for k in ('crm', 'hubspot', 'email', 'e-mail', 'whats', 'disparo', 'sms', 'rdstation', 'base')): return 'CRM'
     if med == 'email': return 'CRM'
     return 'Outras origens'
+
+
+def fora_do_perpetuo(s):
+    """Envio de form PERPÉTUO feito na página de outra ação (Raio X / Xeque-Mate): fica fora do painel do Perpétuo RGV."""
+    pg = (s.get('page') or '').lower()
+    return 'raiox' in pg or 'xequemate' in pg
 
 
 def teste(s, email):
@@ -174,6 +179,7 @@ def main():
         if d > fim or d < CICLO['ini']: continue
         email = (s['v'].get('email') or '').strip().lower()
         if not email or teste(s, email) or email.endswith('@grupor1.com'): continue
+        if fora_do_perpetuo(s): continue   # outra ação usando form PERPÉTUO (ex.: página do Raio X Xeque-Mate): não é Perpétuo RGV
         canal = 'meta' if pago_meta(s) else 'google' if pago_google(s) else 'organico'
         l = lead(s, email, d, canal, None if canal != 'organico' else origem_organica(s))
         envs.append(l)
