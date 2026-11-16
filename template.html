@@ -388,7 +388,7 @@ function renderTop(){
   const s=document.getElementById("sum");
   const it=[["Investimento",brl(SPT),GG?`Meta ${brl(K.spend)} · Google ${GG.recorte?"sem gasto por dia (fora do período)":GG.sem_gasto?"gasto ainda não lido":brl(GG.spend)}`:brl(SPT/diasCorr)+" por dia",""],
     ["Leads",int(K.lead),`pessoas no HubSpot · CPL ${brl(cpl)}`,""],
-    ["MQL",int(K.mql),SM?`${pct(div(K.mql,K.lead),0)} dos leads`:`meta até ${dBR(DATA.ate)}: ${int(metaAte)} · ${pct(K.mql/metaAte,0)}`,SM?"":tone(K.mql,metaAte,false)],
+    ["MQL",int(K.mql),METAS[C.nome]&&!DATA.recorte?`${pct(div(K.mql,METAS[C.nome].total),0)} da meta de ${int(METAS[C.nome].total)} · ${pct(div(K.mql,K.lead),0)} dos leads`:SM?`${pct(div(K.mql,K.lead),0)} dos leads`:`meta até ${dBR(DATA.ate)}: ${int(metaAte)} · ${pct(K.mql/metaAte,0)}`,SM?"":tone(K.mql,metaAte,false)],
     ["Custo por MQL",brl(cmql),"meta "+brl(META.cpl),tone(cmql,META.cpl)],
     ["SQL",int(K.sql),`${pct(txSql,1)} dos MQL · meta ${pct(META.sqlTx,0)}`,tone(txSql,META.sqlTx,false)],
     ["Custo por SQL",brl(custoSql),"meta "+brl(META.custoSql),tone(custoSql,META.custoSql)]];
@@ -882,11 +882,11 @@ function abreCriativo(r){
 }
 document.getElementById("det").addEventListener("click",e=>{ if(e.target.id==="det") e.target.close(); });
 
-// painel de metas: leads do HubSpot por origem contra a meta do ciclo (metas.json); muda com o ciclo e com o período escolhido
+// painel de metas: MQL do HubSpot por origem contra a meta do ciclo (metas.json); muda com o ciclo e com o período escolhido
 function renderMetas(){
   const box=document.getElementById("metas"), M=METAS[C.nome];
   if(!M){ box.replaceChildren(sec("Metas do ciclo",C.nome,el("p",{class:"note",text:`Ainda não há metas cadastradas para o ${C.nome}. Quando as metas deste ciclo forem passadas, este painel mostra o realizado contra elas.`}))); return; }
-  const por=Object.fromEntries((DATA.origens||[]).map(o=>[o.nome,o.lead||0]));
+  const por=Object.fromEntries((DATA.origens||[]).map(o=>[o.nome,o.mql||0]));
   const soma=orig=>orig.reduce((a,n)=>a+(por[n]||0),0);
   // fração do ciclo coberta pelos dados (dias corridos, com hoje parcial) e projeção no ritmo do período
   const fr=Math.min(1,diasCorr/C.dias), rec=!!DATA.recorte, fim=FECH||(!PARC&&diasRest===0);
@@ -894,29 +894,29 @@ function renderMetas(){
   const tom=(r,m)=>{const e=esper(m); return !e?"":r>=e?"ok":r>=e*.85?"warn":"bad";};
   const barra=(r,m)=>el("div",{class:"barra"},el("i",{style:`width:${Math.min(100,r/m*100)}%`}),fim?null:el("b",{style:`left:${Math.min(100,fr*100)}%`,title:"esperado até agora"}));
   const blocos=M.blocos.map(b=>({...b,r:b.linhas.reduce((a,l)=>a+soma(l.origens),0)}));
-  const princ=blocos.filter(b=>!b.extra), rT=princ.reduce((a,b)=>a+b.r,0), mT=M.total||princ.reduce((a,b)=>a+b.meta,0);
-  const restante=Math.max(0,mT-rT), diasFalta=Math.max(0,C.dias-diasCorr);
-  // origens que não entram em nenhum bloco da meta (ex.: Raio X Xeque-Mate) ficam à parte, com aviso
+  // origens que não entram em nenhum bloco (ex.: sem formulário PERPÉTUO) contam no total, à parte, para bater com o MQL do topo
   const usadas=new Set(M.blocos.flatMap(b=>b.linhas.flatMap(l=>l.origens)));
-  const fora=Object.entries(por).filter(([n,v])=>v&&!usadas.has(n));
+  const fora=Object.entries(por).filter(([n,v])=>v&&!usadas.has(n)), rFora=fora.reduce((a,[,v])=>a+v,0);
+  const princ=blocos.filter(b=>!b.extra), rT=princ.reduce((a,b)=>a+b.r,0)+rFora, mT=M.total||princ.reduce((a,b)=>a+b.meta,0);
+  const restante=Math.max(0,mT-rT), diasFalta=Math.max(0,C.dias-diasCorr);
   const card=b=>{const t=tom(b.r,b.meta);
     return el("div",{class:"mt"+(b.extra?" extra":"")},
-      el("h5",{},b.nome,el("small",{text:b.extra?"leads extras · fora do total":"meta "+int(b.meta)})),
+      el("h5",{},b.nome,el("small",{text:b.extra?"MQL extras · fora do total":"meta "+int(b.meta)+" MQL"})),
       el("div",{class:"big"},int(b.r),el("span",{text:"de "+int(b.meta)})),
       el("div",{class:"ln"},el("span",{class:"pct "+t,text:pct(div(b.r,b.meta),0)+" da meta"}),el("span",{text:fim?"ciclo encerrado":`esperado até agora: ${int(esper(b.meta))}`})),
       barra(b.r,b.meta),
       el("div",{class:"ln"},el("span",{text:rec?"no ritmo do período":"projeção no ritmo atual"}),el("b",{class:tom(proj(b.r),b.meta*1/fr*fr),text:`${int(proj(b.r))} · ${pct(div(proj(b.r),b.meta),0)}`})),
       fim?null:el("div",{class:"ln"},el("span",{text:"precisa por dia até o fim"}),el("b",{text:dec(div(Math.max(0,b.meta-b.r),diasFalta))+"/dia"})),
       el("div",{class:"lin"},...b.linhas.map(l=>{const v=soma(l.origens); return el("div",{class:"ln"},el("span",{text:l.nome}),el("b",{text:`${int(v)} · ${pct(div(v,b.r),0)}`}));})));};
-  box.replaceChildren(sec("Metas do ciclo",`${C.nome} · leads = pessoas que preencheram formulário PERPÉTUO no HubSpot, por origem${rec?` · período de ${dBR(DATA.recorte.ini)} a ${dBR(DATA.recorte.fim)}: o esperado é proporcional aos dias`:""}`,
+  box.replaceChildren(sec("Metas do ciclo",`${C.nome} · meta de MQL (negócios do relatório [CICLO] MQL - PERPÉTUO), por origem do formulário da pessoa${rec?` · período de ${dBR(DATA.recorte.ini)} a ${dBR(DATA.recorte.fim)}: o esperado é proporcional aos dias`:""}`,
     el("div",{class:"mt-top kpis"},
-      kpi("Leads na meta",`${int(rT)} de ${int(mT)}`,`${pct(div(rT,mT),0)} da meta · ${princ.map(b=>b.nome.toLowerCase()).join(" + ")}`,true),
+      kpi("MQL na meta",`${int(rT)} de ${int(mT)}`,`${pct(div(rT,mT),0)} da meta · ${princ.map(b=>b.nome.toLowerCase()).join(" + ")}${rFora?" + "+int(rFora)+" sem bloco":""}`,true),
       kpi(fim?"Resultado do ciclo":"Esperado até agora",fim?pct(div(rT,mT),0):int(esper(mT)),fim?"realizado ÷ meta":`${dec(diasCorr)} de ${C.dias} dias · ${rT>=esper(mT)?"acima":"abaixo"} em ${int(Math.abs(rT-esper(mT)))}`),
       kpi("Projeção do ciclo",int(proj(rT)),`${pct(div(proj(rT),mT),0)} da meta no ritmo ${rec?"do período":"atual"} (${dec(div(rT,diasCorr))}/dia)`),
       kpi(fim?"Faltou":"Falta",int(restante),fim?"para bater a meta":`${dec(div(restante,diasFalta))} por dia nos ${int(diasFalta)} dias restantes`)),
     el("div",{class:"mt-grid"},...blocos.map(card)),
-    fora.length?el("p",{class:"note",style:"color:var(--warn)",text:"Fora das metas: "+fora.map(([n,v])=>`${n} ${int(v)} leads`).join(" · ")+". São leads de formulário PERPÉTUO que não se encaixam em orgânico, tráfego pago nem CRM; dá para incluir num bloco quando for definido."}):null,
-    el("p",{class:"note",text:"Instagram = Instagram orgânico (perfil, bio, stories), live do Instagram e ManyChat; YouTube = YouTube orgânico (sem campanha do Google Ads); tráfego pago = Meta (página e Lead Ads) e Google Ads; CRM = disparos para a base (utm de CRM, e-mail, WhatsApp, SMS). A barra mostra o realizado e o traço o esperado até agora, na proporção dos dias corridos."})));
+    fora.length?el("p",{class:"note",style:"color:var(--warn)",text:"Sem bloco (contam no total da meta): "+fora.map(([n,v])=>`${n} ${int(v)} MQL`).join(" · ")+". \"Sem formulário PERPÉTUO\" são negócios do relatório cujo contato não preencheu formulário do Perpétuo no ciclo (ex.: veio de outra ação ou foi criado direto pelo comercial); dá para pôr num bloco quando for definido."}):null,
+    el("p",{class:"note",text:"Cada MQL vai para a origem do formulário PERPÉTUO que a pessoa preencheu antes de o negócio nascer. Instagram = Instagram orgânico (perfil, bio, stories), live do Instagram e ManyChat; YouTube = YouTube orgânico (sem campanha do Google Ads); tráfego pago = Meta (página e Lead Ads) e Google Ads; CRM = disparos para a base (utm de CRM, e-mail, WhatsApp, SMS). A barra mostra o realizado e o traço o esperado até agora, na proporção dos dias corridos."})));
 }
 
 function mostra(v,push){
