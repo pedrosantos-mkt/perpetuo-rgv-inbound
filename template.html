@@ -159,6 +159,14 @@ dialog.det::backdrop{background:rgba(0,0,0,.72)}
 .fr-dia .t{display:flex;justify-content:space-between;gap:10px;font:800 11px/1 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2px 0 6px}
 .fr-dia .t small{font:600 11px/1 var(--f-body);letter-spacing:0;text-transform:none;color:var(--faint)}
 .fr-dia svg{display:block;width:100%;height:auto}
+.fr-tip{position:absolute;z-index:3;width:260px;pointer-events:none;background:var(--panel-2);border:1px solid rgba(var(--ink-rgb),.14);border-radius:12px;box-shadow:0 12px 30px rgba(var(--shade-rgb),.45);padding:12px 14px 8px;font-size:13px;transform:translateX(-50%)}
+.fr-tip:before{content:"";position:absolute;top:-7px;left:calc(50% - 6px + var(--seta,0px));width:12px;height:12px;background:var(--panel-2);border-left:1px solid rgba(var(--ink-rgb),.14);border-top:1px solid rgba(var(--ink-rgb),.14);transform:rotate(45deg)}
+.fr-tip .d{font:800 11px/1 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.fr-tip .tot{margin:8px 0 10px;padding-bottom:10px;border-bottom:1px solid var(--line-soft)}
+.fr-tip .tot b{font:700 26px/1 var(--f-display);margin-right:6px}.fr-tip .tot span{font:700 11px/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.fr-tip .l{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px dashed var(--line-soft);font-variant-numeric:tabular-nums}
+.fr-tip .l:first-of-type{border-top:0}.fr-tip .l b{font-weight:800}.fr-tip .l.z{color:var(--faint)}
+.fr-tip .x{color:var(--faint);font-size:12px;padding:2px 0 4px}
 .fr-leg{display:flex;flex-wrap:wrap;gap:16px;justify-content:flex-end;color:var(--faint);font-size:11px;margin-top:12px}
 .fr-leg i{display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--red);margin-right:6px;vertical-align:-1px}
 .fr-leg i.p{opacity:.4}.fr-leg i.m{background:none;border-top:2px dashed rgba(var(--ink-rgb),.55);height:0;width:16px;border-radius:0;vertical-align:3px}
@@ -986,18 +994,23 @@ function renderFrentes(){
     for(let i=0;i<N;i+=7){ const d=new Date(C.ini+"T12:00:00"); d.setDate(d.getDate()+i); add("text",{x:P.l+i*bw+bw/2,y:Hh-5,"text-anchor":"middle","font-size":10,style:"fill:var(--faint)"},d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})); }
     const t=totF[fr], nd=i1-i0+(PARC?FR:1);
     // passar o mouse: MQL do dia e quanto veio de cada canal da frente
-    const tip=el("div",{class:"tip",hidden:""}), wrap=el("div",{class:"chart"},s,tip), iw=W-P.l-P.r;
+    const tip=el("div",{class:"fr-tip",hidden:""}), wrap=el("div",{class:"chart"},s,tip), iw=W-P.l-P.r;
     const hit=add("rect",{x:P.l,y:0,width:iw,height:Hh,fill:"transparent"});
     const guia=add("line",{y1:P.t,y2:Hh-P.b,style:"stroke:rgba(var(--ink-rgb),.35)","stroke-dasharray":"3 3",visibility:"hidden"});
+    const nomes=(FRENTES.find(f=>f[0]===fr)||[,[]])[1].map(c=>c[0]);
     hit.addEventListener("pointermove",ev=>{
       const b=s.getBoundingClientRect(), x=(ev.clientX-b.left)*W/b.width, i=Math.min(N-1,Math.max(0,Math.floor((x-P.l)/bw)));
       const gx=P.l+i*bw+bw/2; guia.setAttribute("x1",gx); guia.setAttribute("x2",gx); guia.setAttribute("visibility","visible");
-      const det=(dc[fr]||{})[i]||{}, nomes=(FRENTES.find(f=>f[0]===fr)||[,[]])[1].map(c=>c[0]);
-      const linhas=nomes.filter(c=>det[c]&&(det[c].mql||det[c].lead)).map(c=>`${c}: ${det[c].mql} MQL · ${det[c].lead} lead${det[c].lead===1?"":"s"}`);
-      const tl=Object.values(det).reduce((a,o)=>a+o.lead,0);
+      const det=(dc[fr]||{})[i]||{}, sem=new Date(dias[i]+"T12:00:00").toLocaleDateString("pt-BR",{weekday:"long"}).replace("-feira","");
+      const fora=i<i0||i>i1;
+      const lista=nomes.filter(c=>!/^Outr/.test(c)||(det[c]&&det[c].mql)).map(c=>[c,(det[c]||{}).mql||0]).sort((a,b)=>b[1]-a[1]);
+      tip.replaceChildren(el("div",{class:"d",text:`${dBR(dias[i])} · ${sem}${i===hoje?` · até ${DATA.hora} (parcial)`:""}`}),
+        ...(fora?[el("div",{class:"x",text:!FECH&&dias[i]>DATA0.ate?"Ainda não chegou.":"Fora do período escolhido."})]
+          :[el("div",{class:"tot"},el("b",{text:int(vals[i])}),el("span",{text:"MQL"})),
+            ...lista.map(([c,v])=>el("div",{class:"l"+(v?"":" z")},el("span",{text:c}),el("b",{text:int(v)})))]));
       tip.hidden=false;
-      tip.textContent=`${dBR(dias[i])}${i===hoje?` · hoje até ${DATA.hora} (parcial)`:""}\n${i<i0||i>i1?(!FECH&&dias[i]>DATA0.ate?"ainda não chegou":"fora do período escolhido"):`${vals[i]} MQL · ${tl} lead${tl===1?"":"s"}${linhas.length?"\n"+linhas.join("\n"):""}`}`;
-      tip.style.left=Math.min(b.width-130,Math.max(130,gx*b.width/W))+"px"; tip.style.top=(y(vals[i])*b.height/Hh)+"px";
+      const px=gx*b.width/W, meia=130, lx=Math.min(b.width-meia,Math.max(meia,px));
+      tip.style.left=lx+"px"; tip.style.top=(b.height-P.b*b.height/Hh+6)+"px"; tip.style.setProperty("--seta",(px-lx)+"px");
     });
     hit.addEventListener("pointerleave",()=>{tip.hidden=true; guia.setAttribute("visibility","hidden");});
     return el("div",{class:"fr-dia"},el("div",{class:"t"},"MQL por dia",el("small",{text:`${int(t.mql)} MQL · ${dec(div(t.mql,nd))}/dia${md?` · meta ${dec(md)}/dia (${int(metaF[fr])} no ciclo)`:" · sem meta por dia cadastrada"}`})),wrap);};
