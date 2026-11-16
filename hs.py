@@ -51,21 +51,26 @@ def pago_google(s):
     """Google Ads pago (Search e YouTube): UTM de google/youtube ou campanha [SEARCH]/[YT]."""
     v = s['v']
     src = (v.get('utm_source') or '').lower(); camp = (v.get('utm_campaign') or '').lower()
+    med = (v.get('utm_medium') or '').lower()
     if 'teste-claude' in src or 'LEAD ADS' in s['form']: return False
-    return 'youtube' in src or 'google' in src or '[yt]' in camp or '[search]' in camp
+    if '[yt]' in camp or '[search]' in camp or 'c2g' in camp: return True
+    # youtube/google sem campanha paga e com mídia orgânica = YouTube orgânico (canal, descrição de vídeo), não Google Ads
+    return ('youtube' in src or 'google' in src) and med not in ('organico', 'orgânico', 'organic', 'social', 'video', 'descricao', 'bio')
 
 
 def origem_organica(s):
     """Origem de quem não veio de mídia paga, pela UTM do formulário."""
     v = s['v']
     src = (v.get('utm_source') or '').strip().lower(); med = (v.get('utm_medium') or '').strip().lower()
+    if 'raiox' in (s.get('page') or '').lower() or 'xequemate' in (s.get('page') or '').lower(): return 'Raio X Xeque-Mate'   # página da ação Raio X, com form PERPÉTUO
     if not src and not med: return 'Sem UTM'
     if src == 'live' or 'live' in med: return 'Live'
     if src in ('instagram', 'ig', 'bio', 'stories', 'reels', 'direct') or 'instagram' in src: return 'Instagram orgânico'
     if 'manychat' in src or 'manychat' in med: return 'ManyChat'
-    if 'whats' in src: return 'WhatsApp'
-    if 'youtube' in src: return 'YouTube orgânico'
-    if 'email' in src or 'e-mail' in src or med == 'email': return 'E-mail'
+    if 'youtube' in src or src == 'yt': return 'YouTube orgânico'
+    # CRM: disparos para a base (e-mail, WhatsApp, SMS, HubSpot/RD)
+    if any(k in src or k in med for k in ('crm', 'hubspot', 'email', 'e-mail', 'whats', 'disparo', 'sms', 'rdstation', 'base')): return 'CRM'
+    if med == 'email': return 'CRM'
     return 'Outras origens'
 
 

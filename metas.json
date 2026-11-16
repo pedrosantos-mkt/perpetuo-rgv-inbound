@@ -1,0 +1,20 @@
+{
+ "obs": "Metas de leads por ciclo, passadas pelo usuário. Leads = pessoas que preencheram formulário PERPÉTUO (HubSpot, todas as origens). O total da meta soma orgânico + tráfego pago; o CRM entra como leads extras, fora do total.",
+ "ciclos": {
+  "RGV 46": {
+   "total": 3440,
+   "blocos": [
+    {"nome": "Orgânico", "meta": 550, "linhas": [
+      {"nome": "Instagram", "origens": ["Instagram orgânico", "Live", "ManyChat"]},
+      {"nome": "YouTube", "origens": ["YouTube orgânico"]},
+      {"nome": "Outras e sem UTM", "origens": ["Sem UTM", "Outras origens"]}]},
+    {"nome": "Tráfego pago", "meta": 2890, "linhas": [
+      {"nome": "Meta · página", "origens": ["Meta · página"]},
+      {"nome": "Meta · Lead Ads", "origens": ["Meta · Lead Ads"]},
+      {"nome": "Google Ads", "origens": ["Google Ads"]}]},
+    {"nome": "CRM", "meta": 105, "extra": true, "linhas": [
+      {"nome": "Disparos para a base", "origens": ["CRM", "E-mail", "WhatsApp"]}]}
+   ]
+  }
+ }
+}
