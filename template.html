@@ -150,6 +150,18 @@ dialog.det::backdrop{background:rgba(0,0,0,.72)}
 .mt .lin{border-top:1px dashed var(--line-soft);padding-top:10px;display:flex;flex-direction:column;gap:6px}
 .mt .lin .ln span:first-child{color:var(--fg)}
 @media (max-width:980px){.mt-grid{grid-template-columns:1fr!important}.mt-top{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.fr-bloco{margin-top:18px}
+.fr-bloco h5{margin:0 0 10px;font:800 13px/1.2 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--fg);display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.fr-bloco h5 small{font:600 12px/1.2 var(--f-body);letter-spacing:0;text-transform:none;color:var(--faint)}
+.fr-bloco td.utm{color:var(--faint);font-size:11.5px;text-align:left;white-space:normal}
+.fr-bloco th.utm{text-align:left}
+.fr-dia{border:1px solid var(--line-soft);border-top:0;border-radius:0 0 12px 12px;padding:10px 12px 6px;background:rgba(var(--ink-rgb),.02)}
+.fr-dia .t{display:flex;justify-content:space-between;gap:10px;font:800 11px/1 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2px 0 6px}
+.fr-dia .t small{font:600 11px/1 var(--f-body);letter-spacing:0;text-transform:none;color:var(--faint)}
+.fr-dia svg{display:block;width:100%;height:auto}
+.fr-leg{display:flex;flex-wrap:wrap;gap:16px;justify-content:flex-end;color:var(--faint);font-size:11px;margin-top:12px}
+.fr-leg i{display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--red);margin-right:6px;vertical-align:-1px}
+.fr-leg i.p{opacity:.4}.fr-leg i.m{background:none;border-top:2px dashed rgba(var(--ink-rgb),.55);height:0;width:16px;border-radius:0;vertical-align:3px}
 .stamp{font-size:12px;color:var(--faint);text-align:right;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:8px;max-width:560px}
 /* desktop: título à esquerda e o bloco de controles encostado à direita, carimbo embaixo dos controles */
 @media (min-width:901px){.top{flex-wrap:nowrap}.top>div:first-child{flex:1 1 auto;min-width:0}.stamp{flex:0 0 auto;margin-left:auto}}
@@ -320,18 +332,22 @@ footer p{margin:0 0 8px}
     </div>
     <div class="stamp"><label class="sel-ciclo" id="sel-wrap" hidden><span>Ciclo</span><select id="ciclo"></select></label><span class="sel-ciclo per" id="per-wrap" hidden><span>De</span><input type="date" id="per-de" aria-label="Data inicial"><span>até</span><input type="date" id="per-ate" aria-label="Data final"><button type="button" class="per-x" id="per-limpa" hidden>Ciclo inteiro</button></span><button class="tema" id="tema" type="button" aria-pressed="false"><span class="tema-ico" aria-hidden="true"></span><span id="tema-txt">Tema claro</span></button><span id="stamp"></span><button class="refresh" id="refresh" type="button" hidden>Atualizar agora</button><span class="refresh-msg" id="refresh-msg" aria-live="polite"></span></div>
   </header>
-  <nav class="menu" id="menu" role="tablist" aria-label="Painéis"><button type="button" role="tab" data-v="funil" aria-selected="true">Funil</button><button type="button" role="tab" data-v="criativos" aria-selected="false">Criativos</button><button type="button" role="tab" data-v="metas" aria-selected="false">Metas</button></nav>
+  <nav class="menu" id="menu" role="tablist" aria-label="Painéis"><button type="button" role="tab" data-v="funil" aria-selected="true">Funil</button><button type="button" role="tab" data-v="criativos" aria-selected="false">Criativos</button><button type="button" role="tab" data-v="metas" aria-selected="false">Metas</button><button type="button" role="tab" data-v="frentes" aria-selected="false">MQL diários frentes</button></nav>
   <section class="sum" id="sum"></section>
   <section class="detail" id="detail" aria-live="polite"></section>
   <section class="detail" id="cri" hidden></section>
   <section class="detail" id="metas" hidden></section>
+  <section class="detail" id="frentes" hidden></section>
   <dialog class="det" id="det" aria-label="Detalhe do criativo"></dialog>
   <footer id="foot"></footer>
 </div>
 
 <script>
 let DATA = __DATA__;
-const DATA0 = DATA, HIST = DATA.historico||[], LISTA = __LISTA__, METAS = __METAS__;   // metas de leads por ciclo (metas.json)   // ciclo atual embutido; os fechados vêm de c/<ciclo>.json
+const DATA0 = DATA, HIST = DATA.historico||[], LISTA = __LISTA__, METAS = __METAS__;
+const FRENTES = [["Instagram orgânico",[["Stories","utm_source stories ou content stories"],["Direct","utm_source direct ou medium direct-message"],["Bio","utm_source bio ou content bio / link_in_bio"],["Feed / Reels","utm_source instagram + content feed, reels ou Ricardo"],["Grupo R1","content Grupo_R1"],["Live","utm_source live ou content live"],["Lançamento","campanha ou source de lançamento"],["Canal de transmissão","source ou content canal_transmissao"],["Comentários ManyChat","source ou medium manychat"]]],
+  ["YouTube orgânico",[["Shorts","utm_source youtube + content shorts"],["Podcast / vlogs","utm_source youtube + content podcast ou vlog"],["Outros do YouTube","utm_source youtube sem shorts/podcast/vlog"]]],
+  ["Bases",[["E-mail","source ou medium email, hubspot, hs_automation"],["WhatsApp 1x1","source whatsapp ou wppcrm, sem grupo"],["Grupos de WhatsApp","source whatsapp + content grupo"],["Outras bases","crm, disparo, sms"]]]];   // metas de leads por ciclo (metas.json)   // ciclo atual embutido; os fechados vêm de c/<ciclo>.json
 const HORAS=[6,9,12,15,18,21];   // horários das rodadas (BRT, aos :17), declarado antes do render
 const B = DATA.base;
 // metas de cada etapa: CPM pela base dos 30 dias antes do ciclo; CTR, connect e conversão da página definidos pelo time; lead e SQL pela rampa "Operação 3.000 leads"
@@ -934,14 +950,64 @@ function renderMetas(){
     el("p",{class:"note",text:"Cada MQL vai para a origem do formulário PERPÉTUO que a pessoa preencheu antes de o negócio nascer. Instagram = Instagram orgânico (perfil, bio, stories), live do Instagram e ManyChat; YouTube = YouTube orgânico (sem campanha do Google Ads); tráfego pago = Meta (página e Lead Ads) e Google Ads; CRM = disparos para a base (utm de CRM, e-mail, WhatsApp, SMS). A barra mostra o realizado e o traço o esperado até agora, na proporção dos dias corridos."})));
 }
 
+// MQL diários frentes: leads, MQL, SQL e vendas das redes sociais e das bases, por canal (UTM do formulário), com o MQL por dia
+// de cada frente; sai dos dados granulares (gran), então respeita o filtro De/Até
+function renderFrentes(){
+  const box=document.getElementById("frentes"), G=DATA.gran;
+  const temF=G&&G.attr.some(a=>a.f);
+  if(!G||!temF){ box.replaceChildren(sec("MQL diários frentes",C.nome,el("p",{class:"note",text:`A divisão por frente usa a utm_source e a utm_medium do formulário, guardadas a partir do RGV 46. ${G?"Este ciclo foi gravado antes disso.":"Este ciclo não tem dados por dia."}`}))); return; }
+  const ix=d=>Math.round((new Date(d+"T12:00:00")-new Date(C.ini+"T12:00:00"))/864e5);
+  const i0=ix(DATA.daily[0][0]), i1=ix(DATA.daily[DATA.daily.length-1][0]), hoje=PARC?i1:-1;
+  const dias=Array.from({length:C.dias},(_,i)=>{const d=new Date(C.ini+"T12:00:00"); d.setDate(d.getDate()+i); return d.toISOString().slice(0,10);});
+  const z=()=>({lead:0,mql:0,sql:0,venda:0}), por={}, dia={}, tot=z();
+  const pega=a=>{ if(!a.f) return null; const [fr,ca]=a.f.split("|"); por[fr]=por[fr]||{}; return por[fr][ca]=por[fr][ca]||z(); };
+  let mqlTodos=0;
+  G.leads.forEach(([d,ai])=>{ if(d<i0||d>i1) return; const o=pega(G.attr[ai]); if(o){o.lead++;} });
+  G.mql.forEach(([d,ai,sq])=>{ if(d<i0||d>i1) return; mqlTodos++; const a=G.attr[ai], o=pega(a); if(!o) return; o.mql++; o.sql+=sq;
+    const fr=a.f.split("|")[0]; (dia[fr]=dia[fr]||{})[d]=(dia[fr][d]||0)+1; });
+  (G.vendas||[]).forEach(([d,ai,n])=>{ if(d<i0||d>i1) return; const o=pega(G.attr[ai]); if(o) o.venda+=n; });
+  const soma=l=>l.reduce((a,o)=>({lead:a.lead+o.lead,mql:a.mql+o.mql,sql:a.sql+o.sql,venda:a.venda+o.venda}),z());
+  const totF=Object.fromEntries(FRENTES.map(([fr])=>[fr,soma(Object.values(por[fr]||{}))])), T=soma(Object.values(totF));
+  const metaF=(METAS[C.nome]||{}).frentes||{};
+  const H=["Canal","Leads","MQL","% MQL","SQL","Vendas","% dos MQL da frente","% de todos os MQL","Como é identificado (UTM)"];
+  const linha=(nome,o,t,cls,utm)=>el("tr",cls?{class:cls}:{},td(nome,"","pg"),td(int(o.lead),H[1]),td(int(o.mql),H[2]),td(o.lead?pct(div(o.mql,o.lead),0):"—",H[3]),
+    td(int(o.sql),H[4]),td(int(o.venda),H[5]),td(t.mql?pct(div(o.mql,t.mql),0):"—",H[6]),td(mqlTodos?pct(div(o.mql,mqlTodos),1):"—",H[7]),el("td",{class:"utm","data-l":H[8],text:utm||""}));
+  // gráfico: MQL por dia no ciclo inteiro (dias fora do período em cinza), hoje parcial mais claro, meta por dia tracejada
+  const grafico=fr=>{const W=Math.max(320,(box.clientWidth||900)-40), Hh=96, P={l:4,r:4,t:8,b:20}, N=C.dias, bw=(W-P.l-P.r)/N, dd=dia[fr]||{}, md=metaF[fr]?metaF[fr]/N:null;
+    const vals=dias.map((_,i)=>dd[i]||0), mx=Math.max(1,...vals,md||0)*1.15, y=v=>P.t+(Hh-P.t-P.b)*(1-v/mx);
+    const [s,add]=svgBase(W,Hh,`MQL por dia · ${fr}`);
+    add("line",{x1:P.l,x2:W-P.r,y1:y(0),y2:y(0),style:"stroke:rgba(var(--ink-rgb),.15)"});
+    vals.forEach((v,i)=>{ if(!v) return; const fora=i<i0||i>i1, hj=i===hoje;
+      const r=add("rect",{x:P.l+i*bw+bw*.12,y:y(v),width:Math.max(1,bw*.76),height:y(0)-y(v),rx:2,style:`fill:${fora?"rgba(var(--ink-rgb),.18)":"var(--red)"};opacity:${hj?.45:1}`});
+      const tt=document.createElementNS("http://www.w3.org/2000/svg","title"); tt.textContent=`${dBR(dias[i])}: ${v} MQL${hj?" (hoje, parcial)":""}`; r.append(tt); });
+    if(md) add("line",{x1:P.l,x2:W-P.r,y1:y(md),y2:y(md),style:"stroke:rgba(var(--ink-rgb),.55);stroke-dasharray:4 4"});
+    for(let i=0;i<N;i+=7){ const d=new Date(C.ini+"T12:00:00"); d.setDate(d.getDate()+i); add("text",{x:P.l+i*bw+bw/2,y:Hh-5,"text-anchor":"middle","font-size":10,style:"fill:var(--faint)"},d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})); }
+    const t=totF[fr], nd=i1-i0+(PARC?FR:1);
+    return el("div",{class:"fr-dia"},el("div",{class:"t"},"MQL por dia",el("small",{text:`${int(t.mql)} MQL · ${dec(div(t.mql,nd))}/dia${md?` · meta ${dec(md)}/dia (${int(metaF[fr])} no ciclo)`:" · sem meta por dia cadastrada"}`})),s);};
+  const blocos=FRENTES.map(([fr,canais])=>{const t=totF[fr], tb=el("tbody");
+    canais.forEach(([ca,utm])=>{const o=(por[fr]||{})[ca]; if(!o&&/^Outr/.test(ca)) return; tb.append(linha(ca,o||z(),t,"",utm));});
+    return el("div",{class:"fr-bloco"},el("h5",{},fr,el("small",{text:`${int(t.mql)} MQL · ${pct(div(t.mql,mqlTodos),1)} de todos os MQL`})),
+      el("div",{class:"tw",style:"border-radius:12px 12px 0 0"},el("table",{},el("thead",{},el("tr",{},...H.map((h,i)=>el("th",i===8?{class:"utm",text:h}:{text:h})))),tb,
+        el("tfoot",{},linha("Total da frente",t,t,"sub","")))),grafico(fr));});
+  box.replaceChildren(sec("MQL diários frentes",`${C.nome} · leads e MQL das redes sociais e das bases, pela UTM do formulário PERPÉTUO no HubSpot${DATA.recorte?` · período de ${dBR(DATA.recorte.ini)} a ${dBR(DATA.recorte.fim)}`:""}`,
+    el("div",{class:"kpis"},
+      kpi("MQL das frentes",int(T.mql),`${pct(div(T.mql,mqlTodos),1)} de ${int(mqlTodos)} MQL · ${int(T.lead)} leads · ${int(T.sql)} SQL · ${int(T.venda)} vendas`,true),
+      ...FRENTES.map(([fr])=>{const t=totF[fr]; return kpi(fr,int(t.mql),`${pct(div(t.mql,mqlTodos),1)} dos MQL · ${int(t.lead)} lead${t.lead===1?"":"s"} · ${int(t.sql)} SQL · ${int(t.venda)} venda${t.venda===1?"":"s"}`);})),
+    ...blocos,
+    el("div",{class:"fr-leg"},el("span",{},el("i"),"MQL no dia"),el("span",{},el("i",{class:"p"}),"hoje (parcial)"),el("span",{},el("i",{class:"m"}),"meta por dia")),
+    el("p",{class:"note",text:"Lead = pessoa que preencheu formulário PERPÉTUO; MQL = negócio do relatório [CICLO] MQL - PERPÉTUO, ligado ao formulário que a pessoa preencheu antes de o negócio nascer; vendas da Planilha Comercial. Cada canal sai da UTM desse formulário. Mídia paga (Meta e Google), formulário sem UTM e negócio sem formulário ficam fora das frentes; por isso o % de todos os MQL não soma 100%. O gráfico mostra o ciclo inteiro; com o filtro De/Até, os dias fora do período ficam em cinza."})));
+}
+
 function mostra(v,push){
   VIEW=v;
   document.querySelectorAll("#menu button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.v===v)));
   document.getElementById("detail").hidden=v!=="funil";
   document.getElementById("cri").hidden=v!=="criativos";
   document.getElementById("metas").hidden=v!=="metas";
+  document.getElementById("frentes").hidden=v!=="frentes";
   if(v==="criativos") renderCriativos();
   if(v==="metas") renderMetas();
+  if(v==="frentes") renderFrentes();
   if(push!==false) atualizaHash();
 }
 function atualizaHash(){
@@ -1003,6 +1069,7 @@ function render(){
   renderTop();
   if(VIEW==="criativos") renderCriativos();
   if(VIEW==="metas") renderMetas();
+  if(VIEW==="frentes") renderFrentes();
   const d=document.getElementById("detail");
   d.replaceChildren(...[painelFunil(),painelComercial(),painelGoogle(),painelOrigens(),painelVendas(),painelKpis(),SM?null:painelRitmo(),painelFaixas(),painelPublico(),painelPaginas(),painelCriativos(),chartDia(),tabelaDia(),HIST.length>1?tabelaCiclos():null,tabelaCamps(),comoLer()].filter(Boolean));
   document.getElementById("foot").replaceChildren(
@@ -1046,7 +1113,7 @@ async function trocaCiclo(nome, rolar){
   finally{ sel.disabled=false; }
 }
 (function(){
-  { const ps=decodeURIComponent(location.hash.slice(1)).split("/"); if(ps.includes("criativos")) mostra("criativos",false); if(ps.includes("metas")) mostra("metas",false); }
+  { const ps=decodeURIComponent(location.hash.slice(1)).split("/"); if(ps.includes("criativos")) mostra("criativos",false); if(ps.includes("metas")) mostra("metas",false); if(ps.includes("frentes")) mostra("frentes",false); }
   if(!LISTA.length) return;   // sem arquivos dos ciclos fechados (ex.: Artifact), o seletor fica escondido
   const sel=document.getElementById("ciclo");
   [{nome:DATA0.ciclo.nome}, ...[...LISTA].reverse()].forEach((c,i)=>sel.append(el("option",{value:c.nome,text:c.nome+(i?"":" · atual")})));

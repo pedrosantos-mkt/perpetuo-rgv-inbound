@@ -88,6 +88,7 @@ def lead(s, email, d, canal, origem=None):
     v = s['v']
     return {'email': email, 'ts': s['ts'], 'dia': d.isoformat(), 'q100': q100(v), 'canal': canal, 'origem': origem,
             'faixa': v.get('annualrevenue') or v.get('faturamento_anual') or '', 'form': s['form'], 'page': s['page'],
+            'src': v.get('utm_source') or '', 'med': v.get('utm_medium') or '',
             'camp': v.get('utm_campaign') or '', 'term': v.get('utm_term') or '', 'content': v.get('utm_content') or '',
             'cargo': v.get('ti__form____cargo') or ''}
 

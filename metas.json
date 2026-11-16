@@ -3,6 +3,7 @@
  "ciclos": {
   "RGV 46": {
    "total": 3440,
+   "frentes": {"Bases": 105},
    "blocos": [
     {"nome": "Orgânico", "meta": 550, "linhas": [
       {"nome": "Instagram", "origens": ["Instagram orgânico", "Live", "ManyChat"]},

@@ -130,11 +130,35 @@ def origem_de(l):
     return l.get('origem') or 'Outras origens'
 
 
+def frente(l):
+    """Frente e canal (aba MQL diários frentes) de quem não veio de mídia paga, pela UTM do formulário; None = fora das frentes."""
+    if l is None or l['canal'] != 'organico' or 'src' not in l: return None
+    s, m, c, k = (l.get(x, '').strip().lower() for x in ('src', 'med', 'content', 'camp'))
+    tem = lambda *ws: any(w in x for w in ws for x in (s, m, c))
+    if not s and not m: return None
+    if 'youtube' in s or s == 'yt':
+        return 'YouTube orgânico|' + ('Shorts' if tem('short') else 'Podcast / vlogs' if tem('podcast', 'vlog') else 'Outros do YouTube')
+    if tem('whats', 'wpp', 'zap'):
+        return 'Bases|' + ('Grupos de WhatsApp' if tem('grupo', 'group', 'comunidade') else 'WhatsApp 1x1')
+    if tem('email', 'e-mail', 'hs_automation', 'hubspot', 'newsletter', 'rdstation'): return 'Bases|E-mail'
+    if tem('crm', 'disparo', 'sms', 'base'): return 'Bases|Outras bases'
+    if tem('manychat'): return 'Instagram orgânico|Comentários ManyChat'
+    if s == 'live' or tem('live'): return 'Instagram orgânico|Live'
+    if 'lancamento' in k or 'lançamento' in k or tem('lancamento', 'lançamento'): return 'Instagram orgânico|Lançamento'
+    if tem('canal', 'transmiss'): return 'Instagram orgânico|Canal de transmissão'
+    if tem('grupo_r1', 'grupor1', 'grupo r1'): return 'Instagram orgânico|Grupo R1'
+    if s == 'direct' or tem('direct'): return 'Instagram orgânico|Direct'
+    if s == 'stories' or tem('stories', 'story'): return 'Instagram orgânico|Stories'
+    if s == 'bio' or tem('bio', 'link_in_bio'): return 'Instagram orgânico|Bio'
+    if s in ('instagram', 'ig', 'reels', 'feed') or tem('feed', 'reels', 'ricardo', 'instagram'): return 'Instagram orgânico|Feed / Reels'
+    return None
+
+
 def atrib(l):
     """Para onde vai 1 lead ou 1 MQL: origem, públicos (com peso), página, criativo, campanha e campanha do Google."""
     o = origem_de(l)
     if l is None or l['canal'] == 'organico':
-        return {'o': o, 't': {SEM: 1.0}, 'p': '(orgânico e outras origens)', 'c': None, 'm': '·' + SEM, 'g': None}
+        return {'o': o, 't': {SEM: 1.0}, 'p': '(orgânico e outras origens)', 'c': None, 'm': '·' + SEM, 'g': None, **({'f': frente(l)} if frente(l) else {})}
     if l['canal'] == 'google':
         k = sem_rgv(l['camp']) or 'SEMCAMPANHA'
         G_NOME.setdefault(k, l['camp'].strip())
