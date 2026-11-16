@@ -1005,6 +1005,7 @@ function mostra(v,push){
   document.getElementById("cri").hidden=v!=="criativos";
   document.getElementById("metas").hidden=v!=="metas";
   document.getElementById("frentes").hidden=v!=="frentes";
+  document.getElementById("sum").hidden=v==="frentes";   // na aba de frentes a faixa de KPIs do ciclo sai
   if(v==="criativos") renderCriativos();
   if(v==="metas") renderMetas();
   if(v==="frentes") renderFrentes();
