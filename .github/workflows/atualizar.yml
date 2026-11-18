@@ -23,6 +23,7 @@ jobs:
         env:
           META_TOKEN: ${{ secrets.META_TOKEN }}
           HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
+          VENDAS_URL: ${{ secrets.VENDAS_URL }}
         run: ./atualizar.sh
       - name: Publicar na Vercel
         working-directory: site
