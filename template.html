@@ -459,7 +459,7 @@ function painelComercial(){
     etapa("SQL","sql","contato","Qualificação","Custo por SQL"),
     etapa("Agendamento marcado","marcado","sql","Agendamento","Custo por ag. marcado"),
     etapa("Agendamento realizado","realizado","marcado","Comparecimento","Custo por ag. realizado"),
-    etapa("Venda","venda","realizado","Fechamento","Custo por venda (CAC)"));
+    etapa("Cadeiras","venda","realizado","Fechamento","Custo por cadeira"));
   };
   const nota=`pipeline de vendas do HubSpot · MQL = negócios do relatório [CICLO] MQL - PERPÉTUO criados no ${FECH?"ciclo":"ciclo até "+dBR(DATA.ate)}, todas as origens · custos com o investimento ${GG?"Meta + Google":"do Meta"} · venda = Planilha Comercial · taxa sobre a etapa anterior`;
   if(!C0.ciclo){ const g=funil(C0);
@@ -503,9 +503,9 @@ function comoLer(){
     ["SQL","MQL que chegou em Em Agendamento ou depois no pipeline Vendas Principal (no padrão, Em Qualificação em diante), mesmo que perdido depois."],
     ["Origem e anúncio","Cada lead e cada MQL é ligado ao formulário da pessoa (o último antes de o negócio nascer) e, pela UTM, à origem, à campanha, ao público, à página e ao criativo. Quem não veio de anúncio entra em \"Sem anúncio (orgânico e outras origens)\"; MQL cujo contato não preencheu formulário no ciclo entra em \"Sem formulário PERPÉTUO\". Assim toda tabela fecha no total do topo."],
     ["Google Ads","Campanhas de Search e YouTube da conta Método RGV (568-341-4595), todas do Perpétuo. O gasto é lido à mão no Google Ads, sem quebra por dia, e entra no investimento total; leads e MQL do Google já estão no total pela origem do formulário."],
-    ["Funil comercial","Lead no CRM = leads; MQL = negócios do relatório; contato efetivo = chegou em Em Qualificação; SQL = Em Agendamento; agendamento marcado = DIAG. Agendado (NoShow e Reagendado contam); realizado = DIAG. Realizado; venda = Ganho no Principal ou no Boletos. Cada etapa conta quem chegou nela ou passou dela; taxas contra as metas do plano (conexão 33%, qualificação 45%, agendamento 76%, comparecimento 72%, fechamento 32%)."],
+    ["Funil comercial","Lead no CRM = leads; MQL = negócios do relatório; contato efetivo = chegou em Em Qualificação; SQL = Em Agendamento; agendamento marcado = DIAG. Agendado (NoShow e Reagendado contam); realizado = DIAG. Realizado; cadeiras = quantidade vendida (coluna D) na Planilha Comercial. Cada etapa conta quem chegou nela ou passou dela; taxas contra as metas do plano (conexão 33%, qualificação 45%, agendamento 76%, comparecimento 72%, fechamento 32%)."],
     ["Metas","Custo por MQL R$ 330, SQL 15% dos MQL e custo por SQL R$ 2.200. Volume de MQL só no ciclo com rampa cadastrada."],
-    ["Custos por etapa","Investimento do ciclo dividido pela quantidade da etapa: custo por lead, por MQL, por contato, por SQL, por agendamento, por reunião realizada e por venda (CAC)."],
+    ["Custos por etapa","Investimento do ciclo dividido pela quantidade da etapa: custo por lead, por MQL, por contato, por SQL, por agendamento, por reunião realizada e por cadeira vendida."],
     ["Metas da mídia","CPM: média das campanhas [FF] nos 30 dias antes do ciclo 45. CTR link 2%, connect 80% e conversão da página 5% (leads de todas as faixas ÷ visitas) são as metas do time. Volume de leads: rampa \"Operação 3.000 leads\", só no ciclo atual."],
     ["Público","Todos os conjuntos [FF] são de público quente; o quadro separa pela janela de envolvimento no nome do conjunto (até 30 dias + listas, 60 a 180, 365 a 730, mix validados). Lead Ads não traz o conjunto na UTM: o lead é repartido pelos leads que o Meta contou em cada conjunto."],
     ["Detalhe do criativo","Na aba Criativos, clicar num cartão abre o detalhe: performance, retenção do vídeo (visualizações de 3 s e 25/50/75/95/100% do Meta), clique, lead, MQL e SQL. Hook = 3 s ÷ impressões. O diagnóstico compara o criativo com a mediana dos criativos de vídeo do ciclo com pelo menos 1.000 impressões; o momento crítico é a passagem em que ele mais perde em relação a essa mediana."],
@@ -513,7 +513,7 @@ function comoLer(){
     ["Criativo","Anúncios com o mesmo nome somados em todos os conjuntos. O lead é ligado pelo nome do anúncio na UTM (utm_term ou utm_content), comparando só letras e números. O olho abre o post no Instagram."],
     ["Filtro De / Até","No menu do topo dá para escolher um período dentro de qualquer ciclo: o painel inteiro é refeito só com aqueles dias (mídia do Meta por anúncio e por dia; leads e MQL do HubSpot pela data de entrada). No período, CPM, CTR e CPC saem das somas, e o Google Ads fica fora do investimento porque não tem gasto por dia. \"Ciclo inteiro\" volta ao ciclo todo."],
     ["Datas","O ciclo atual vai até hoje: o dia de hoje entra parcial, até a hora da última atualização (a cada 3 horas, das 6h17 às 21h17, ou pelo botão Atualizar agora). Médias por dia contam o dia de hoje pela fração já passada; o ritmo usa só os 7 últimos dias fechados. Ciclos encerrados foram coletados uma vez e não mudam; neles CPM, CTR e CPC saem das somas das campanhas."],
-    ["Vendas","Vendas do Perpétuo na Planilha Comercial do time: o canal Perpétuo (fechou na call) mais as vendas de outras ações em que o contato veio do Perpétuo. Tráfego pago ou orgânico pela UTM do formulário PERPÉTUO que levou à venda; sem UTM nele, vale a UTM do negócio, a fonte do contato no HubSpot e a origem do negócio. A planilha é privada, então esta parte é atualizada à mão."],
+    ["Cadeiras","Cadeiras vendidas (coluna D, quantidade) do Perpétuo na Planilha Comercial do time: o canal Perpétuo (fechou na call) mais as vendas de outras ações em que o contato veio do Perpétuo. Tráfego pago ou orgânico pela UTM do formulário PERPÉTUO que levou à venda; sem UTM nele, vale a UTM do negócio, a fonte do contato no HubSpot e a origem do negócio. A planilha é privada, então esta parte é atualizada à mão."],
     ["Cores","Verde dentro da meta, amarelo até 15% fora, vermelho além disso. Sem meta, o número fica neutro."],
   ];
   return el("details",{class:"ler"},el("summary",{text:"Como ler"}),el("dl",{},...L.flatMap(([t,d])=>[el("dt",{text:t}),el("dd",{text:d})])));
@@ -537,7 +537,7 @@ function painelGoogle(){
 
 function painelOrigens(){
   const O=DATA.origens; if(!O||!O.length) return null;
-  const H=["Origem","Leads","MQL","% MQL","SQL","% SQL","Vendas","Investimento","Custo MQL","Custo SQL","CAC","% dos MQL"];
+  const H=["Origem","Leads","MQL","% MQL","SQL","% SQL","Cadeiras","Investimento","Custo MQL","Custo SQL","Custo por cadeira","% dos MQL"];
   const tot=sumRows(O), pago=O.filter(o=>o.pago), org=O.filter(o=>!o.pago), sp=sumRows(pago), so=sumRows(org);
   const semG=GG&&GG.sem_gasto;
   const linha=(nome,r,cls,paga)=>{const g=nome==="Google Ads"&&semG, inv=paga&&!g&&r.spend?r.spend:null;
@@ -551,11 +551,11 @@ function painelOrigens(){
   if(org.length) tb.append(linha("Orgânico e outras · total",so,"sub",false));
   return sec("Origem dos leads e MQL",`HubSpot: leads = pessoas que preencheram formulário PERPÉTUO; MQL = negócios do relatório, ligados ao formulário da pessoa pela UTM${DATA.origens_obs?" · "+DATA.origens_obs:""}`,
     el("div",{class:"kpis",style:"grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px"},
-      kpi("MQL em todas as origens",int(tot.mql),`${int(tot.lead)} leads · ${int(tot.sql)} SQL · ${int(tot.venda||0)} vendas`,true),
-      kpi("Mídia paga",int(sp.mql),`${pct(div(sp.mql,tot.mql),0)} dos MQL · ${int(sp.sql)} SQL · ${int(sp.venda||0)} vendas`),
-      kpi("Orgânico e outras",int(so.mql),`${pct(div(so.mql,tot.mql),0)} dos MQL · ${int(so.sql)} SQL · ${int(so.venda||0)} vendas`)),
+      kpi("MQL em todas as origens",int(tot.mql),`${int(tot.lead)} leads · ${int(tot.sql)} SQL · ${int(tot.venda||0)} cadeiras`,true),
+      kpi("Mídia paga",int(sp.mql),`${pct(div(sp.mql,tot.mql),0)} dos MQL · ${int(sp.sql)} SQL · ${int(sp.venda||0)} cadeiras`),
+      kpi("Orgânico e outras",int(so.mql),`${pct(div(so.mql,tot.mql),0)} dos MQL · ${int(so.sql)} SQL · ${int(so.venda||0)} cadeiras`)),
     el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb,el("tfoot",{},linha("Todas as origens",tot,"",false)))),
-    el("p",{class:"note",text:"Origem pela UTM do formulário: Meta pago (página ou Lead Ads), Google Ads, Instagram orgânico (utm_source instagram, bio ou stories), Live, Sem UTM. O MQL vai para a origem do formulário que a pessoa preencheu antes de o negócio nascer; \"Sem formulário PERPÉTUO\" são negócios do relatório cujo contato não preencheu formulário no ciclo. Vendas da Planilha Comercial (canal Perpétuo, produto RGV), ligadas à origem pelo negócio no HubSpot, do mesmo jeito que o MQL; CAC = investimento ÷ vendas."}));
+    el("p",{class:"note",text:"Origem pela UTM do formulário: Meta pago (página ou Lead Ads), Google Ads, Instagram orgânico (utm_source instagram, bio ou stories), Live, Sem UTM. O MQL vai para a origem do formulário que a pessoa preencheu antes de o negócio nascer; \"Sem formulário PERPÉTUO\" são negócios do relatório cujo contato não preencheu formulário no ciclo. Cadeiras vendidas (coluna D) da Planilha Comercial (canal Perpétuo, produto RGV), ligadas à origem pelo negócio no HubSpot, do mesmo jeito que o MQL; custo por cadeira = investimento ÷ cadeiras."}));
 }
 
 function painelKpis(){
@@ -569,7 +569,7 @@ function painelKpis(){
     kpi("Lead Ads",brl(natCpl),`CPL · ${int(K.lead_nativo)} leads de Lead Ads · ${brl(K.nat.spend)}`),
     kpi("CPC link",brl(BM.cpc,2),"do Gerenciador"),
     kpi("MQL sobre leads",pct(div(K.mql,K.lead),0),`${int(K.mql)} de ${int(K.lead)}`),
-    kpi("Vendas",int(K.venda||0),`${brl(K.receita||0)} · CAC ${brl(div(SPT,K.venda))} · Planilha Comercial`,true)));
+    kpi("Cadeiras vendidas",int(K.venda||0),`${brl(K.receita||0)} · ${brl(div(SPT,K.venda))} por cadeira · Planilha Comercial`,true)));
 }
 
 // ritmo: média dos últimos 7 dias fechados × o que falta por dia até o fim do ciclo
@@ -754,13 +754,13 @@ function chartDia(){
 }
 
 function tabelaDia(){
-  const H=["Dia","Investimento","CPM","CTR link","Cliques","Visitas","Leads","MQL","Meta MQL","Custo MQL","SQL","% SQL","Custo SQL","Vendas"];
+  const H=["Dia","Investimento","CPM","CTR link","Cliques","Visitas","Leads","MQL","Meta MQL","Custo MQL","SQL","% SQL","Custo SQL","Cadeiras"];
   const tb=el("tbody");
   [...D].reverse().forEach((r,i)=>{const hj=PARC&&i===0, mq=r[12]||0; tb.append(el("tr",hj?{class:"hoje"}:{},td(dBR(r[0])+(hj?` · hoje até ${DATA.hora}`:""),"","num"),td(brl(r[1]),H[1]),td(brl(r[7],2),H[2],tone(r[7],META.cpm)),td(pct(r[8],2),H[3],tone(r[8],META.ctr,false)),
     td(int(r[3]),H[4]),td(int(r[4]),H[5]),td(int(r[5]),H[6]),td(int(mq),H[7],hj?"":tone(mq,r[11],false)),td(hj&&r[11]!=null?int(r[11]*FR):int(r[11]),H[8]),
     td(brl(div(r[1],mq)),H[9],tone(div(r[1],mq),META.cpl)),td(int(r[6]),H[10]),td(pct(div(r[6],mq),0),H[11]),td(r[6]?brl(div(r[1],r[6])):"—",H[12],r[6]?tone(div(r[1],r[6]),META.custoSql):""),td(r[13]?int(r[13]):"—",H[13])))});
   const sm=k=>D.reduce((a,r)=>a+(r[k]||0),0), gsp=GG&&!GG.sem_gasto?GG.spend:0;
-  return sec("Dia a dia",`mais recente primeiro · investimento do Meta por dia${gsp?"; o Google Ads não tem quebra por dia e entra no total":""} · leads, MQL e SQL do HubSpot no dia em que entraram (MQL e SQL pela criação do negócio) · vendas da Planilha Comercial pela data da venda`,
+  return sec("Dia a dia",`mais recente primeiro · investimento do Meta por dia${gsp?"; o Google Ads não tem quebra por dia e entra no total":""} · leads, MQL e SQL do HubSpot no dia em que entraram (MQL e SQL pela criação do negócio) · cadeiras vendidas (Planilha Comercial) pela data da venda`,
     el("div",{class:"tw scroll"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb,
       el("tfoot",{},gsp?el("tr",{},td("Google Ads no ciclo"),td(brl(gsp),H[1]),...H.slice(2).map(h=>td("—",h))):null,
         el("tr",{},td("Total"),td(brl(SPT),H[1]),td(brl(BM.cpm,2),H[2]),td(pct(BM.ctr_link,2),H[3]),td(int(K.clk),H[4]),td(int(K.lpv),H[5]),
@@ -768,7 +768,7 @@ function tabelaDia(){
 }
 
 function tabelaCiclos(){
-  const H=["Ciclo","Período","Dias","Investimento","Leads","MQL","MQL/dia","Custo MQL","SQL","% SQL","Custo SQL","Vendas","CAC"];
+  const H=["Ciclo","Período","Dias","Investimento","Leads","MQL","MQL/dia","Custo MQL","SQL","% SQL","Custo SQL","Cadeiras","Custo por cadeira"];
   const dA=iso=>iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(2,4);
   const nd=(a,b)=>Math.round((new Date(b)-new Date(a))/864e5)+1;
   const tb=el("tbody");
@@ -783,7 +783,7 @@ function tabelaCiclos(){
       td(brl(cs),H[10],tone(cs,META.custoSql)),td(x.venda!=null&&x.venda!==undefined&&(x.venda||x.nome>="RGV 39")?int(x.venda):"—",H[11]),td(x.venda?brl(div(x.spend,x.venda)):"—",H[12]));
     if(tr.classList.contains("clic")){ tr.title="Ver o painel do "+x.nome; tr.addEventListener("click",()=>trocaCiclo(x.nome,true)); }
     tb.append(tr);});
-  return sec("Ciclos anteriores","clique num ciclo para ver o painel dele · mesmas regras em todos: investimento Meta [FF] (+ Google quando lido); leads e MQL do HubSpot, todas as origens; vendas da Planilha Comercial (canal Perpétuo, produto RGV), que começa no RGV 39 · cores pelas metas do ciclo atual",
+  return sec("Ciclos anteriores","clique num ciclo para ver o painel dele · mesmas regras em todos: investimento Meta [FF] (+ Google quando lido); leads e MQL do HubSpot, todas as origens; cadeiras vendidas da Planilha Comercial (canal Perpétuo, produto RGV), que começa no RGV 39 · cores pelas metas do ciclo atual",
     el("div",{class:"tw"},el("table",{},el("thead",{},el("tr",{},...H.map(h=>el("th",{text:h})))),tb)));
 }
 
@@ -988,7 +988,7 @@ function renderFrentes(){
   const soma=l=>l.reduce((a,o)=>({lead:a.lead+o.lead,mql:a.mql+o.mql,sql:a.sql+o.sql,venda:a.venda+o.venda}),z());
   const totF=Object.fromEntries(FRENTES.map(([fr])=>[fr,soma(Object.values(por[fr]||{}))])), T=soma(Object.values(totF));
   const metaF=(METAS[C.nome]||{}).frentes||{};
-  const H=["Canal","Leads","MQL","% MQL","SQL","Vendas","% de todos os MQL","Como é identificado (UTM)"];
+  const H=["Canal","Leads","MQL","% MQL","SQL","Cadeiras","% de todos os MQL","Como é identificado (UTM)"];
   const linha=(nome,o,t,cls,utm)=>el("tr",cls?{class:cls}:{},td(nome,"","pg"),td(int(o.lead),H[1]),td(int(o.mql),H[2]),td(o.lead?pct(div(o.mql,o.lead),0):"—",H[3]),
     td(int(o.sql),H[4]),td(int(o.venda),H[5]),td(mqlTodos?pct(div(o.mql,mqlTodos),1):"—",H[6]),el("td",{class:"utm","data-l":H[7],text:utm||""}));
   // gráfico: MQL por dia no ciclo inteiro (dias fora do período em cinza), hoje parcial mais claro, meta por dia tracejada
@@ -1030,8 +1030,8 @@ function renderFrentes(){
         el("tfoot",{},linha("Total da frente",t,t,"sub","")))),grafico(fr));});
   box.replaceChildren(sec("MQL diários frentes",`${C.nome} · leads e MQL das redes sociais e das bases, pela UTM do formulário PERPÉTUO no HubSpot${DATA.recorte?` · período de ${dBR(DATA.recorte.ini)} a ${dBR(DATA.recorte.fim)}`:""}`,
     el("div",{class:"kpis"},
-      kpi("MQL das frentes",int(T.mql),`${pct(div(T.mql,mqlTodos),1)} de ${int(mqlTodos)} MQL · ${int(T.lead)} leads · ${int(T.sql)} SQL · ${int(T.venda)} vendas`,true),
-      ...FRENTES.map(([fr])=>{const t=totF[fr]; return kpi(fr,int(t.mql),`${pct(div(t.mql,mqlTodos),1)} dos MQL · ${int(t.lead)} lead${t.lead===1?"":"s"} · ${int(t.sql)} SQL · ${int(t.venda)} venda${t.venda===1?"":"s"}`);})),
+      kpi("MQL das frentes",int(T.mql),`${pct(div(T.mql,mqlTodos),1)} de ${int(mqlTodos)} MQL · ${int(T.lead)} leads · ${int(T.sql)} SQL · ${int(T.venda)} cadeiras`,true),
+      ...FRENTES.map(([fr])=>{const t=totF[fr]; return kpi(fr,int(t.mql),`${pct(div(t.mql,mqlTodos),1)} dos MQL · ${int(t.lead)} lead${t.lead===1?"":"s"} · ${int(t.sql)} SQL · ${int(t.venda)} cadeira${t.venda===1?"":"s"}`);})),
     ...blocos,
     el("div",{class:"fr-leg"},el("span",{},el("i"),"MQL no dia"),el("span",{},el("i",{class:"p"}),"hoje (parcial)"),el("span",{},el("i",{class:"m"}),"meta por dia")),
     el("p",{class:"note",text:"Lead = pessoa que preencheu formulário PERPÉTUO; MQL = negócio do relatório [CICLO] MQL - PERPÉTUO, ligado ao formulário que a pessoa preencheu antes de o negócio nascer; vendas da Planilha Comercial. Cada canal sai da UTM desse formulário. Mídia paga (Meta e Google), formulário sem UTM e negócio sem formulário ficam fora das frentes; por isso o % de todos os MQL não soma 100%. O gráfico mostra o ciclo inteiro; com o filtro De/Até, os dias fora do período ficam em cinza."})));
