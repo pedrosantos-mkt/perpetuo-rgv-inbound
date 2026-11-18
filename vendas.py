@@ -4,6 +4,14 @@
 import json, os, datetime as dt, requests
 from comum import AQUI
 
+def so_perpetuo(obs):
+    """Coluna L (Obs): vale só venda sem observação ou marcada PERPETUO; resgate, De Frente, outras ações, live, MQL,
+    cancelado e "verificar" ficam fora (são de outras ações ou não confirmadas)."""
+    import unicodedata
+    o = unicodedata.normalize('NFD', obs).encode('ascii', 'ignore').decode().upper().strip()
+    return not o or o.startswith('PERPETUO')
+
+
 url = os.environ.get('VENDAS_URL')
 if not url:
     print('sem VENDAS_URL: vendas do vendas_rgv.json do repositório'); raise SystemExit(0)
@@ -16,10 +24,12 @@ for t in range(3):
     except Exception as e: print('planilha:', e)
 if not txt:
     print('Apps Script sem a saída do Perpétuo: mantém o vendas_rgv.json do repositório'); raise SystemExit(0)
+if txt.split(';')[0].count('|') < 5:   # versão antiga do script, sem a coluna L: não dá para tirar as outras ações
+    print('Apps Script sem a coluna L (Obs): mantém o vendas_rgv.json do repositório'); raise SystemExit(0)
 vendas = []
 for g in filter(None, (x.strip() for x in txt.split(';'))):
-    i, n, cent, ciclo, dia = g.split('|')
-    if not ciclo.startswith('RGV'): continue
+    i, n, cent, ciclo, dia, *obs = g.split('|')
+    if not ciclo.startswith('RGV') or not so_perpetuo(obs[0] if obs else ''): continue
     data = dt.date(int(dia[6:10]), int(dia[3:5]), int(dia[:2])).isoformat() if len(dia) >= 10 else ''
     vendas.append({'id': i, 'vendas': int(float(n or 0)), 'valor': int(cent) / 100, 'ciclo': ciclo, 'data': data})
 p = os.path.join(AQUI, 'vendas_rgv.json')

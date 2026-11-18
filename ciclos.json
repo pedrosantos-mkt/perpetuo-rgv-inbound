@@ -223,8 +223,8 @@
    "mql": 3696,
    "sql": 469,
    "hubspot": true,
-   "venda": 58,
-   "receita": 917289
+   "venda": 56,
+   "receita": 887489
   },
   {
    "nome": "RGV 42",
@@ -240,8 +240,8 @@
    "mql": 3548,
    "sql": 460,
    "hubspot": true,
-   "venda": 88,
-   "receita": 1431927
+   "venda": 84,
+   "receita": 1351617
   },
   {
    "nome": "RGV 43",
@@ -257,8 +257,8 @@
    "mql": 2974,
    "sql": 392,
    "hubspot": true,
-   "venda": 30,
-   "receita": 450840
+   "venda": 27,
+   "receita": 408840
   },
   {
    "nome": "RGV 44",
@@ -274,8 +274,8 @@
    "mql": 2838,
    "sql": 285,
    "hubspot": true,
-   "venda": 36,
-   "receita": 559832
+   "venda": 34,
+   "receita": 520952
   },
   {
    "nome": "RGV 45",
@@ -291,8 +291,8 @@
    "mql": 2788,
    "sql": 300,
    "hubspot": true,
-   "venda": 27,
-   "receita": 443806,
+   "venda": 23,
+   "receita": 380106,
    "g_spend": 9093.38
   }
  ]

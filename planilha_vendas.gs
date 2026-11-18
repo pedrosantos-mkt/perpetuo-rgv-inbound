@@ -25,7 +25,7 @@ function doGet(e) {
 }
 
 // ?p=perpetuo — vendas do Perpétuo RGV (canal Perpétuo, produto RGV), uma linha por venda, sem nomes:
-// NEGÓCIO HUBSPOT|vendas|valor em centavos|CICLO|DD/MM/AAAA ; ...   (C = HubSpot, D = vendas, E = valor, I = canal, J = produto, K = ciclo)
+// NEGÓCIO HUBSPOT|vendas|valor em centavos|CICLO|DD/MM/AAAA|OBS ; ...   (C = HubSpot, D = vendas, E = valor, I = canal, J = produto, K = ciclo, L = Obs)
 function perpetuoRGV() {
   const linhas = SpreadsheetApp.getActive().getSheetByName('Vendas').getDataRange().getValues().slice(1);
   const N = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
@@ -35,7 +35,8 @@ function perpetuoRGV() {
     if (!/PERPETUO/.test(N(x[8])) || N(x[9]) !== 'RGV') return;
     const texto = String(x[0] || '').match(/^(\d{2}\/\d{2}\/\d{4})/);
     const dia = x[0] instanceof Date ? Utilities.formatDate(x[0], 'America/Sao_Paulo', 'dd/MM/yyyy') : (texto ? texto[1] : '');
-    out.push([String(x[2] || '').trim(), Number(x[3]) || 0, Math.round(valor(x[4]) * 100), String(x[10] || '').trim(), dia].join('|'));
+    out.push([String(x[2] || '').trim(), Number(x[3]) || 0, Math.round(valor(x[4]) * 100), String(x[10] || '').trim(), dia,
+              String(x[11] || '').replace(/[|;\n]/g, ' ').trim()].join('|'));
   });
   return ContentService.createTextOutput(out.join(';')).setMimeType(ContentService.MimeType.TEXT);
 }
