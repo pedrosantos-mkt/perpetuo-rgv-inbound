@@ -70,6 +70,30 @@ pesos = collections.defaultdict(collections.Counter)
 for a in M['ads_ins']:
     pesos[(camp_nome.get(a['campaign_id']), a['ad_name'])][adset_tag.get(a['adset_id'], 'Outros')] += A(a, 'lead') or float(a['spend']) / 1e6
 
+# ---------- página real de cada anúncio em cada dia ----------
+# O Meta só devolve a URL que o anúncio tem hoje; quando a URL é trocada no meio do ciclo, o gasto dos dias anteriores iria
+# todo para a página nova. Por isso a página de cada anúncio (conjunto + criativo) em cada dia sai de onde os leads dele
+# estavam caindo: a do último lead de página até aquele dia (antes do primeiro lead, a do primeiro); sem lead, a URL atual.
+_vistos = collections.defaultdict(dict)
+for _l in sorted(HS.get('envios', HS['leads']), key=lambda x: x['ts']):
+    if _l['canal'] != 'meta' or 'LEAD ADS' in _l['form'] or not _l.get('page'): continue
+    _pg = norm_page(_l['page'])
+    for _k in ((N(_l['term']), N(_l['content'])), ('', N(_l['content']))):
+        _vistos[_k][_l['dia']] = _pg
+_ad_nome = {a['ad_id']: (N(a.get('adset_name')), N(a['ad_name'])) for a in M['ads_ins']}
+def pagina_do_dia(ad_id, dia):
+    atual = info_ad.get(ad_id, {}).get('page', '(sem URL)')
+    if atual == NATIVO: return atual
+    k = _ad_nome.get(ad_id, ('', ''))
+    h = _vistos.get(k) or _vistos.get(('', k[1])) or {}
+    if not h: return atual
+    ant = [v for d, v in sorted(h.items()) if d <= dia]
+    return ant[-1] if ant else sorted(h.items())[0][1]
+# fatia do gasto de cada anúncio que foi para cada página (pelos dias), para repartir as métricas do ciclo inteiro
+_fatia = collections.defaultdict(collections.Counter)
+for _r in M.get('ad_dia', []):
+    _fatia[_r['ad_id']][pagina_do_dia(_r['ad_id'], _r['date_start'])] += float(_r.get('spend', 0))
+
 # ---------- mídia por público, página, criativo e campanha ----------
 pub, pag, cre, cmp, onde = (collections.defaultdict(collections.Counter) for _ in range(5))
 prev = {}
@@ -77,7 +101,11 @@ for a in M['ads_ins']:
     m = midia(a); i = info_ad.get(a['ad_id'], {})
     m['clkp'] = m['clk'] if i.get('page') != NATIVO else 0   # cliques que levam à página (base do connect)
     pub[adset_tag.get(a['adset_id'], 'Outros')] += m
-    pag[i.get('page', '(sem URL)')] += m
+    _f = _fatia.get(a['ad_id']); _tf = sum(_f.values()) if _f else 0
+    if _tf > 0:
+        for _pg, _v in _f.items(): pag[_pg] += collections.Counter({k: v * _v / _tf for k, v in m.items()})
+    else:
+        pag[i.get('page', '(sem URL)')] += m
     cre[a['ad_name']] += m
     # retenção do vídeo (3 s e 25/50/75/95/100%) e onde o criativo rodou (campanha · conjunto), para o detalhe do criativo
     cre[a['ad_name']]['v3s'] += A(a, 'video_view')
@@ -337,15 +365,23 @@ data = {
 # ---------- dados granulares para o filtro de datas dentro do ciclo ----------
 _dx = lambda v: (dt.date.fromisoformat(v) - CICLO['ini']).days if v and v >= _ini else -1
 ad_info = {}
+_base = {}
 for a in M['ads_ins']:
     i = info_ad.get(a['ad_id'], {})
-    ad_info.setdefault(a['ad_id'], {'c': a['ad_name'], 't': adset_tag.get(a['adset_id'], 'Outros'), 'p': i.get('page', '(sem URL)'),
-                                    'm': camp_nome.get(a['campaign_id'], ''), 'n': int(i.get('page') == NATIVO)})
+    _base.setdefault(a['ad_id'], {'c': a['ad_name'], 't': adset_tag.get(a['adset_id'], 'Outros'), 'p': i.get('page', '(sem URL)'),
+                                  'm': camp_nome.get(a['campaign_id'], ''), 'n': int(i.get('page') == NATIVO)})
+_pdia = {}
+for r in M.get('ad_dia', []):
+    if r.get('ad_id') not in _base: continue
+    pgd = pagina_do_dia(r['ad_id'], r['date_start']); _pdia[(r['ad_id'], r['date_start'])] = pgd
+    ad_info.setdefault((r['ad_id'], pgd), {**_base[r['ad_id']], 'p': pgd})
+for x, b in _base.items():
+    if not any(k[0] == x for k in ad_info): ad_info[(x, b['p'])] = b
 ADS = sorted(ad_info); AD_IX = {x: n for n, x in enumerate(ADS)}
 vid = lambda r, q: sum(float(x['value']) for x in r.get(f'video_p{q}_watched_actions') or [])
-MD = [[DIA_IX[r['date_start']], AD_IX[r['ad_id']], round(float(r.get('spend', 0)), 2), int(r.get('impressions', 0)), int(r.get('inline_link_clicks', 0)),
+MD = [[DIA_IX[r['date_start']], AD_IX[(r['ad_id'], _pdia[(r['ad_id'], r['date_start'])])], round(float(r.get('spend', 0)), 2), int(r.get('impressions', 0)), int(r.get('inline_link_clicks', 0)),
        int(r.get('clicks', 0)), int(A(r, 'landing_page_view')), int(A(r, 'video_view'))] + [int(vid(r, q)) for q in (25, 50, 75, 95, 100)]
-      for r in M.get('ad_dia', []) if r.get('ad_id') in AD_IX and r['date_start'] in DIA_IX]
+      for r in M.get('ad_dia', []) if (r.get('ad_id'), r['date_start']) in _pdia and r['date_start'] in DIA_IX]
 data['gran'] = M.get('ad_dia') and {
     'ads': [ad_info[x] for x in ADS],   # c = criativo, t = público, p = página, m = campanha, n = Lead Ads
     'md': MD,                           # [dia, anúncio, gasto, impressões, cliques no link, cliques, visitas, 3 s, 25, 50, 75, 95, 100%]
