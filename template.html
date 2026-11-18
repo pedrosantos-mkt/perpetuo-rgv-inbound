@@ -461,14 +461,14 @@ function painelComercial(){
     etapa("Agendamento realizado","realizado","marcado","Comparecimento","Custo por ag. realizado"),
     etapa("Cadeiras","venda","realizado","Fechamento","Custo por cadeira"));
   };
-  const nota=`pipeline de vendas do HubSpot · MQL = negócios do relatório [CICLO] MQL - PERPÉTUO criados no ${FECH?"ciclo":"ciclo até "+dBR(DATA.ate)}, todas as origens · custos com o investimento ${GG?"Meta + Google":"do Meta"} · venda = Planilha Comercial · taxa sobre a etapa anterior`;
+  const per=DATA.recorte?"período":"ciclo", inv=GG?"Meta + Google":"Meta";
   if(!C0.ciclo){ const g=funil(C0);
   return sec("Funil comercial",`pipeline de vendas do HubSpot · MQL = negócios do relatório [CICLO] MQL - PERPÉTUO criados no ${FECH?"ciclo":"ciclo até "+dBR(DATA.ate)}, todas as origens · custos com o investimento ${GG?"Meta + Google":"do Meta"} · cada etapa conta quem chegou nela ou passou dela · taxa sobre a etapa anterior`,g);
   }
   const ciclo={...C0,...C0.ciclo}, safra={...C0,...C0.safra};
   return el("div",{},
-    sec("Funil comercial · visão ciclo",`só o que nasceu e aconteceu no ${DATA.recorte?"período":"ciclo"}: MQL criados nele e cada etapa (contato, SQL, agendamento, realizado) também dentro das datas · ${nota}`,funil(ciclo)),
-    sec("Funil comercial · visão safra",`tudo o que o time tratou no ${DATA.recorte?"período":"ciclo"}: cada etapa pela data em que aconteceu, inclusive leads criados em ciclos anteriores (${int(C0.safra.antes||0)} negócios de outros ciclos no ciclo inteiro) · MQL pela criação · ${nota}`,funil(safra)));
+    sec("Funil comercial · visão ciclo",`Só os MQL criados no ${per} e as etapas que eles fizeram dentro do ${per}. Custo = investimento ${inv} ÷ etapa · cadeiras da Planilha Comercial.`,funil(ciclo)),
+    sec("Funil comercial · visão safra",`Tudo o que o time trabalhou no ${per}, pela data de cada etapa, inclusive leads de ciclos anteriores${C0.safra.antes?` (${int(C0.safra.antes)} no ciclo)`:""}. Custo = investimento ${inv} ÷ etapa · cadeiras da Planilha Comercial.`,funil(safra)));
 }
 
 function painelVendas(){
