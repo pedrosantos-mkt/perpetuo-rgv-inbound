@@ -5,11 +5,11 @@ import json, os, datetime as dt, requests
 from comum import AQUI
 
 def so_perpetuo(obs):
-    """Coluna L (Obs): vale só venda sem observação ou marcada PERPETUO; resgate, De Frente, outras ações, live, MQL,
-    cancelado e "verificar" ficam fora (são de outras ações ou não confirmadas)."""
+    """Coluna L (Obs): vale venda sem observação ou marcada PERPETUO, MQL ou "Verificar" (contam como Perpétuo);
+    resgate, De Frente, outras ações, live e cancelado ficam fora."""
     import unicodedata
     o = unicodedata.normalize('NFD', obs).encode('ascii', 'ignore').decode().upper().strip()
-    return not o or o.startswith('PERPETUO')
+    return not o or o.startswith('PERPETUO') or o.startswith('VERIFICAR') or o == 'MQL'
 
 
 url = os.environ.get('VENDAS_URL')
