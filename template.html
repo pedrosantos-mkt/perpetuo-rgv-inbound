@@ -93,6 +93,8 @@ details.ler dd{margin:0;color:var(--muted);font-size:13.5px;line-height:1.55}
 .cri dd{margin:2px 0 0;font:700 14px/1.2 var(--f-body);color:var(--fg)}
 .cri dd.ok{color:var(--ok)}.cri dd.warn{color:var(--warn)}.cri dd.bad{color:var(--bad)}
 .cri.sem{opacity:.72}
+.cri.pg{cursor:default}.cri.pg .thumb{aspect-ratio:16/10}.cri.pg .thumb img{object-position:top}
+.cri.pg dl{grid-template-columns:repeat(3,minmax(0,1fr))}
 .cri{cursor:pointer;transition:border-color .15s}
 .cri:hover{border-color:var(--line)}
 .cri:focus-visible{outline:2px solid var(--red);outline-offset:2px}
@@ -340,10 +342,11 @@ footer p{margin:0 0 8px}
     </div>
     <div class="stamp"><label class="sel-ciclo" id="sel-wrap" hidden><span>Ciclo</span><select id="ciclo"></select></label><span class="sel-ciclo per" id="per-wrap" hidden><span>De</span><input type="date" id="per-de" aria-label="Data inicial"><span>até</span><input type="date" id="per-ate" aria-label="Data final"><button type="button" class="per-x" id="per-limpa" hidden>Ciclo inteiro</button></span><button class="tema" id="tema" type="button" aria-pressed="false"><span class="tema-ico" aria-hidden="true"></span><span id="tema-txt">Tema claro</span></button><span id="stamp"></span><button class="refresh" id="refresh" type="button" hidden>Atualizar agora</button><span class="refresh-msg" id="refresh-msg" aria-live="polite"></span></div>
   </header>
-  <nav class="menu" id="menu" role="tablist" aria-label="Painéis"><button type="button" role="tab" data-v="funil" aria-selected="true">Funil</button><button type="button" role="tab" data-v="criativos" aria-selected="false">Criativos</button><button type="button" role="tab" data-v="metas" aria-selected="false">Metas</button><button type="button" role="tab" data-v="frentes" aria-selected="false">MQL diários frentes</button></nav>
+  <nav class="menu" id="menu" role="tablist" aria-label="Painéis"><button type="button" role="tab" data-v="funil" aria-selected="true">Funil</button><button type="button" role="tab" data-v="criativos" aria-selected="false">Criativos</button><button type="button" role="tab" data-v="paginas" aria-selected="false">Páginas</button><button type="button" role="tab" data-v="metas" aria-selected="false">Metas</button><button type="button" role="tab" data-v="frentes" aria-selected="false">MQL diários frentes</button></nav>
   <section class="sum" id="sum"></section>
   <section class="detail" id="detail" aria-live="polite"></section>
   <section class="detail" id="cri" hidden></section>
+  <section class="detail" id="pags" hidden></section>
   <section class="detail" id="metas" hidden></section>
   <section class="detail" id="frentes" hidden></section>
   <dialog class="det" id="det" aria-label="Detalhe do criativo"></dialog>
@@ -803,7 +806,40 @@ function tabelaCamps(){
 
 // painel de criativos: todos os criativos do ciclo em cartões, com busca, tipo e ordenação
 let VIEW="funil";
-const CRI={q:"",tipo:"todos",ord:"spend"};
+const CRI={q:"",tipo:"todos",ord:"spend"}, PGS={ord:"spend"};
+// aba Páginas: as páginas (URL de destino dos anúncios [FF]) que tiveram investimento no ciclo ou no período escolhido
+function renderPaginas(){
+  const box=document.getElementById("pags");
+  const fora=n=>n==="Formulário nativo (Lead Ads)"||/^\(|^Google/.test(n);
+  const todos=(DATA.paginas||[]).filter(r=>!fora(r.nome)&&(r.spend||0)>0).map(r=>({...r,...rc(r)}));
+  const ORD={spend:["Maior investimento",(a,b)=>b.sp-a.sp],mql:["Mais MQL",(a,b)=>b.m-a.m||b.sp-a.sp],cmql:["Menor custo por MQL",(a,b)=>(a.m?a.cmql:1e12-a.sp)-(b.m?b.cmql:1e12-b.sp)],
+    csql:["Menor custo por SQL",(a,b)=>(a.s?a.csql:1e12-a.sp)-(b.s?b.csql:1e12-b.sp)],conv:["Maior conversão da página",(a,b)=>(b.conv||0)-(a.conv||0)],cad:["Mais cadeiras",(a,b)=>b.v-a.v||b.sp-a.sp]};
+  const ord=el("select",{"aria-label":"Ordenar páginas"},...Object.entries(ORD).map(([v,[l]])=>{const o=el("option",{value:v,text:l}); if(v===PGS.ord) o.selected=true; return o;}));
+  ord.addEventListener("change",()=>{PGS.ord=ord.value; renderPaginas();});
+  const t=rc(sumRows(todos));
+  const m=(dtx,v,cls)=>el("div",{},el("dt",{text:dtx}),el("dd",{class:cls||"",text:v}));
+  const cards=todos.sort(ORD[PGS.ord][1]).map((r,i)=>{
+    const url="https://"+r.nome, th=el("div",{class:"thumb",text:"PÁGINA"});
+    const img=el("img",{src:"https://s.wordpress.com/mshots/v1/"+encodeURIComponent(url)+"?w=640&h=400",alt:"",loading:"lazy",referrerpolicy:"no-referrer"}); img.addEventListener("error",()=>img.remove());
+    th.append(img,el("span",{class:"rk",text:"#"+(i+1)}));
+    const nm=el("div",{class:"nm"},el("span",{text:r.nome}));
+    const a=el("a",{class:"ver",href:url,target:"_blank",rel:"noopener",title:"Abrir a página","aria-label":"Abrir a página "+r.nome}); a.innerHTML=OLHO; nm.append(a);
+    return el("article",{class:"cri pg"},th,el("div",{class:"bd"},nm,el("dl",{},
+      m("Investimento",brl(r.sp)),m("Cliques no link",int(r.clkp??r.clk)),m("Visitas",int(r.lpv)),
+      m("Connect",r.connect>1.1?"—":pct(r.connect,0),tone(r.connect,META.connect,false)),m("Custo por visita",r.lpv?brl(r.sp/r.lpv,2):"—"),m("Conversão",r.lpv?pct(r.conv,2):"—",r.lpv?tone(r.conv,META.conv,false):""),
+      m("Leads",int(r.l)),m("Custo por lead",r.l?brl(r.cpl):"sem lead"),m("MQL",int(r.m)),
+      m("Custo MQL",r.m?brl(r.cmql):"sem MQL",tone(r.cmql,META.cpl)),m("SQL",int(r.s)),m("Custo SQL",r.s?brl(r.csql):"sem SQL",tone(r.csql,META.custoSql)),
+      m("Cadeiras",int(r.v)),m("Custo por cadeira",r.v?brl(r.sp/r.v):"sem venda"))));});
+  box.replaceChildren(sec("Páginas do ciclo",`${C.nome}${DATA.recorte?` · período de ${dBR(DATA.recorte.ini)} a ${dBR(DATA.recorte.fim)}`:""} · páginas com investimento no Meta [FF] · gasto de cada anúncio na página em que os leads dele caíram em cada dia · leads e MQL do HubSpot · cadeiras da Planilha Comercial`,
+    el("div",{class:"kpis",style:"grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:14px"},
+      kpi("Páginas com investimento",int(todos.length),`${brl(t.sp)} investidos nelas`,true),
+      kpi("Leads nas páginas",int(t.l),`${pct(div(t.l,t.lpv),2)} das ${int(t.lpv)} visitas`),
+      kpi("MQL nas páginas",int(t.m),`custo por MQL ${brl(t.cmql)}`),
+      kpi("Cadeiras",int(t.v),t.v?`${brl(t.sp/t.v)} por cadeira`:"sem venda ligada às páginas")),
+    el("div",{class:"cri-bar",style:"display:flex;justify-content:flex-end;gap:10px;margin-bottom:12px"},ord),
+    todos.length?el("div",{class:"cri-grid"},...cards):el("p",{class:"note",text:"Nenhuma página com investimento neste período."}),
+    el("p",{class:"note",text:"Connect = visitas ÷ cliques no link; conversão = leads ÷ visitas; custo por visita = investimento ÷ visitas. Lead Ads, Google e orgânico não aparecem aqui porque não passam por página com gasto do Meta. A imagem é uma prévia da página de hoje."})));
+}
 const tipoCri=n=>/\[(VD|VIDEO|REELS?)\]/i.test(n)?"vd":/\[(IMG|EST|ESTATICO|CARROSSEL|CAR)\]/i.test(n)?"img":"outro";
 function renderCriativos(){
   const box=document.getElementById("cri");
@@ -1042,10 +1078,12 @@ function mostra(v,push){
   document.querySelectorAll("#menu button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.v===v)));
   document.getElementById("detail").hidden=v!=="funil";
   document.getElementById("cri").hidden=v!=="criativos";
+  document.getElementById("pags").hidden=v!=="paginas";
   document.getElementById("metas").hidden=v!=="metas";
   document.getElementById("frentes").hidden=v!=="frentes";
   document.getElementById("sum").hidden=v==="frentes";   // na aba de frentes a faixa de KPIs do ciclo sai
   if(v==="criativos") renderCriativos();
+  if(v==="paginas") renderPaginas();
   if(v==="metas") renderMetas();
   if(v==="frentes") renderFrentes();
   if(push!==false) atualizaHash();
@@ -1116,6 +1154,7 @@ function recorta(F, i0, i1){
 function render(){
   renderTop();
   if(VIEW==="criativos") renderCriativos();
+  if(VIEW==="paginas") renderPaginas();
   if(VIEW==="metas") renderMetas();
   if(VIEW==="frentes") renderFrentes();
   const d=document.getElementById("detail");
@@ -1161,7 +1200,7 @@ async function trocaCiclo(nome, rolar){
   finally{ sel.disabled=false; }
 }
 (function(){
-  { const ps=decodeURIComponent(location.hash.slice(1)).split("/"); if(ps.includes("criativos")) mostra("criativos",false); if(ps.includes("metas")) mostra("metas",false); if(ps.includes("frentes")) mostra("frentes",false); }
+  { const ps=decodeURIComponent(location.hash.slice(1)).split("/"); if(ps.includes("criativos")) mostra("criativos",false); if(ps.includes("paginas")) mostra("paginas",false); if(ps.includes("metas")) mostra("metas",false); if(ps.includes("frentes")) mostra("frentes",false); }
   if(!LISTA.length) return;   // sem arquivos dos ciclos fechados (ex.: Artifact), o seletor fica escondido
   const sel=document.getElementById("ciclo");
   [{nome:DATA0.ciclo.nome}, ...[...LISTA].reverse()].forEach((c,i)=>sel.append(el("option",{value:c.nome,text:c.nome+(i?"":" · atual")})));
