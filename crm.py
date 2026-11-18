@@ -58,6 +58,43 @@ def busca(a, b):
         time.sleep(.15)
 
 
+def datas(p):
+    """Dia (BRT) em que o negócio entrou em cada etapa: a primeira data de entrada entre as fases que contam para ela
+    (quem pulou etapas herda a data da fase seguinte). No Boletos, que começa depois da reunião, vale a criação do negócio."""
+    dia = lambda iso: dt.datetime.fromisoformat(iso.replace('Z', '+00:00')).astimezone(TZ).date().isoformat()
+    cria = dia(p['createdate'])
+    if p['pipeline'] == BOLETO:
+        return {e: cria for e in ETAPAS if e != 'venda'}
+    f, out = FASES.get(p['pipeline'], {}), {}
+    for e in ETAPAS:
+        if e == 'venda' or e not in f: continue
+        ds = [dia(p[k]) for k in (f'hs_v2_date_entered_{x}' for x in f[e]) if p.get(k)]
+        if ds: out[e] = min(ds)
+        elif p['dealstage'] in f[e]: out[e] = cria   # está na fase sem data de entrada (criado direto nela)
+    return out
+
+
+def safra(a, b):
+    """Negócios de qualquer data de criação que entraram em alguma etapa (contato em diante) entre a e b (ms):
+    uma busca por fase, no mesmo filtro do relatório de MQL (pipelines e origens), sem limite de criação."""
+    fases = sorted({x for pipe in (PRINCIPAL, PADRAO) for e in ETAPAS if e != 'venda' for x in FASES[pipe][e]})
+    def uma(fase):
+        out, after = [], None
+        while True:
+            j = req('POST', 'https://api.hubapi.com/crm/v3/objects/deals/search', headers={**H, 'Content-Type': 'application/json'},
+                    json={'filterGroups': [{'filters': [{'propertyName': f'hs_v2_date_entered_{fase}', 'operator': 'BETWEEN', 'value': str(a), 'highValue': str(b - 1)},
+                                                        {'propertyName': 'pipeline', 'operator': 'IN', 'values': [PRINCIPAL, PADRAO]},
+                                                        {'propertyName': 'origem_dos_negocios', 'operator': 'NOT_IN', 'values': ORIGENS_FORA}]}],
+                          'properties': PROPS, 'limit': 200, **({'after': after} if after else {})})
+            out += j.get('results', [])
+            after = j.get('paging', {}).get('next', {}).get('after')
+            if not after: return out
+            time.sleep(.15)
+    with ThreadPoolExecutor(2) as ex:
+        achados = {d['id']: d for r in ex.map(uma, fases) for d in r}
+    return achados
+
+
 def main():
     if os.environ.get('SO_VENDAS'):   # ciclo congelado: mantém os MQL salvos e só acrescenta as vendas
         out = le('crm.json')['deals']
@@ -89,10 +126,21 @@ def main():
                 f = FASES[pipe]
                 ch = {e: p['dealstage'] in f[e] or any(p.get(f'hs_v2_date_entered_{s}') for s in f[e]) for e in ETAPAS}
             cria = dt.datetime.fromisoformat(p['createdate'].replace('Z', '+00:00'))
-            out.append({'id': d['id'], 'dia': cria.astimezone(TZ).date().isoformat(), 'ts': int(cria.timestamp() * 1000), 'pipe': pipe,
+            out.append({'id': d['id'], 'dia': cria.astimezone(TZ).date().isoformat(), 'ts': int(cria.timestamp() * 1000), 'pipe': pipe, 'dt': datas(p),
                         'emails': [em[c] for c in ass.get(d['id'], []) if em.get(c)], 'utm_camp': p.get('utm_camp') or '', 'mql': True,
                         **{e: bool(v) for e, v in ch.items()}})
         print(len(out), 'MQL (negócios do relatório [CICLO] MQL - PERPÉTUO) ·', ' · '.join(f"{e} {sum(x[e] for x in out)}" for e in ETAPAS))
+        # visão safra: todo negócio que entrou numa etapa dentro do ciclo, criado no ciclo ou antes (lead de outro ciclo tratado agora)
+        a, b = ms(CICLO['ini']), ms(fim + dt.timedelta(1))
+        sf = {d['id']: {'id': d['id'], 'cria': d['dia'], 'dt': d['dt']} for d in out}   # os MQL do ciclo (inclusive Boletos)
+        for i, d in safra(a, b).items():
+            if i not in sf:
+                p = d['properties']
+                sf[i] = {'id': i, 'cria': dt.datetime.fromisoformat(p['createdate'].replace('Z', '+00:00')).astimezone(TZ).date().isoformat(), 'dt': datas(p)}
+        ini_s, fim_s = CICLO['ini'].isoformat(), fim.isoformat()
+        safra_l = [x for x in sf.values() if any(ini_s <= v <= fim_s for v in x['dt'].values())]
+        print(len(safra_l), 'negócios tratados no ciclo (safra) ·', sum(x['cria'] < ini_s for x in safra_l), 'criados antes do ciclo ·',
+              ' · '.join(f"{e} {sum(ini_s <= x['dt'].get(e, '') <= fim_s for x in safra_l)}" for e in ETAPAS if e != 'venda'))
     # vendas do ciclo (Planilha Comercial, canal Perpétuo + produto RGV, em vendas_rgv.json): data de criação e e-mails
     # de cada negócio vendido, para ligar a venda à origem/anúncio do formulário da pessoa
     vj = os.path.join(AQUI, 'vendas_rgv.json')
@@ -120,7 +168,8 @@ def main():
         d = ja.get(v['id']) or info.get(v['id']) or {}
         vout.append({**v, 'ts': d.get('ts', 0), 'emails': d.get('emails', []), 'mql': v['id'] in ja})
     print(len(vout), 'linhas de venda ·', sum(v['vendas'] for v in vout), 'vendas ·', sum(v['mql'] for v in vout), 'linhas com negócio no relatório de MQL')
-    salva('crm.json', {'deals': out, 'vendas': vout, 'gerado': dt.datetime.now(TZ).strftime('%d/%m/%Y %H:%M')})
+    if os.environ.get('SO_VENDAS'): safra_l = le('crm.json').get('safra', [])
+    salva('crm.json', {'deals': out, 'safra': safra_l, 'vendas': vout, 'gerado': dt.datetime.now(TZ).strftime('%d/%m/%Y %H:%M')})
 
 
 if __name__ == '__main__':

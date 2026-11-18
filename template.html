@@ -441,7 +441,8 @@ function painelFunil(){
 // funil comercial pelo pipeline de vendas: metas entre etapas do plano do ciclo 45
 const META_CRM={contato:.33,sql:.45,marcado:.76,realizado:.72,venda:.32};
 function painelComercial(){
-  const c=DATA.crm; if(!c) return null;
+  const C0=DATA.crm; if(!C0) return null;
+  const funil=(c)=>{
   const sp=SPT, base=Math.max(1,c.lead_crm);
   const pp=v=>(v>=0?"+":"−")+Math.abs(v*100).toLocaleString("pt-BR",{maximumFractionDigits:1})+" pp";
   const card=(tit,v,linhas,custoLab,custo)=>el("div",{},el("h5",{text:tit}),el("span",{class:"v num",text:int(v)}),
@@ -451,7 +452,7 @@ function painelComercial(){
   const etapa=(tit,k,ant,taxaLab,custoLab)=>{const n=c[k], d=c[ant], tx=div(n,d), m=META_CRM[k], pouco=d<5;
     const t=pouco?"cinza":tone(tx,m,false);
     return card(tit,n,[[taxaLab,pct(tx,1),t],["Meta",tx==null?pct(m,0):`${pct(m,0)} · ${pp(tx-m)}`,pouco?"cinza":""]],custoLab,n?brl(div(sp,n)):"sem "+tit.toLowerCase().split(" ")[0]);};
-  const g=el("div",{class:"crm"},
+  return el("div",{class:"crm"},
     card("Lead no CRM",c.lead_crm,[["Pessoas","formulários PERPÉTUO"],["Origens","todas"]],"Custo por lead",brl(div(sp,c.lead_crm))),
     card("Lead no perfil (MQL)",c.mql,[["No perfil",pct(div(c.mql,c.lead_crm),1)],["Meta de custo",brl(META.cpl),tone(div(sp,c.mql),META.cpl)]],"Custo por MQL",brl(div(sp,c.mql))),
     etapa("Contato efetivo","contato","mql","Conexão","Custo por contato"),
@@ -459,7 +460,15 @@ function painelComercial(){
     etapa("Agendamento marcado","marcado","sql","Agendamento","Custo por ag. marcado"),
     etapa("Agendamento realizado","realizado","marcado","Comparecimento","Custo por ag. realizado"),
     etapa("Venda","venda","realizado","Fechamento","Custo por venda (CAC)"));
+  };
+  const nota=`pipeline de vendas do HubSpot · MQL = negócios do relatório [CICLO] MQL - PERPÉTUO criados no ${FECH?"ciclo":"ciclo até "+dBR(DATA.ate)}, todas as origens · custos com o investimento ${GG?"Meta + Google":"do Meta"} · venda = Planilha Comercial · taxa sobre a etapa anterior`;
+  if(!C0.ciclo){ const g=funil(C0);
   return sec("Funil comercial",`pipeline de vendas do HubSpot · MQL = negócios do relatório [CICLO] MQL - PERPÉTUO criados no ${FECH?"ciclo":"ciclo até "+dBR(DATA.ate)}, todas as origens · custos com o investimento ${GG?"Meta + Google":"do Meta"} · cada etapa conta quem chegou nela ou passou dela · taxa sobre a etapa anterior`,g);
+  }
+  const ciclo={...C0,...C0.ciclo}, safra={...C0,...C0.safra};
+  return el("div",{},
+    sec("Funil comercial · visão ciclo",`só o que nasceu e aconteceu no ${DATA.recorte?"período":"ciclo"}: MQL criados nele e cada etapa (contato, SQL, agendamento, realizado) também dentro das datas · ${nota}`,funil(ciclo)),
+    sec("Funil comercial · visão safra",`tudo o que o time tratou no ${DATA.recorte?"período":"ciclo"}: cada etapa pela data em que aconteceu, inclusive leads criados em ciclos anteriores (${int(C0.safra.antes||0)} negócios de outros ciclos no ciclo inteiro) · MQL pela criação · ${nota}`,funil(safra)));
 }
 
 function painelVendas(){
@@ -1049,6 +1058,14 @@ document.querySelectorAll("#menu button").forEach(b=>b.addEventListener("click",
 
 // filtro de datas dentro do ciclo: refaz os quadros a partir dos dados por anúncio × dia (Meta) e dos leads/MQL com data (HubSpot);
 // devolve um objeto no mesmo formato do DATA. CPM/CTR/CPC saem das somas; o Google não tem gasto por dia e fica fora num período parcial.
+// visões do funil comercial num período: ciclo = MQL do período com a etapa também no período; safra = etapa no período, MQL de qualquer data
+const ETP=["contato","sql","marcado","realizado"];
+function visoesDe(G,i0,i1){
+  if(!G.mql_dt) return {};
+  const den=x=>x>=i0&&x<=i1, ciclo={}, safra={};
+  ETP.forEach((e,j)=>{ ciclo[e]=G.mql.reduce((a,r,k)=>a+(den(r[0])&&den(G.mql_dt[k][j])?1:0),0); safra[e]=G.safra.reduce((a,x)=>a+(den(x[j])?1:0),0); });
+  return {ciclo, safra};
+}
 function recorta(F, i0, i1){
   const G=F.gran, inteiro=i0===0&&i1===F.daily.length-1;
   const zero=()=>({spend:0,imp:0,clk:0,clk_all:0,lpv:0,clkp:0,v3s:0,p25:0,p50:0,p75:0,p95:0,p100:0,lead:0,mql:0,sql:0,venda:0,receita:0});
@@ -1090,7 +1107,7 @@ function recorta(F, i0, i1){
     k:{...F.k, venda:vendas, receita, spend:tot.spend, imp:tot.imp, clk:tot.clk, lpv:tot.lpv, lead, mql:st.mql, sql:st.sql, lead_tot:lead, lead_pag:lpag, lead_tot_pag:lpag, lead_nativo:lnat,
        pg:{spend:pg.spend,clk:pg.clk,lpv:pg.lpv}, nat:{spend:nat.spend,clk:nat.clk,lpv:nat.lpv}},
     bm:inteiro?F.bm:bmDe(tot), daily:D, publicos:pubs, paginas:pags, criativos:cres, camps, origens:oris,
-    crm:F.crm&&{...F.crm, lead_crm:lead, ...st, venda:vendas},
+    crm:F.crm&&{...F.crm, lead_crm:lead, ...st, venda:vendas, ...visoesDe(G,i0,i1)},
     faixas:Object.entries(fx).sort((a,b)=>b[1]-a[1]),
     google:gF?(inteiro?gF:{...gF, sem_gasto:true, recorte:true, spend:0, imp:0, clk:0, lead:glead, mql:gmql, sql:gsql, campanhas:[]}):(glead||gmql?{sem_gasto:true,recorte:true,spend:0,imp:0,clk:0,lead:glead,mql:gmql,sql:gsql,campanhas:[]}:null),
     vendas:inteiro?F.vendas:null};

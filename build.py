@@ -186,6 +186,16 @@ def soma(a, chave, v=1):
     if a['g']: G[chave] += v; G_CAMP.setdefault(a['g'], collections.Counter())[chave] += v
 
 
+# visões do funil comercial (crm.py grava o dia de entrada em cada etapa):
+#   ciclo = MQL criados no ciclo cuja etapa também aconteceu dentro do ciclo; safra = toda etapa que aconteceu no ciclo,
+#   de negócio criado no ciclo ou antes (lead de outro ciclo tratado agora). Venda nas duas = Planilha Comercial do ciclo.
+_ETP = ('contato', 'sql', 'marcado', 'realizado')
+_ini, _fim = CICLO['ini'].isoformat(), min(ate(), CICLO['fim']).isoformat()
+_den = lambda v: _ini <= (v or '') <= _fim
+VISOES = {} if not any('dt' in d for d in CRM.get('deals', [])) else {
+    'ciclo': {e: sum(1 for d in CRM['deals'] if _den(d.get('dt', {}).get(e))) for e in _ETP},
+    'safra': {**{e: sum(1 for d in CRM.get('safra', []) if _den(d['dt'].get(e))) for e in _ETP},
+              'antes': sum(1 for d in CRM.get('safra', []) if d['cria'] < _ini)}}
 DIA_IX = {(CICLO['ini'] + dt.timedelta(i)).isoformat(): i for i in range((CICLO['fim'] - CICLO['ini']).days + 1)}
 FAIXAS_IX = {}
 GL, GQ = [], []   # granular: [dia, atribuição, faixa, tipo] por lead; [dia, atribuição, sql, contato, marcado, realizado, venda] por MQL
@@ -311,7 +321,7 @@ data = {
                                             for kk, v in G_CAMP.items() if v.get('spend') or v.get('lead') or v.get('mql')), key=lambda r: -r.get('spend', 0))} or None,
     # funil comercial (crm.py): MQL e etapas pelos negócios [FF] criados no ciclo; lead no CRM = leads pagos de todas as faixas
     # antes dos forms PERPÉTUO (até o RGV 33) o lead no CRM é o negócio [FF] de qualquer faixa
-    'crm': CRM.get('gerado') and {'lead_crm': len(HS['leads']), 'lead_fonte': 'forms', 'gerado': CRM['gerado'],
+    'crm': CRM.get('gerado') and {'lead_crm': len(HS['leads']), 'lead_fonte': 'forms', 'gerado': CRM['gerado'], **VISOES,
                                   **{e: sum(1 for x in CRM['deals'] if e == 'mql' or x.get(e)) for e in ('mql', 'contato', 'sql', 'marcado', 'realizado')},
                                   'venda': sum(x[2] for x in GV) if 'vendas' in CRM else sum(1 for x in CRM['deals'] if x.get('venda'))},   # venda = Planilha Comercial
     # vendas da Planilha Comercial com tráfego × orgânico pela UTM (vendas.json, gerado à mão no debriefing-ciclo45/exporta_vendas.py)
@@ -325,6 +335,7 @@ data = {
                      'hubspot': True, 'venda': sum(x[2] for x in GV), 'receita': sum(x[3] for x in GV), **({'g_spend': round(sum(c['spend'] for c in _gc['campanhas']), 2)} if _gc else {})}],
 }
 # ---------- dados granulares para o filtro de datas dentro do ciclo ----------
+_dx = lambda v: (dt.date.fromisoformat(v) - CICLO['ini']).days if v and v >= _ini else -1
 ad_info = {}
 for a in M['ads_ins']:
     i = info_ad.get(a['ad_id'], {})
@@ -338,7 +349,10 @@ MD = [[DIA_IX[r['date_start']], AD_IX[r['ad_id']], round(float(r.get('spend', 0)
 data['gran'] = M.get('ad_dia') and {
     'ads': [ad_info[x] for x in ADS],   # c = criativo, t = público, p = página, m = campanha, n = Lead Ads
     'md': MD,                           # [dia, anúncio, gasto, impressões, cliques no link, cliques, visitas, 3 s, 25, 50, 75, 95, 100%]
-    'attr': ATTR, 'leads': GL, 'mql': GQ, 'vendas': GV, 'faixas': list(FAIXAS_IX)}
+    'attr': ATTR, 'leads': GL, 'mql': GQ, 'vendas': GV, 'faixas': list(FAIXAS_IX),
+    # dia (índice no ciclo) de entrada em contato, SQL, marcado e realizado: por MQL (mesma ordem de 'mql') e por negócio da safra; -1 = nunca/antes
+    **({'mql_dt': [[_dx(d.get('dt', {}).get(e)) for e in _ETP] for d in CRM['deals']],
+        'safra': [[_dx(d['dt'].get(e)) for e in _ETP] for d in CRM.get('safra', [])]} if VISOES else {})}
 
 saida = os.path.join(AQUI, 'site', 'c', slug(CICLO['nome']) + '.json') if FECHADO else os.path.join(AQUI, 'data.json')
 os.makedirs(os.path.dirname(saida), exist_ok=True)
