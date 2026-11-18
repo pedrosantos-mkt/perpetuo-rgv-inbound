@@ -94,6 +94,24 @@ def _ads():
             out += meta_all(f'{ACT}/ads', {'fields': campos, 'filtering': filtro('id', l[i:i + n]), 'limit': 50})
     return out
 ads = etapa('m_ads.json', _ads)
+
+
+def miniaturas_hd(ads):
+    """A miniatura padrão do criativo vem com 64 px; pede a de 720 px (lotes de 50 pelo batch, que aceita o tamanho por pedido)."""
+    ids = sorted({(a.get('creative') or {}).get('id') for a in ads} - {None})
+    hd = {}
+    for i in range(0, len(ids), 50):
+        b = [{'method': 'GET', 'relative_url': f'{x}?fields=thumbnail_url&thumbnail_width=720&thumbnail_height=720'} for x in ids[i:i + 50]]
+        try:
+            for x, r in zip(ids[i:i + 50], req('POST', 'https://graph.facebook.com/v21.0/', data={'batch': json.dumps(b), 'access_token': META_TOKEN()})):
+                if r and r.get('code') == 200: hd[x] = json.loads(r['body']).get('thumbnail_url')
+        except Exception as e: print('miniaturas:', e)
+    for a in ads:
+        c = a.get('creative') or {}
+        if hd.get(c.get('id')): c['thumbnail_url'] = hd[c['id']]
+    print(len(hd), 'miniaturas em 720 px')
+    return ads
+ads = miniaturas_hd(ads)
 print(len(ads_ins), 'anúncios com gasto ·', len(ads), 'com dados do criativo')
 
 # 5. métricas do Gerenciador por criativo (mesmo nome em vários conjuntos = uma linha)

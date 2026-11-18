@@ -1,0 +1,47 @@
+{
+ "obs": "Clarity por dia (dia = as 24 h lidas na manhã seguinte), por página",
+ "dias": {
+  "2026-11-17": {
+   "ricardonunes.metodorgv.com.br/proibido-perder-venda": {
+    "sess": 1,
+    "rol": 100.0,
+    "ativo": 53.0,
+    "raiva": 0.0,
+    "morto": 0.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/rgv-da-virada-v2": {
+    "sess": 260,
+    "rol": 10487.0,
+    "ativo": 13080.0,
+    "raiva": 1.0,
+    "morto": 13.0,
+    "volta": 4.0
+   },
+   "ricardonunes.metodorgv.com.br/stories-formulario": {
+    "sess": 114,
+    "rol": 11252.0,
+    "ativo": 4443.0,
+    "raiva": 0.0,
+    "morto": 11.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/form-rgv": {
+    "sess": 37,
+    "rol": 3259.0,
+    "ativo": 5210.0,
+    "raiva": 0.0,
+    "morto": 6.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/rgv-da-virada": {
+    "sess": 9,
+    "rol": 298.66,
+    "ativo": 245.0,
+    "raiva": 0.0,
+    "morto": 3.0,
+    "volta": 0.0
+   }
+  }
+ }
+}

@@ -93,7 +93,7 @@ details.ler dd{margin:0;color:var(--muted);font-size:13.5px;line-height:1.55}
 .cri dd{margin:2px 0 0;font:700 14px/1.2 var(--f-body);color:var(--fg)}
 .cri dd.ok{color:var(--ok)}.cri dd.warn{color:var(--warn)}.cri dd.bad{color:var(--bad)}
 .cri.sem{opacity:.72}
-.cri.pg{cursor:default}.cri.pg .thumb{aspect-ratio:16/10}.cri.pg .thumb img{object-position:top}
+.cri.pg{cursor:default}.cri.pg .cl-t{font:800 10.5px/1 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--red);border-top:1px dashed var(--line-soft);padding-top:10px}.cri.pg .thumb{aspect-ratio:16/10}.cri.pg .thumb img{object-position:top}
 .cri.pg dl{grid-template-columns:repeat(3,minmax(0,1fr))}
 .cri{cursor:pointer;transition:border-color .15s}
 .cri:hover{border-color:var(--line)}
@@ -818,18 +818,27 @@ function renderPaginas(){
   ord.addEventListener("change",()=>{PGS.ord=ord.value; renderPaginas();});
   const t=rc(sumRows(todos));
   const m=(dtx,v,cls)=>el("div",{},el("dt",{text:dtx}),el("dd",{class:cls||"",text:v}));
+  // Clarity no período: soma dos dias guardados (sessões; rolagem e tempo ativo médios por sessão; % de sessões com cada clique)
+  const ixd=d=>Math.round((new Date(d+"T12:00:00")-new Date(C.ini+"T12:00:00"))/864e5);
+  const c0=DATA.daily.length?ixd(DATA.daily[0][0]):0, c1=DATA.daily.length?ixd(DATA.daily[DATA.daily.length-1][0]):-1;
+  const clar=nome=>{const L=((DATA.clarity||{})[nome]||[]).filter(x=>x[0]>=c0&&x[0]<=c1); if(!L.length) return null;
+    const z=L.reduce((a,x)=>a.map((v,i)=>v+(x[i+1]||0)),[0,0,0,0,0,0]); return {sess:z[0],rol:div(z[1],z[0]),ativo:div(z[2],z[0]),raiva:div(z[3],z[0]),morto:div(z[4],z[0]),volta:div(z[5],z[0]),dias:L.length};};
+  const seg=v=>v==null?"—":v>=60?`${Math.floor(v/60)}min ${String(Math.round(v%60)).padStart(2,"0")}s`:`${Math.round(v)}s`;
   const cards=todos.sort(ORD[PGS.ord][1]).map((r,i)=>{
     const url="https://"+r.nome, th=el("div",{class:"thumb",text:"PÁGINA"});
     const img=el("img",{src:"https://s.wordpress.com/mshots/v1/"+encodeURIComponent(url)+"?w=640&h=400",alt:"",loading:"lazy",referrerpolicy:"no-referrer"}); img.addEventListener("error",()=>img.remove());
     th.append(img,el("span",{class:"rk",text:"#"+(i+1)}));
-    const nm=el("div",{class:"nm"},el("span",{text:r.nome}));
+    const nm=el("div",{class:"nm"},el("span",{},r.nome,r.tambem?el("small",{style:"display:block;color:var(--faint);font-weight:500;margin-top:3px",text:"também: "+r.tambem.join(" · ")}):null));
     const a=el("a",{class:"ver",href:url,target:"_blank",rel:"noopener",title:"Abrir a página","aria-label":"Abrir a página "+r.nome}); a.innerHTML=OLHO; nm.append(a);
     return el("article",{class:"cri pg"},th,el("div",{class:"bd"},nm,el("dl",{},
       m("Investimento",brl(r.sp)),m("Cliques no link",int(r.clkp??r.clk)),m("Visitas",int(r.lpv)),
       m("Connect",r.connect>1.1?"—":pct(r.connect,0),tone(r.connect,META.connect,false)),m("Custo por visita",r.lpv?brl(r.sp/r.lpv,2):"—"),m("Conversão",r.lpv?pct(r.conv,2):"—",r.lpv?tone(r.conv,META.conv,false):""),
       m("Leads",int(r.l)),m("Custo por lead",r.l?brl(r.cpl):"sem lead"),m("MQL",int(r.m)),
       m("Custo MQL",r.m?brl(r.cmql):"sem MQL",tone(r.cmql,META.cpl)),m("SQL",int(r.s)),m("Custo SQL",r.s?brl(r.csql):"sem SQL",tone(r.csql,META.custoSql)),
-      m("Cadeiras",int(r.v)),m("Custo por cadeira",r.v?brl(r.sp/r.v):"sem venda"))));});
+      m("Cadeiras",int(r.v)),m("Custo por cadeira",r.v?brl(r.sp/r.v):"sem venda")),
+      ...(()=>{const c=clar(r.nome); return [el("div",{class:"cl-t",text:c?`Clarity · ${c.dias} dia${c.dias>1?"s":""} lido${c.dias>1?"s":""}`:"Clarity · sem dado no período"}),
+        c?el("dl",{},m("Sessões",int(c.sess)),m("Rolagem média",pct(c.rol/100,0)),m("Tempo ativo",seg(c.ativo)),
+          m("Clique de raiva",pct(c.raiva,1)),m("Clique morto",pct(c.morto,1)),m("Volta rápida",pct(c.volta,1))):null];})()));});
   box.replaceChildren(sec("Páginas do ciclo",`${C.nome}${DATA.recorte?` · período de ${dBR(DATA.recorte.ini)} a ${dBR(DATA.recorte.fim)}`:""} · páginas com investimento no Meta [FF] · gasto de cada anúncio na página em que os leads dele caíram em cada dia · leads e MQL do HubSpot · cadeiras da Planilha Comercial`,
     el("div",{class:"kpis",style:"grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:14px"},
       kpi("Páginas com investimento",int(todos.length),`${brl(t.sp)} investidos nelas`,true),
@@ -838,7 +847,7 @@ function renderPaginas(){
       kpi("Cadeiras",int(t.v),t.v?`${brl(t.sp/t.v)} por cadeira`:"sem venda ligada às páginas")),
     el("div",{class:"cri-bar",style:"display:flex;justify-content:flex-end;gap:10px;margin-bottom:12px"},ord),
     todos.length?el("div",{class:"cri-grid"},...cards):el("p",{class:"note",text:"Nenhuma página com investimento neste período."}),
-    el("p",{class:"note",text:"Connect = visitas ÷ cliques no link; conversão = leads ÷ visitas; custo por visita = investimento ÷ visitas. Lead Ads, Google e orgânico não aparecem aqui porque não passam por página com gasto do Meta. A imagem é uma prévia da página de hoje."})));
+    el("p",{class:"note",text:"Connect = visitas ÷ cliques no link; conversão = leads ÷ visitas; custo por visita = investimento ÷ visitas. Lead Ads, Google e orgânico não aparecem aqui porque não passam por página com gasto do Meta. A imagem é uma prévia da página de hoje. Clarity (projeto Método RGV): lido uma vez por dia, a partir de 17/11; rolagem e tempo ativo são médias por sessão, e os cliques são % das sessões em que aconteceram. As páginas de metodorgv.com.br não estão nesse projeto do Clarity."})));
 }
 const tipoCri=n=>/\[(VD|VIDEO|REELS?)\]/i.test(n)?"vd":/\[(IMG|EST|ESTATICO|CARROSSEL|CAR)\]/i.test(n)?"img":"outro";
 function renderCriativos(){

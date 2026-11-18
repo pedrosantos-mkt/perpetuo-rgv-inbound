@@ -12,6 +12,8 @@ concurrency:
 jobs:
   atualizar:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # guarda o clarity.json do dia no repositório
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
@@ -24,7 +26,14 @@ jobs:
           META_TOKEN: ${{ secrets.META_TOKEN }}
           HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
           VENDAS_URL: ${{ secrets.VENDAS_URL }}
+          CLARITY_TOKEN: ${{ secrets.CLARITY_TOKEN }}
         run: ./atualizar.sh
+      - name: Guardar o Clarity do dia
+        run: |
+          git diff --quiet -- clarity.json && exit 0
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add clarity.json && git commit -m 'Clarity do dia [skip ci]' && git push || echo 'não deu para guardar o clarity.json'
       - name: Publicar na Vercel
         working-directory: site
         env:

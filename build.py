@@ -58,6 +58,23 @@ for a in M['ads']:
                         'prev': cr.get('instagram_permalink_url') or a.get('preview_shareable_link'),
                         'thumb': cr.get('thumbnail_url')}
 
+# mesma página com dois endereços (metodorgv.com.br/x e ricardonunes.metodorgv.com.br/x, ou v34 e rgv-v34) vira uma só:
+# o endereço que fica é o do metodorgv.com.br quando existir; os outros aparecem como "também" no cartão
+def _chave(p):
+    host, _, path = p.partition('/')
+    return re.sub(r'^rgv-(v\d+)', r'\1', path) if host.endswith('metodorgv.com.br') and path else p
+_todas = {i['page'] for i in info_ad.values()} | {norm_page(l['page']) for l in HS.get('envios', HS['leads']) if l.get('page')}
+_grupo = collections.defaultdict(set)
+for _p in _todas: _grupo[_chave(_p)].add(_p)
+CANON, TAMBEM = {}, collections.defaultdict(list)
+for _k, _ps in _grupo.items():
+    _c = sorted(_ps, key=lambda x: (not x.startswith('metodorgv.com.br/'), len(x), x))[0]
+    for _p in _ps:
+        CANON[_p] = _c
+        if _p != _c: TAMBEM[_c].append(_p)
+canon = lambda p: CANON.get(p, p)
+for _i in info_ad.values(): _i['page'] = canon(_i['page'])
+
 adset_tag = {a['adset_id']: janela(a['adset_name']) for a in M['adsets']}
 # nomes comparados só por letras e números (UTMs chegam com traço, espaço ou colchete diferente)
 N = lambda s: re.sub(r'[^0-9A-Z]', '', unicodedata.normalize('NFD', s or '').upper())
@@ -77,7 +94,7 @@ for a in M['ads_ins']:
 _vistos = collections.defaultdict(dict)
 for _l in sorted(HS.get('envios', HS['leads']), key=lambda x: x['ts']):
     if _l['canal'] != 'meta' or 'LEAD ADS' in _l['form'] or not _l.get('page'): continue
-    _pg = norm_page(_l['page'])
+    _pg = canon(norm_page(_l['page']))
     for _k in ((N(_l['term']), N(_l['content'])), ('', N(_l['content']))):
         _vistos[_k][_l['dia']] = _pg
 _ad_nome = {a['ad_id']: (N(a.get('adset_name')), N(a['ad_name'])) for a in M['ads_ins']}
@@ -129,7 +146,7 @@ def atribui(l):
         w = pesos.get((camp, ad)) or {}
         tot = sum(w.values())
         tags = {g: v / tot for g, v in w.items()} if tot else {'Sem conjunto na UTM': 1.0}
-    page = NATIVO if 'LEAD ADS' in l['form'] else norm_page(l['page'])
+    page = NATIVO if 'LEAD ADS' in l['form'] else canon(norm_page(l['page']))
     return {'tags': tags, 'page': page, 'ad': ad, 'camp': camp}
 
 
@@ -329,7 +346,7 @@ data = {
     'base': B,
     'daily': daily,
     'publicos': [{'nome': n, **limpa(pub[n]), 'bm': bm(M['pub_bm'].get(n))} for n in ORDEM_PUBLICO if n in pub],
-    'paginas': sorted([{'nome': n, **limpa(v)} for n, v in pag.items()], key=lambda r: (-r.get('spend', 0), -r.get('lead', 0))),
+    'paginas': sorted([{'nome': n, **limpa(v), **({'tambem': sorted(TAMBEM[n])} if TAMBEM.get(n) else {})} for n, v in pag.items()], key=lambda r: (-r.get('spend', 0), -r.get('lead', 0))),
     'criativos': [{'nome': n, **limpa(v), **prev.get(n, {}), 'bm': bm(M['cre_bm'].get(n)) if n in M['cre_bm'] else None,
                    'onde': [x for x, _ in onde[n].most_common(3)] if n in onde else []}
                   for n, v in cre.items() if v.get('spend', 0) > 0 or v.get('lead', 0) > 0],
@@ -362,6 +379,15 @@ data = {
                      'lead_tot': len(HS['leads']), 'lead': len(HS['leads']), 'mql': len(CRM['deals']), 'sql': sum(1 for d in CRM['deals'] if d.get('sql')),
                      'hubspot': True, 'venda': sum(x[2] for x in GV), 'receita': sum(x[3] for x in GV), **({'g_spend': round(sum(c['spend'] for c in _gc['campanhas']), 2)} if _gc else {})}],
 }
+# Clarity por página e dia (clarity.json, lido 1x por dia por clarity.py): [dia, sessões, rolagem×sessões, tempo ativo×sessões,
+# sessões com clique de raiva, com clique morto, com volta rápida]; o painel soma os dias do período
+_cl = json.load(open(os.path.join(AQUI, 'clarity.json'))) if os.path.exists(os.path.join(AQUI, 'clarity.json')) else {'dias': {}}
+CLAR = collections.defaultdict(list)
+for _d, _pgs in sorted(_cl['dias'].items()):
+    if _d not in DIA_IX: continue
+    for _p, _v in _pgs.items():
+        CLAR[canon(_p)].append([DIA_IX[_d]] + [round(_v.get(k, 0), 2) for k in ('sess', 'rol', 'ativo', 'raiva', 'morto', 'volta')])
+data['clarity'] = dict(CLAR) or None
 # ---------- dados granulares para o filtro de datas dentro do ciclo ----------
 _dx = lambda v: (dt.date.fromisoformat(v) - CICLO['ini']).days if v and v >= _ini else -1
 ad_info = {}
