@@ -42,6 +42,64 @@
     "morto": 3.0,
     "volta": 0.0
    }
+  },
+  "2026-11-18": {
+   "ricardonunes.metodorgv.com.br/proibido-perder-venda": {
+    "sess": 2,
+    "rol": 171.34,
+    "ativo": 56.0,
+    "raiva": 0.0,
+    "morto": 0.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/rgv-da-virada-v2": {
+    "sess": 290,
+    "rol": 10298.14,
+    "ativo": 15635.0,
+    "raiva": 1.0,
+    "morto": 18.0,
+    "volta": 5.0
+   },
+   "ricardonunes.metodorgv.com.br/stories-formulario": {
+    "sess": 97,
+    "rol": 9619.5,
+    "ativo": 3147.0,
+    "raiva": 0.0,
+    "morto": 7.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/form-rgv": {
+    "sess": 22,
+    "rol": 1954.0,
+    "ativo": 3993.0,
+    "raiva": 1.0,
+    "morto": 6.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/rgv-da-virada": {
+    "sess": 3,
+    "rol": 129.0,
+    "ativo": 30.0,
+    "raiva": 0.0,
+    "morto": 1.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/perpetuo-funil-tributario": {
+    "sess": 3,
+    "rol": 30.75,
+    "ativo": 90.0,
+    "raiva": 0.0,
+    "morto": 0.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/perpetuo-funil-tributario-v2": {
+    "sess": 2,
+    "rol": 105.0,
+    "ativo": 92.0,
+    "raiva": 0.0,
+    "morto": 0.0,
+    "volta": 0.0
+   }
   }
  }
 }
