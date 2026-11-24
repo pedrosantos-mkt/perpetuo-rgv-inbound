@@ -150,6 +150,72 @@
     "morto": 1.0,
     "volta": 0.0
    }
+  },
+  "2026-11-23": {
+   "ricardonunes.metodorgv.com.br/perpetuo-funil-tributario": {
+    "sess": 133,
+    "rol": 8573.35,
+    "ativo": 5353.0,
+    "raiva": 0.0,
+    "morto": 5.0,
+    "volta": 3.0
+   },
+   "ricardonunes.metodorgv.com.br/stories-formulario": {
+    "sess": 38,
+    "rol": 3780.0,
+    "ativo": 1151.0,
+    "raiva": 0.0,
+    "morto": 2.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/rgv-da-virada-v2": {
+    "sess": 100,
+    "rol": 3997.52,
+    "ativo": 2434.0,
+    "raiva": 1.0,
+    "morto": 4.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/perpetuo-funil-tributario-v2": {
+    "sess": 29,
+    "rol": 1598.1,
+    "ativo": 758.0,
+    "raiva": 0.0,
+    "morto": 1.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/rgv-v31": {
+    "sess": 1,
+    "rol": 8.0,
+    "ativo": 0.0,
+    "raiva": 0.0,
+    "morto": 0.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/form-rgv": {
+    "sess": 24,
+    "rol": 2332.8,
+    "ativo": 1185.0,
+    "raiva": 0.0,
+    "morto": 5.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/provas-sociais-rgv": {
+    "sess": 1,
+    "rol": 42.0,
+    "ativo": 47.0,
+    "raiva": 0.0,
+    "morto": 1.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/proibido-perder-venda": {
+    "sess": 1,
+    "rol": 30.0,
+    "ativo": 9.0,
+    "raiva": 0.0,
+    "morto": 1.0,
+    "volta": 0.0
+   }
   }
  }
 }
