@@ -216,6 +216,64 @@
     "morto": 1.0,
     "volta": 0.0
    }
+  },
+  "2026-11-24": {
+   "ricardonunes.metodorgv.com.br/stories-formulario": {
+    "sess": 43,
+    "rol": 4130.0,
+    "ativo": 1632.0,
+    "raiva": 0.0,
+    "morto": 3.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/perpetuo-funil-tributario": {
+    "sess": 154,
+    "rol": 10062.61,
+    "ativo": 3608.0,
+    "raiva": 0.0,
+    "morto": 13.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/rgv-da-virada-v2": {
+    "sess": 90,
+    "rol": 4102.5,
+    "ativo": 4658.0,
+    "raiva": 0.0,
+    "morto": 4.0,
+    "volta": 1.0
+   },
+   "ricardonunes.metodorgv.com.br/form-rgv": {
+    "sess": 20,
+    "rol": 1720.0,
+    "ativo": 582.0,
+    "raiva": 0.0,
+    "morto": 2.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/perpetuo-funil-tributario-v2": {
+    "sess": 23,
+    "rol": 1308.52,
+    "ativo": 2159.0,
+    "raiva": 0.0,
+    "morto": 0.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/rgv-v31": {
+    "sess": 1,
+    "rol": 43.0,
+    "ativo": 5.0,
+    "raiva": 0.0,
+    "morto": 0.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/rgv-da-virada": {
+    "sess": 1,
+    "rol": 6.0,
+    "ativo": 2.0,
+    "raiva": 0.0,
+    "morto": 0.0,
+    "volta": 0.0
+   }
   }
  }
 }
