@@ -1,5 +1,5 @@
 {
- "fonte": "Planilha Comercial (1GPPqdff…, aba Vendas): CANAL Perpétuo + PRODUTO RGV, pela coluna CICLO, só com a coluna L (Obs) vazia, PERPETUO, MQL ou \"Verificar\" (fora resgates, De Frente, outras ações, live e cancelado); lida pelo Chrome em 18/11/2026",
+ "fonte": "Planilha Comercial (1GPPqdff…, aba Vendas): CANAL Perpétuo + PRODUTO RGV, pela coluna CICLO, só com a coluna L (Obs) vazia, PERPETUO, MQL ou \"Verificar\" (fora resgates, De Frente, outras ações, live e cancelado); RGV 46 conferido pelo print da planilha em 26/11/2026",
  "vendas": [
   {
    "id": "55475656028",
@@ -2135,6 +2135,62 @@
    "valor": 30000.0,
    "ciclo": "RGV 46",
    "data": "2026-11-16"
+  },
+  {
+   "id": "68033982740",
+   "vendas": 1,
+   "valor": 12000.0,
+   "ciclo": "RGV 46",
+   "data": "2026-11-19"
+  },
+  {
+   "id": "68281050440",
+   "vendas": 1,
+   "valor": 11880.0,
+   "ciclo": "RGV 46",
+   "data": "2026-11-19"
+  },
+  {
+   "id": "66502758986",
+   "vendas": 3,
+   "valor": 40002.0,
+   "ciclo": "RGV 46",
+   "data": "2026-11-20"
+  },
+  {
+   "id": "68034274831",
+   "vendas": 2,
+   "valor": 24000.0,
+   "ciclo": "RGV 46",
+   "data": "2026-11-24"
+  },
+  {
+   "id": "68593472661",
+   "vendas": 2,
+   "valor": 27000.0,
+   "ciclo": "RGV 46",
+   "data": "2026-11-24"
+  },
+  {
+   "id": "66137683824",
+   "vendas": 1,
+   "valor": 11500.0,
+   "ciclo": "RGV 46",
+   "data": "2026-11-24"
+  },
+  {
+   "id": "67804647999",
+   "vendas": 1,
+   "valor": 12500.0,
+   "ciclo": "RGV 46",
+   "data": "2026-11-24"
+  },
+  {
+   "id": "65879158967",
+   "vendas": 2,
+   "valor": 31800.0,
+   "ciclo": "RGV 46",
+   "data": "2026-11-25"
   }
  ]
 }
