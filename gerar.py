@@ -10,7 +10,7 @@ lista_site = json.dumps(lista, ensure_ascii=False)
 # metas de leads por ciclo (metas.json), embutidas para valer em qualquer ciclo sem refazer os arquivos dos ciclos
 mj = os.path.join(AQUI, 'metas.json')
 metas = json.load(open(mj))['ciclos'] if os.path.exists(mj) else {}
-t = open(os.path.join(AQUI, 'template.html')).read().replace('__DATA__', json.dumps(d, ensure_ascii=False)).replace('__METAS__', json.dumps(metas, ensure_ascii=False))
+t = open(os.path.join(AQUI, 'template.html')).read().replace('__DATA__', json.dumps(d, ensure_ascii=False)).replace('__METAS__', json.dumps(metas, ensure_ascii=False)).replace('__ETAPAS__', open(os.path.join(AQUI, 'etapas.json')).read() if os.path.exists(os.path.join(AQUI, 'etapas.json')) else '{}')
 open(os.path.join(AQUI, 'index.html'), 'w').write(t.replace('__LISTA__', '[]'))   # Artifact: só o ciclo atual
 t = t.replace('__LISTA__', lista_site)
 os.makedirs(os.path.join(AQUI, 'site'), exist_ok=True)

@@ -355,7 +355,9 @@ footer p{margin:0 0 8px}
 
 <script>
 let DATA = __DATA__;
-const DATA0 = DATA, HIST = DATA.historico||[], LISTA = __LISTA__, METAS = __METAS__;
+const DATA0 = DATA, HIST = DATA.historico||[], LISTA = __LISTA__, METAS = __METAS__, ETAPAS = __ETAPAS__;
+// gasto do Meta por etapa (topo, meio, fundo) nos dias do período mostrado
+const etapasDe = () => { const E=ETAPAS[C.nome]; if(!E||!D.length) return null; const a=D[0][0], b=D[D.length-1][0], s=[0,0,0]; for(const [d,v] of Object.entries(E)) if(d>=a&&d<=b) v.forEach((x,i)=>s[i]+=x); return s; };
 const FRENTES = [["Instagram orgânico",[["Stories","utm_source stories ou content stories"],["Direct","utm_source direct ou medium direct-message"],["Bio","utm_source bio ou content bio / link_in_bio"],["Feed / Reels","utm_source instagram + content feed, reels ou Ricardo, sem ManyChat"],["Grupo R1","content Grupo_R1"],["Live","utm_source live ou content live"],["Lançamento","campanha ou source de lançamento"],["Canal de transmissão","source ou content canal_transmissao"],["Comentários ManyChat","utm_term manychat_comentarios (ou source/medium manychat)"]]],
   ["YouTube orgânico",[["Shorts","utm_source youtube + content shorts"],["Podcast / vlogs","utm_source youtube + content podcast ou vlog"],["Outros do YouTube","utm_source youtube sem shorts/podcast/vlog"]]],
   ["Bases",[["E-mail","source ou medium email, hubspot, hs_automation"],["WhatsApp 1x1","source whatsapp ou wppcrm, sem grupo"],["Grupos de WhatsApp","source whatsapp + content grupo"],["Outras bases","crm, disparo, sms"]]]];   // metas de leads por ciclo (metas.json)   // ciclo atual embutido; os fechados vêm de c/<ciclo>.json
@@ -413,7 +415,9 @@ function renderTop(){
     : `Ciclo ${C.nome} · ${dBR(C.ini)} a ${dBR(C.fim)} · investimento Meta [FF]${GG?" + Google Ads":""} · leads e MQL do HubSpot, todas as origens · ${DATA.recorte?`período de ${dBR(DATA.recorte.ini)} a ${dBR(DATA.recorte.fim)} (${D.length} dia${D.length>1?"s":""})${PARC?` · hoje até ${DATA.hora}`:""}`:PARC?`dados até hoje, ${dBR(DATA.ate)}, às ${DATA.hora} (parcial) · dia ${D.length} de ${C.dias}`:`dados até ${dBR(DATA.ate)} · dia ${D.length} de ${C.dias}`}`;
   carimbo();
   const s=document.getElementById("sum");
-  const it=[["Investimento",brl(SPT),GG?`Meta ${brl(K.spend)} · Google ${GG.recorte?"sem gasto por dia (fora do período)":GG.sem_gasto?"gasto ainda não lido":brl(GG.spend)}`:brl(SPT/diasCorr)+" por dia",""],
+  const ET=etapasDe(), gTot=GG&&!GG.sem_gasto?GG.spend:0;
+  const it=[...(ET?[["Investimento total",brl(ET[0]+ET[1]+K.spend+gTot),`Topo ${brl(ET[0])} · Meio ${brl(ET[1])} · Fundo ${brl(K.spend+gTot)}`,""]]:[]),
+    [ET?"Investimento fundo":"Investimento",brl(SPT),GG?`Meta ${brl(K.spend)} · Google ${GG.recorte?"sem gasto por dia (fora do período)":GG.sem_gasto?"gasto ainda não lido":brl(GG.spend)}`:brl(SPT/diasCorr)+" por dia",""],
     ["Leads",int(K.lead),`pessoas no HubSpot · CPL ${brl(cpl)}`,""],
     ["MQL",int(K.mql),METAS[C.nome]&&!DATA.recorte?`${pct(div(K.mql,METAS[C.nome].total),0)} da meta de ${int(METAS[C.nome].total)} · ${pct(div(K.mql,K.lead),0)} dos leads`:SM?`${pct(div(K.mql,K.lead),0)} dos leads`:`meta até ${dBR(DATA.ate)}: ${int(metaAte)} · ${pct(K.mql/metaAte,0)}`,SM?"":tone(K.mql,metaAte,false)],
     ["Custo por MQL",brl(cmql),"meta "+brl(META.cpl),tone(cmql,META.cpl)],
@@ -500,7 +504,8 @@ function painelVendas(){
 
 function comoLer(){
   const L=[
-    ["Investimento","Gasto no Meta Ads da conta Perpétuo RGV no ciclo, só das campanhas com [FF] no nome (captação), mais o Google Ads do Perpétuo quando houver. Distribuição e remarketing sem lead ficam de fora."],
+    ["Investimento","Gasto no Meta Ads da conta Perpétuo RGV no ciclo, só das campanhas com [FF] no nome (captação), mais o Google Ads do Perpétuo quando houver. Distribuição e remarketing sem lead ficam de fora. É a base de todos os custos (por lead, MQL, SQL e cadeira)."],
+    ["Investimento total","Todo o gasto do Perpétuo no Meta separado por etapa, mais o Google. Topo: campanhas [TF], de atração e posts impulsionados do Instagram. Meio: [MF] e aquecimento. Fundo: [FF] mais o Google. Ficam fora ações de outros projetos e eventos ([C2G], [MDV], CNE, cadastro de live, venda de rota)."],
     ["Leads","Só do HubSpot: pessoas que preencheram formulário PERPÉTUO no ciclo, de qualquer origem (Meta, Google, Instagram orgânico, live, sem UTM...), contadas uma vez cada, sem envios de teste e sem e-mails @grupor1.com. Nada vem do pixel nem dos leads que o Meta reporta."],
     ["MQL","Só do HubSpot: negócios do relatório \"[CICLO] MQL - PERPÉTUO\" criados no ciclo (pipelines padrão, Boletos e Vendas Principal; fora as origens de evento, indicação e outbound do filtro do relatório), de todas as origens. É o mesmo número do relatório do HubSpot."],
     ["SQL","MQL que chegou em Em Agendamento ou depois no pipeline Vendas Principal (no padrão, Em Qualificação em diante), mesmo que perdido depois."],

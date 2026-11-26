@@ -3,6 +3,6 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 export TZ=America/Sao_Paulo
-for s in meta base hs vendas crm clarity build gerar; do
+for s in meta etapas base hs vendas crm clarity build gerar; do
   echo "== $s"; python3 -u "$s.py"
 done
