@@ -324,6 +324,64 @@
     "morto": 1.0,
     "volta": 0.0
    }
+  },
+  "2026-11-26": {
+   "ricardonunes.metodorgv.com.br/rgv-da-virada-v2": {
+    "sess": 80,
+    "rol": 3696.47,
+    "ativo": 1986.0,
+    "raiva": 1.0,
+    "morto": 2.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/stories-formulario": {
+    "sess": 83,
+    "rol": 8168.0,
+    "ativo": 2484.0,
+    "raiva": 0.0,
+    "morto": 4.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/perpetuo-funil-tributario": {
+    "sess": 232,
+    "rol": 13988.33,
+    "ativo": 6666.0,
+    "raiva": 1.0,
+    "morto": 18.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/perpetuo-funil-tributario-v2": {
+    "sess": 24,
+    "rol": 1696.99,
+    "ativo": 355.0,
+    "raiva": 0.0,
+    "morto": 1.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/form-rgv": {
+    "sess": 7,
+    "rol": 700.0,
+    "ativo": 784.0,
+    "raiva": 0.0,
+    "morto": 1.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/rgv-da-virada": {
+    "sess": 2,
+    "rol": 16.0,
+    "ativo": 341.0,
+    "raiva": 0.0,
+    "morto": 0.0,
+    "volta": 0.0
+   },
+   "ricardonunes.metodorgv.com.br/manual-reforma-tributaria": {
+    "sess": 2,
+    "rol": 110.0,
+    "ativo": 8.0,
+    "raiva": 0.0,
+    "morto": 0.0,
+    "volta": 0.0
+   }
   }
  }
 }
