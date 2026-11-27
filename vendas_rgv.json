@@ -1,5 +1,5 @@
 {
- "fonte": "Planilha Comercial (1GPPqdff…, aba Vendas): CANAL Perpétuo + PRODUTO RGV, pela coluna CICLO, só com a coluna L (Obs) vazia, PERPETUO, MQL ou \"Verificar\" (fora resgates, De Frente, outras ações, live e cancelado); RGV 46 conferido pelo print da planilha em 26/11/2026",
+ "fonte": "Planilha Comercial (1GPPqdff…, aba Vendas): CANAL Perpétuo + PRODUTO RGV, pela coluna CICLO, só com a coluna L (Obs) vazia, PERPETUO, MQL ou \"Verificar\" (fora resgates, De Frente, outras ações, live e cancelado); RGV 46 conferido pelo print da planilha em 26/11/2026; De Frente/live só entram se a pessoa já tinha oportunidade do Perpétuo ativa com reunião agendada ao fechar",
  "vendas": [
   {
    "id": "55475656028",
@@ -2191,6 +2191,14 @@
    "valor": 31800.0,
    "ciclo": "RGV 46",
    "data": "2026-11-25"
+  },
+  {
+   "id": "68045586238",
+   "vendas": 1,
+   "valor": 23880.0,
+   "ciclo": "RGV 46",
+   "data": "2026-11-17",
+   "regra": "De Frente com oportunidade Perpétuo ativa (reunião agendada antes de fechar)"
   }
  ]
 }
