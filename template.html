@@ -436,7 +436,7 @@ function painelFunil(){
     stage("Cliques no link",int(K.clk),"CPC link "+brl(BM.cpc,2)),
     rate(pct(connect,0),"Connect","meta "+pct(META.connect,0)+" · só página",tone(connect,META.connect,false)),
     stage("Visitas na página",int(visitas),"landing page views"),
-    rate(pct(conv,2),"Conversão da página","meta "+pct(META.conv,0)+" · leads de anúncio de página",tone(conv,META.conv,false)),
+    rate(pct(conv,2),"Conversão da página","meta "+pct(META.conv,0),tone(conv,META.conv,false)),
     stage("Leads",int(K.lead),`todas as origens · ${int(K.lead_pag)} de página · ${int(K.lead_nativo)} de Lead Ads`,true),
     rate(pct(div(K.mql,K.lead),0),"Viram MQL",""),
     stage("MQL",int(K.mql),"custo "+brl(cmql),true,SM?"meta custo "+brl(META.cpl):`meta até ${dBR(DATA.ate)}: ${int(metaAte)}`,SM?tone(cmql,META.cpl):tone(K.mql,metaAte,false)),
