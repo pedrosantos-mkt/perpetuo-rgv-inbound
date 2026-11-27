@@ -216,7 +216,8 @@ dialog.det::backdrop{background:rgba(0,0,0,.72)}
 .rate b{font-size:13px;font-weight:800;white-space:nowrap}
 .rate span{font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);line-height:1.2}
 .rate::before{content:"→";color:var(--faint);font-size:14px}
-.meta-f{font-size:10px;color:var(--faint);line-height:1.3}
+.meta-f{font-size:10px;color:var(--fg);font-weight:700;line-height:1.3;background:rgba(var(--ink-rgb),.07);border:1px solid rgba(var(--ink-rgb),.12);border-radius:6px;padding:3px 7px;margin-top:4px;align-self:flex-start;display:inline-block}
+.rate .meta-f{align-self:center}
 .stage .meta-f.ok{color:var(--ok)} .stage .meta-f.warn{color:var(--warn)} .stage .meta-f.bad{color:var(--bad)}
 @media (min-width:821px) and (max-width:1180px){
   .rate{flex-basis:50px}
@@ -437,10 +438,10 @@ function painelFunil(){
     rate(pct(connect,0),"Connect","meta "+pct(META.connect,0)+" · só página",tone(connect,META.connect,false)),
     stage("Visitas na página",int(visitas),"landing page views"),
     rate(pct(conv,2),"Conversão da página","meta "+pct(META.conv,0),tone(conv,META.conv,false)),
-    stage("Leads",int(K.lead),`todas as origens · ${int(K.lead_pag)} de página · ${int(K.lead_nativo)} de Lead Ads`,true),
-    rate(pct(div(K.mql,K.lead),0),"Viram MQL",""),
+    stage("Leads",int(K.lead),"",true),
+    rate(pct(div(K.mql,K.lead),0),"MQL",""),
     stage("MQL",int(K.mql),"custo "+brl(cmql),true,SM?"meta custo "+brl(META.cpl):`meta até ${dBR(DATA.ate)}: ${int(metaAte)}`,SM?tone(cmql,META.cpl):tone(K.mql,metaAte,false)),
-    rate(pct(txSql,1),"Viram SQL","meta "+pct(META.sqlTx,0),tone(txSql,META.sqlTx,false)),
+    rate(pct(txSql,1),"SQL","meta "+pct(META.sqlTx,0),tone(txSql,META.sqlTx,false)),
     stage("SQL",int(K.sql),"custo "+brl(custoSql),true,"meta custo "+brl(META.custoSql),tone(custoSql,META.custoSql)));
   return sec("Funil inbound",`mídia do Meta ${C.somado?"(CPM, CTR e CPC pelas somas das campanhas)":"(CPM, CTR e CPC prontos do Gerenciador)"} · leads, MQL e SQL só do HubSpot, todas as origens · connect e conversão da página só nas campanhas de página`,f);
 }
